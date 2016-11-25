@@ -1,0 +1,10 @@
+#
+####### requirements.txt for FPGA_DSPy #######
+#
+###### Requirements without Version Specifiers ######
+numpy
+scipy
+matplotlib
+bisect
+uncertainties
+#
