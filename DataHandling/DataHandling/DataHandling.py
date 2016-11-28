@@ -1,13 +1,13 @@
-import LeCroy
-import matplotlib.pyplot as plt
-import numpy as np
+import DataHandling.LeCroy
+import matplotlib.pyplot as _plt
+import numpy as _np
 import scipy.signal
-from bisect import bisect_left
-from scipy.optimize import curve_fit
-import uncertainties
+from bisect import bisect_left as _bisect_left
+from scipy.optimize import curve_fit as _curve_fit
+import uncertainties as _uncertainties
 from mpl_toolkits.mplot3d.axes3d import Axes3D
 from matplotlib import rcParams
-import matplotlib.animation as animation
+import matplotlib.animation as _animation
 
 class DataObject():
     """
@@ -90,13 +90,20 @@ class DataObject():
         raw = f.read()
         f.close()
         self.waveDescription, self.time, self.Voltage, _ = \
-        	LeCroy.InterpretWaveform(raw)
+        	DataHandling.LeCroy.InterpretWaveform(raw)
         self.SampleFreq = (1/self.waveDescription["HORIZ_INTERVAL"])
         return self.time, self.Voltage
     
-    def plotTimeData(self, returnFigure=False):
+    def plotTimeData(self, ShowFig=True):
         """
         plot time data against voltage data.
+
+        Parameters
+        ----------
+        ShowFig : bool 
+            If True runs plt.show() before returning figure
+            if False it just returns the figure object.
+            (the default is True, it shows the figure) 
 
         Returns
         -------
@@ -105,13 +112,13 @@ class DataObject():
 		ax : fig.add_subplot(111)
 			The subplot object created
         """
-        fig = plt.figure(figsize=[10, 6])
+        fig = _plt.figure(figsize=[10, 6])
         ax = fig.add_subplot(111)        
         ax.plot(self.time, self.Voltage)
         ax.set_xlabel("time (s)")
         ax.set_ylabel("Voltage (V)")
-        if returnFigure == False:
-            plt.show()
+        if ShowFig == True:
+            _plt.show()
         return fig, ax
     
     def getPSD(self, NPerSegment=100000, window="hann"):
@@ -131,9 +138,18 @@ class DataObject():
                                 window=window, nperseg=NPerSegment)
         return self.freqs, self.PSD
     
-    def plotPSD(self, xlim):
+    def plotPSD(self, xlim, ShowFig=True):
         """
         plot the pulse spectral density.
+
+        Parameters
+        ----------
+        xlim : array_like
+            The x limits of the plotted PSD [LowerLimit, UpperLimit]
+        ShowFig : bool 
+            If True runs plt.show() before returning figure
+            if False it just returns the figure object.
+            (the default is True, it shows the figure)
 
         Returns
         -------
@@ -143,13 +159,15 @@ class DataObject():
 			The subplot object created
         """
         self.getPSD()
-        fig = plt.figure(figsize=[10, 6])
+        fig = _plt.figure(figsize=[10, 6])
         ax = fig.add_subplot(111)
         ax.semilogy(self.freqs, self.PSD, color="blue")
         ax.set_xlabel("Frequency Hz")
         ax.set_xlim(xlim)
         ax.grid(which="major")
         ax.set_ylabel("PSD ($v^2/Hz$)")
+        if ShowFig == True:
+            _plt.show()
         return  fig, ax
 
     def getFit(self, WidthOfPeakToFit, NMovAveToFit, TrapFreq, A_Initial, Gamma_Initial, Verbosity=1):
@@ -183,9 +201,9 @@ class DataObject():
         print("Trap Frequency: {} +- {}% ".format(Params[1], ParamsErr[1]/Params[1]*100))
         print("Big Gamma: {} +- {}% ".format(Params[2], ParamsErr[2]/Params[2]*100))
 
-        self.A = uncertainties.ufloat(Params[0], ParamsErr[0])
-        self.Ftrap = uncertainties.ufloat(Params[1], ParamsErr[1])
-        self.Gamma = uncertainties.ufloat(Params[2], ParamsErr[2])
+        self.A = _uncertainties.ufloat(Params[0], ParamsErr[0])
+        self.Ftrap = _uncertainties.ufloat(Params[1], ParamsErr[1])
+        self.Gamma = _uncertainties.ufloat(Params[2], ParamsErr[2])
 
         return self.A, self.Ftrap, self.Gamma
 
@@ -206,20 +224,20 @@ def calcTemp(Data_ref, Data):
 def fit_curvefit(p0, datax, datay, function, yerr=None, **kwargs):
 
     pfit, pcov = \
-         curve_fit(function,datax,datay,p0=p0,\
+         _curve_fit(function,datax,datay,p0=p0,\
                             sigma=yerr, epsfcn=0.0001, **kwargs)
     error = [] 
     for i in range(len(pfit)):
         try:
-            error.append(np.absolute(pcov[i][i])**0.5)
+            error.append(_np.absolute(pcov[i][i])**0.5)
         except:
             error.append( 0.00 )
     pfit_curvefit = pfit
-    perr_curvefit = np.array(error)
+    perr_curvefit = _np.array(error)
     return pfit_curvefit, perr_curvefit 
 
 def moving_average(a, n=3) :
-    ret = np.cumsum(a, dtype=float)
+    ret = _np.cumsum(a, dtype=float)
     ret[n:] = ret[n:] - ret[:-n]
     return ret[n - 1:] / n
 
@@ -229,7 +247,7 @@ def takeClosest(myList, myNumber):
 
     If two numbers are equally close, return the smallest number.
     """
-    pos = bisect_left(myList, myNumber)
+    pos = _bisect_left(myList, myNumber)
     if pos == 0:
         return myList[0]
     if pos == len(myList):
@@ -245,7 +263,7 @@ def PSD_Fitting(A, Omega0, gamma, omega):
     # Amp = amplitude
     # Omega0 = trapping (Angular) frequency
     # gamma = Big Gamma - damping (due to environment and feedback (if feedback is on))
-    return 10*np.log10(A/((Omega0**2-omega**2)**2 + (omega*gamma)**2))
+    return 10*_np.log10(A/((Omega0**2-omega**2)**2 + (omega*gamma)**2))
 
 def fitPSD(Data, bandwidth, NMovAve, verbosity, TrapFreqGuess, AGuess=0.1e10, GammaGuess=400):
     """
@@ -271,24 +289,24 @@ def fitPSD(Data, bandwidth, NMovAve, verbosity, TrapFreqGuess, AGuess=0.1e10, Ga
     """
 
     
-    AngFreqs = 2*np.pi*Data.freqs
-    Angbandwidth = 2*np.pi*bandwidth
-    AngTrapFreqGuess = 2*np.pi*TrapFreqGuess
+    AngFreqs = 2*_np.pi*Data.freqs
+    Angbandwidth = 2*_np.pi*bandwidth
+    AngTrapFreqGuess = 2*_np.pi*TrapFreqGuess
     
     ClosestToAngTrapFreqGuess = takeClosest(AngFreqs, AngTrapFreqGuess)
-    index_ftrap = np.where(AngFreqs == ClosestToAngTrapFreqGuess)
+    index_ftrap = _np.where(AngFreqs == ClosestToAngTrapFreqGuess)
     ftrap = AngFreqs[index_ftrap]
     
     f_fit_lower = takeClosest(AngFreqs, ftrap-Angbandwidth/2)
     f_fit_upper = takeClosest(AngFreqs, ftrap+Angbandwidth/2)
     
-    indx_fit_lower = int(np.where(AngFreqs==f_fit_lower)[0])
-    indx_fit_upper = int(np.where(AngFreqs==f_fit_upper)[0])
+    indx_fit_lower = int(_np.where(AngFreqs==f_fit_lower)[0])
+    indx_fit_upper = int(_np.where(AngFreqs==f_fit_upper)[0])
 
 #    print(f_fit_lower, f_fit_upper)
 #    print(AngFreqs[indx_fit_lower], AngFreqs[indx_fit_upper])
 
-    index_ftrap = np.where(Data.PSD == max(Data.PSD[indx_fit_lower:indx_fit_upper])) # find highest point in region about guess for trap frequency - use that as guess for trap frequency and recalculate region about the trap frequency
+    index_ftrap = _np.where(Data.PSD == max(Data.PSD[indx_fit_lower:indx_fit_upper])) # find highest point in region about guess for trap frequency - use that as guess for trap frequency and recalculate region about the trap frequency
 
     ftrap = AngFreqs[index_ftrap]
 
@@ -297,13 +315,13 @@ def fitPSD(Data, bandwidth, NMovAve, verbosity, TrapFreqGuess, AGuess=0.1e10, Ga
     f_fit_lower = takeClosest(AngFreqs, ftrap-Angbandwidth/2)
     f_fit_upper = takeClosest(AngFreqs, ftrap+Angbandwidth/2)
     
-    indx_fit_lower = int(np.where(AngFreqs==f_fit_lower)[0])
-    indx_fit_upper = int(np.where(AngFreqs==f_fit_upper)[0])
+    indx_fit_lower = int(_np.where(AngFreqs==f_fit_lower)[0])
+    indx_fit_upper = int(_np.where(AngFreqs==f_fit_upper)[0])
     
     PSD_smoothed = moving_average(Data.PSD, NMovAve)
     freqs_smoothed = moving_average(AngFreqs, NMovAve) 
     
-    logPSD_smoothed = 10*np.log10(PSD_smoothed) 
+    logPSD_smoothed = 10*_np.log10(PSD_smoothed) 
     
     def CalcTheoryPSD_curvefit(freqs, A, TrapFreq, BigGamma):
         Theory_PSD = PSD_Fitting(A, TrapFreq, BigGamma, freqs)
@@ -315,7 +333,7 @@ def fitPSD(Data, bandwidth, NMovAve, verbosity, TrapFreqGuess, AGuess=0.1e10, Ga
     datax = freqs_smoothed[indx_fit_lower:indx_fit_upper]
     datay = logPSD_smoothed[indx_fit_lower:indx_fit_upper]
     
-    p0 = np.array([AGuess, ftrap, GammaGuess])
+    p0 = _np.array([AGuess, ftrap, GammaGuess])
     
     Params_Fit, Params_Fit_Err = fit_curvefit(p0,
                                       datax, datay, CalcTheoryPSD_curvefit)
@@ -329,19 +347,19 @@ def fitPSD(Data, bandwidth, NMovAve, verbosity, TrapFreqGuess, AGuess=0.1e10, Ga
         PSDTheory_fit = PSD_Fitting(Params_Fit[0], Params_Fit[1], 
                                     Params_Fit[2], freqs_smoothed)
         
-        plt.plot(AngFreqs/(2*np.pi), 10*np.log10(Data.PSD), color="darkblue", label="Raw PSD Data", alpha=0.5)
-        plt.plot(freqs_smoothed/(2*np.pi), logPSD_smoothed, color='blue', label="smoothed", linewidth=1.5)
-        plt.plot(freqs_smoothed/(2*np.pi), PSDTheory_fit_initial, color="purple", label="initial")
-        plt.plot(freqs_smoothed/(2*np.pi), PSDTheory_fit, color="red", label="fitted")
-        plt.xlim([(ftrap-5*Angbandwidth)/(2*np.pi), (ftrap+5*Angbandwidth)/(2*np.pi)])
-        plt.plot([(ftrap-Angbandwidth)/(2*np.pi), (ftrap-Angbandwidth)/(2*np.pi)],
+        _plt.plot(AngFreqs/(2*_np.pi), 10*_np.log10(Data.PSD), color="darkblue", label="Raw PSD Data", alpha=0.5)
+        _plt.plot(freqs_smoothed/(2*_np.pi), logPSD_smoothed, color='blue', label="smoothed", linewidth=1.5)
+        _plt.plot(freqs_smoothed/(2*_np.pi), PSDTheory_fit_initial, color="purple", label="initial")
+        _plt.plot(freqs_smoothed/(2*_np.pi), PSDTheory_fit, color="red", label="fitted")
+        _plt.xlim([(ftrap-5*Angbandwidth)/(2*_np.pi), (ftrap+5*Angbandwidth)/(2*_np.pi)])
+        _plt.plot([(ftrap-Angbandwidth)/(2*_np.pi), (ftrap-Angbandwidth)/(2*_np.pi)],
                  [min(logPSD_smoothed), max(logPSD_smoothed)], '--',
                  color="grey")
-        plt.plot([(ftrap+Angbandwidth)/(2*np.pi), (ftrap+Angbandwidth)/(2*np.pi)],
+        _plt.plot([(ftrap+Angbandwidth)/(2*_np.pi), (ftrap+Angbandwidth)/(2*_np.pi)],
                  [min(logPSD_smoothed), max(logPSD_smoothed)], '--',
                  color="grey")
-        plt.legend()
-            
+        _plt.legend()
+        _plt.show()
     return Params_Fit, Params_Fit_Err
 
 
@@ -393,12 +411,12 @@ def ExtractParameters(Pressure, A, AErr, Gamma0, Gamma0Err):
     kB = 1.38e-23 # m^2 kg s^-2 K-1
     eta = 18.27e-6 # Pa s, viscosity of air 
     
-    radius = (0.169*9*np.pi*eta*dm**2)/(np.sqrt(2)*rho*kB*T0)*(Pressure)/(Gamma0)
-    err_radius = radius*np.sqrt(((PressureErr*Pressure)/Pressure)**2+(Gamma0Err/Gamma0)**2);
-    mass = rho*((4*np.pi*radius**3)/3);
+    radius = (0.169*9*_np.pi*eta*dm**2)/(_np.sqrt(2)*rho*kB*T0)*(Pressure)/(Gamma0)
+    err_radius = radius*_np.sqrt(((PressureErr*Pressure)/Pressure)**2+(Gamma0Err/Gamma0)**2);
+    mass = rho*((4*_np.pi*radius**3)/3);
     err_mass = mass*2*err_radius/radius;
-    conversionFactor = np.sqrt(A*np.pi*mass/(kB*T0*Gamma0));
-    err_conversionFactor = conversionFactor*np.sqrt((AErr/A)**2+(err_mass/mass)**2 + (Gamma0Err/Gamma0)**2);  
+    conversionFactor = _np.sqrt(A*_np.pi*mass/(kB*T0*Gamma0));
+    err_conversionFactor = conversionFactor*_np.sqrt((AErr/A)**2+(err_mass/mass)**2 + (Gamma0Err/Gamma0)**2);  
     
     return [radius, mass, conversionFactor], [err_radius, err_mass, err_conversionFactor]
 
@@ -432,10 +450,10 @@ def GetxyzFreqs(Data, zfreq, xfreq, yfreq, bandwidth=5000):
     for freq in [zfreq, xfreq, yfreq]:
         z_f_fit_lower = takeClosest(Data.freqs, freq-bandwidth/2)                                                                                                                                                                          
         z_f_fit_upper = takeClosest(Data.freqs, freq+bandwidth/2)
-        z_indx_fit_lower = int(np.where(Data.freqs==z_f_fit_lower)[0])                                                                                                                                                                           
-        z_indx_fit_upper = int(np.where(Data.freqs==z_f_fit_upper)[0]) 
+        z_indx_fit_lower = int(_np.where(Data.freqs==z_f_fit_lower)[0])                                                                                                                                                                           
+        z_indx_fit_upper = int(_np.where(Data.freqs==z_f_fit_upper)[0]) 
 
-        z_index_ftrap = np.where(Data.PSD == max(Data.PSD[z_indx_fit_lower:z_indx_fit_upper])) 
+        z_index_ftrap = _np.where(Data.PSD == max(Data.PSD[z_indx_fit_lower:z_indx_fit_upper])) 
         # find highest point in region about guess for trap frequency
         # use that as guess for trap frequency and recalculate region 
         # about the trap frequency
@@ -524,14 +542,13 @@ def getXYZData(Data, zf, xf, yf, FractionOfSampleFreq,
         f_z, PSD_z = scipy.signal.welch(zdata, SAMPLEFREQ, nperseg=10000)
         f_y, PSD_y = scipy.signal.welch(ydata, SAMPLEFREQ, nperseg=10000)
         f_x, PSD_x = scipy.signal.welch(xdata, SAMPLEFREQ, nperseg=10000)    
-        plt.plot(f, 10*np.log10(PSD))
-        plt.plot(f_z, 10*np.log10(PSD_z), label="z")
-        plt.plot(f_x, 10*np.log10(PSD_x), label="x")
-        plt.plot(f_y, 10*np.log10(PSD_y), label="y")
-        plt.legend(loc="best")
-        plt.xlim([zf-zwidth-ztransition, yf+ywidth+ytransition])
-
-        plt.show()
+        _plt.plot(f, 10*_np.log10(PSD))
+        _plt.plot(f_z, 10*_np.log10(PSD_z), label="z")
+        _plt.plot(f_x, 10*_np.log10(PSD_x), label="x")
+        _plt.plot(f_y, 10*_np.log10(PSD_y), label="y")
+        _plt.legend(loc="best")
+        _plt.xlim([zf-zwidth-ztransition, yf+ywidth+ytransition])
+        _plt.show()
         
     return zdata, xdata, ydata
 
@@ -568,12 +585,12 @@ def animate(zdata, xdata, ydata,
 
     SAMPLEFREQ = SampleFreq/FractionOfSampleFreq
     conv = conversionFactor*1e-9
-    ZBoxStart = 1/conv*(np.mean(zdata)-0.06)
-    ZBoxEnd = 1/conv*(np.mean(zdata)+0.06)
-    XBoxStart = 1/conv*(np.mean(xdata)-0.06)
-    XBoxEnd = 1/conv*(np.mean(xdata)+0.06)
-    YBoxStart = 1/conv*(np.mean(ydata)-0.06)
-    YBoxEnd = 1/conv*(np.mean(ydata)+0.06)
+    ZBoxStart = 1/conv*(_np.mean(zdata)-0.06)
+    ZBoxEnd = 1/conv*(_np.mean(zdata)+0.06)
+    XBoxStart = 1/conv*(_np.mean(xdata)-0.06)
+    XBoxEnd = 1/conv*(_np.mean(xdata)+0.06)
+    YBoxStart = 1/conv*(_np.mean(ydata)-0.06)
+    YBoxEnd = 1/conv*(_np.mean(ydata)+0.06)
 
     FrameInterval = 1 # how many timesteps = 1 frame in animation
 
@@ -582,7 +599,7 @@ def animate(zdata, xdata, ydata,
     myFPS = 7
     myBitrate = 1e6
 
-    fig = plt.figure(figsize = (a,b))
+    fig = _plt.figure(figsize = (a,b))
     ax = fig.add_subplot(111, projection='3d')
     ax.set_title("{} us".format(1/SAMPLEFREQ*1e6*0))
     ax.set_xlabel('X (nm)')
@@ -660,10 +677,10 @@ def animate(zdata, xdata, ydata,
 
         return scatter,
 
-    anim = animation.FuncAnimation(fig, animate, int(timeSteps/FrameInterval), init_func=setup_plot, blit=True)
+    anim = _animation.FuncAnimation(fig, animate, int(timeSteps/FrameInterval), init_func=setup_plot, blit=True)
 
-    plt.rcParams['animation.ffmpeg_path'] = '/usr/bin/ffmpeg'
-    mywriter = animation.FFMpegWriter(fps = myFPS, bitrate = myBitrate)
+    _plt.rcParams['animation.ffmpeg_path'] = '/usr/bin/ffmpeg'
+    mywriter = _animation.FFMpegWriter(fps = myFPS, bitrate = myBitrate)
     anim.save('{}.mp4'.format(filename),writer=mywriter, fps = myFPS, bitrate = myBitrate)
     return None
 
@@ -708,7 +725,7 @@ def IIRFilterDesign(CentralFreq, bandwidth, transitionWidth, SampleFreq, GainSto
     return b, a
 
 
-def GetFreqResponse(a, b, verbosity=1, SampleFreq=(2*np.pi), NumOfFreqs=500, whole=False):
+def GetFreqResponse(a, b, verbosity=1, SampleFreq=(2*_np.pi), NumOfFreqs=500, whole=False):
     """
     This function takes an array of coefficients and finds the frequency
     response of the filter using scipy.signal.freqz.
@@ -751,16 +768,16 @@ def GetFreqResponse(a, b, verbosity=1, SampleFreq=(2*np.pi), NumOfFreqs=500, who
         different frequencies
     """
     w, h = _scipy_signal.freqz(b=b, a=a, worN=NumOfFreqs, whole=whole)
-    freqList = w/(np.pi)*SampleFreq/2.0
-    himag = np.array([hi.imag for hi in h])
-    GainArray = 20*np.log10(np.abs(h))
-    PhaseDiffArray = np.unwrap(np.arctan2(np.imag(h), np.real(h)))
+    freqList = w/(_np.pi)*SampleFreq/2.0
+    himag = _np.array([hi.imag for hi in h])
+    GainArray = 20*_np.log10(_np.abs(h))
+    PhaseDiffArray = _np.unwrap(_np.arctan2(_np.imag(h), _np.real(h)))
     if verbosity == 1:
         fig1 = _plt.figure()
         ax = fig1.add_subplot(111)
         ax.plot(freqList, GainArray, '-', label="Specified Filter")
         ax.set_title("Frequency Response")
-        if SampleFreq == 2*np.pi:
+        if SampleFreq == 2*_np.pi:
             ax.set_xlabel(("$\Omega$ - Normalized frequency "
                            "($\pi$=Nyquist Frequency)"))            
         else:
@@ -771,7 +788,7 @@ def GetFreqResponse(a, b, verbosity=1, SampleFreq=(2*np.pi), NumOfFreqs=500, who
         ax = fig2.add_subplot(111)
         ax.plot(freqList, PhaseDiffArray, '-', label="Specified Filter")
         ax.set_title("Phase Response")
-        if SampleFreq == 2*np.pi:
+        if SampleFreq == 2*_np.pi:
             ax.set_xlabel(("$\Omega$ - Normalized frequency "
                            "($\pi$=Nyquist Frequency)"))            
         else:

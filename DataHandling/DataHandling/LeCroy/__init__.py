@@ -10,6 +10,7 @@ Package of functions for the Matter-Wave Interferometry
 
 # init file
 
-from .DataHandling import *
+from .LeCroy import *
+
 
 
