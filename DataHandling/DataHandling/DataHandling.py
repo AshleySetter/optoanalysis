@@ -94,7 +94,7 @@ class DataObject():
         self.SampleFreq = (1/self.waveDescription["HORIZ_INTERVAL"])
         return self.time, self.Voltage
     
-    def plotTimeData(self):
+    def plotTimeData(self, returnFigure=False):
         """
         plot time data against voltage data.
 
@@ -110,6 +110,8 @@ class DataObject():
         ax.plot(self.time, self.Voltage)
         ax.set_xlabel("time (s)")
         ax.set_ylabel("Voltage (V)")
+        if returnFigure == False:
+            plt.show()
         return fig, ax
     
     def getPSD(self, NPerSegment=100000, window="hann"):
