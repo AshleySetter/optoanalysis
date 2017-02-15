@@ -55,10 +55,10 @@ class DataObject():
     """
     def __init__(self, filepath):
         """
-		Parameters
-		----------
-		filepath : string
-			The filepath to the data file to initialise this object instance.
+	Parameters
+	----------
+	filepath : string
+	    The filepath to the data file to initialise this object instance.
 
         Initialisation - assigns values to the following attributes:
         - filepath
@@ -100,7 +100,7 @@ class DataObject():
 
         Parameters
         ----------
-        ShowFig : bool 
+        ShowFig : bool, optional 
             If True runs plt.show() before returning figure
             if False it just returns the figure object.
             (the default is True, it shows the figure) 
@@ -108,9 +108,9 @@ class DataObject():
         Returns
         -------
         fig : plt.figure
-			The figure object created
-		ax : fig.add_subplot(111)
-			The subplot object created
+	    The figure object created
+	ax : fig.add_subplot(111)
+	    The subplot object created
         """
         fig = _plt.figure(figsize=[10, 6])
         ax = fig.add_subplot(111)        
@@ -124,7 +124,20 @@ class DataObject():
     def getPSD(self, NPerSegment=100000, window="hann"):
         """
         Extracts the pulse spectral density (PSD) from the data.
-        
+
+	Parameters
+	----------
+        NPerSegment : int, optional
+            Length of each segment used in scipy.welch
+            default =100000
+
+        window : str or tuple or array_like, optional
+            Desired window to use. See get_window for a list of windows 
+            and required parameters. If window is array_like it will be 
+            used directly as the window and its length will be used for 
+            nperseg.
+            default = "hann"
+
         Returns
         -------
         freqs : ndarray
@@ -146,7 +159,7 @@ class DataObject():
         ----------
         xlim : array_like
             The x limits of the plotted PSD [LowerLimit, UpperLimit]
-        ShowFig : bool 
+        ShowFig : bool, optional
             If True runs plt.show() before returning figure
             if False it just returns the figure object.
             (the default is True, it shows the figure)
@@ -176,23 +189,23 @@ class DataObject():
 
         Parameters
         ----------
-		
-		Returns
-		-------
-		A : uncertainties.ufloat
-			Fitting constant A
-			A = γ**2*Γ_0*(K_b*T_0)/(π*m) 
-			where:
-				γ = conversionFactor
-				Γ_0 = Damping factor due to environment
-				π = pi
-		Ftrap : uncertainties.ufloat
-			The trapping frequency in the z axis
-		Gamma : uncertainties.ufloat
-			The damping factor Gamma = Γ = Γ_0 + δΓ
-			where:
-				Γ_0 = Damping factor due to environment
-				δΓ = extra damping due to feedback
+	
+	Returns
+	-------
+	A : uncertainties.ufloat
+		Fitting constant A
+		A = γ**2*Γ_0*(K_b*T_0)/(π*m) 
+		where:
+			γ = conversionFactor
+			Γ_0 = Damping factor due to environment
+			π = pi
+	Ftrap : uncertainties.ufloat
+		The trapping frequency in the z axis
+	Gamma : uncertainties.ufloat
+		The damping factor Gamma = Γ = Γ_0 + δΓ
+		where:
+			Γ_0 = Damping factor due to environment
+			δΓ = extra damping due to feedback
         """
         Params, ParamsErr = fitPSD(self, WidthOfPeakToFit, NMovAveToFit, Verbosity, TrapFreq, A_Initial, Gamma_Initial)
 
@@ -286,9 +299,7 @@ def fitPSD(Data, bandwidth, NMovAve, verbosity, TrapFreqGuess, AGuess=0.1e10, Ga
     ParamsFitErr - Error in fitted parameters: 
         [AErr, TrappingFrequencyErr, GammaErr]
         
-    """
-
-    
+    """    
     AngFreqs = 2*_np.pi*Data.freqs
     Angbandwidth = 2*_np.pi*bandwidth
     AngTrapFreqGuess = 2*_np.pi*TrapFreqGuess
@@ -800,3 +811,44 @@ def GetFreqResponse(a, b, verbosity=1, SampleFreq=(2*_np.pi), NumOfFreqs=500, wh
 
     return freqList, GainArray, PhaseDiffArray
 
+def MultiPlot(DataArray, xlim, LabelArray=[], ShowFig=True):
+    """
+    plot the pulse spectral density.
+
+    Parameters
+    ----------
+    DataArray - array-like
+        array of DataObject instances for which to plot the PSDs
+    xlim - array-like
+        2 element array specifying the lower and upper x limit for which to
+        plot the Power Spectral Density
+    LabelArray - array-like, optional
+        array of labels for each data-set to be plotted
+    ShowFig : bool, optional
+       If True runs plt.show() before returning figure
+       if False it just returns the figure object.
+       (the default is True, it shows the figure) 
+
+    Returns
+    -------
+    fig : plt.figure
+        The figure object created
+    ax : fig.add_subplot(111)
+        The subplot object created
+    """
+    if LabelArray == []:
+        LabelArray = ["DataSet {}".format(i) for i in _np.arange(0, len(DataArray), 1)]
+    fig = _plt.figure(figsize=[10, 6])
+    ax = fig.add_subplot(111)
+
+    for i, data in enumerate(DataArray):
+        ax.semilogy(data.freqs, data.PSD, alpha=0.8, label=LabelArray[i])
+    ax.set_xlabel("Frequency Hz")
+    ax.set_xlim(xlim)
+    ax.grid(which="major")
+    ax.legend(loc="best")
+    ax.set_ylabel("PSD ($v^2/Hz$)")
+    if ShowFig == True:
+        _plt.show()
+    return fig, ax
+    
