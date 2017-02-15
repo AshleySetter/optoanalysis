@@ -9,6 +9,22 @@ from mpl_toolkits.mplot3d.axes3d import Axes3D
 from matplotlib import rcParams
 import matplotlib.animation as _animation
 
+def LoadData(Filepath):
+    """
+    Parameters
+    ----------
+        Filepath : string
+            filepath to the file containing the data used to initialise 
+            and create an instance of the DataObject class
+
+    Returns
+    -------
+        Data : DataObject
+            An instance of the DataObject class contaning the data
+            that you requested to be loaded.
+    """
+    return DataObject(Filepath)
+
 class DataObject():
     """
     Creates an object containing data and all it's properties. 
