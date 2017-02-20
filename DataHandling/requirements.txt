@@ -1,10 +1,9 @@
 #
-####### requirements.txt for FPGA_DSPy #######
+####### requirements.txt for DataHandling #######
 #
 ###### Requirements without Version Specifiers ######
 numpy
 scipy
 matplotlib
 uncertainties
-glob
 #

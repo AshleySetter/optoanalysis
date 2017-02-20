@@ -9,6 +9,7 @@ from mpl_toolkits.mplot3d.axes3d import Axes3D
 from matplotlib import rcParams
 import matplotlib.animation as _animation
 from glob import glob
+import re
 
 def LoadData(Filepath):
     """
