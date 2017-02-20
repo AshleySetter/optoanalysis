@@ -6,4 +6,5 @@ numpy
 scipy
 matplotlib
 uncertainties
+glob
 #

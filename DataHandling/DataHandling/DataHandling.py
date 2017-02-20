@@ -8,6 +8,7 @@ import uncertainties as _uncertainties
 from mpl_toolkits.mplot3d.axes3d import Axes3D
 from matplotlib import rcParams
 import matplotlib.animation as _animation
+from glob import glob
 
 def LoadData(Filepath):
     """
@@ -24,6 +25,67 @@ def LoadData(Filepath):
             that you requested to be loaded.
     """
     return DataObject(Filepath)
+    
+def MultiLoad(DirectoryPath, Channels, RunNos, RepeatNos):
+    """
+    This function uses ReGeX to search the direcory provided as DirectoryPath
+    for files matching the specifications given in the arguments. Data
+    loaded from this function will have additional properties identifying it:
+    ChannelNo - The Channel Number
+    RunNo - The Run Number
+    RepeatNo - The Repeat Number
+
+    Parameters
+    ----------
+    Channels : list
+        The channel numbers you want to load.
+    RunNos : list
+        The run nubmers you want to load.
+    RepeatNos : list
+        The repeat numbers you want to load.
+    Returns
+    -------
+    DataList : list
+        A list containing the instances of the DataObject class 
+        contaning the data that you requested to be loaded.
+        Data loaded from this function will have additional 
+        properties identifying it:
+        ChannelNo - The Channel Number
+        RunNo - The Run Number
+        RepeatNo - The Repeat Number
+    """
+    if RepeatNos[1] > 9:
+        raise NotImplementedError ("Repeat numbers of with 2 or more digits have not been implemented") 
+    if Channels[1] > 9:
+        raise NotImplementedError ("Channel numbers of with 2 or more digits have not been implemented")
+    
+    if RunNos[1] < 10:
+        REGEXPattern = "CH([{0}-{1}]+)_RUN0*([{2}-{3}])_REPEAT000([{4}-{5}])".format(Channels[0], Channels[1], RunNos[0], RunNos[1], RepeatNos[0], RepeatNos[1])
+    if RunNos[1] > 9 and RunNos[1] < 100:
+        if RunNos[0] > 9:
+            lower1stDigit = int(str(RunNos[0])[0])
+            lower2ndDigit = int(str(RunNos[0])[1])
+        else:
+            lower1stDigit = 0
+            lower2ndDigit = int(str(RunNos[0]))
+        higher1stDigit = str(RunNos[1])[0]
+        higher2ndDigit = str(RunNos[1])[1]
+        REGEXPattern = "CH([0-4]+)_RUN0*([0-9][0-9])_REPEAT000([0-5])"
+        REGEXPattern = "CH([{0}-{1}]+)_RUN0*([{2}-{3}][{4}-{5}])_REPEAT000([{6}-{7}])".format(Channels[0], Channels[1], lower1stDigit, higher1stDigit, lower2ndDigit, higher2ndDigit, RepeatNos[0], RepeatNos[1])
+        
+    ListOfFiles = glob(DirectoryPath+'/*')
+    ListOfMatchingFiles = []
+
+    for Filepath in ListOfFiles:
+        matchObj = re.search(REGEXPattern, Filepath)
+        if matchObj != None:
+            Data = LoadData(Filepath)
+            Data.ChannelNo = matchObj.group(1)
+            Data.RunNo = matchObj.group(2)
+            Data.RepeatNo = matchObj.group(3)
+            ListOfMatchingFiles.append(Data)
+    return ListOfMatchingFiles
+
 
 class DataObject():
     """
