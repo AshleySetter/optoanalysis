@@ -59,6 +59,8 @@ def MultiLoad(DirectoryPath, Channels, RunNos, RepeatNos):
         raise NotImplementedError ("Repeat numbers of with 2 or more digits have not been implemented") 
     if Channels[1] > 9:
         raise NotImplementedError ("Channel numbers of with 2 or more digits have not been implemented")
+    if RunNos[1] > 99:
+        raise NotImplementedError ("Run numbers of with 3 or more digits have not been implemented")
     
     if RunNos[1] < 10:
         REGEXPattern = "CH([{0}-{1}]+)_RUN0*([{2}-{3}])_REPEAT000([{4}-{5}])".format(Channels[0], Channels[1], RunNos[0], RunNos[1], RepeatNos[0], RepeatNos[1])
