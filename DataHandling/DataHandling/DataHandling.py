@@ -39,11 +39,11 @@ def MultiLoad(DirectoryPath, Channels, RunNos, RepeatNos):
     Parameters
     ----------
     Channels : list
-        The channel numbers you want to load.
+        The channel numbers you want to load in the form [Lower, Higher]
     RunNos : list
-        The run nubmers you want to load.
+        The run nubmers you want to load in the form [Lower, Higher]
     RepeatNos : list
-        The repeat numbers you want to load.
+        The repeat numbers you want to load in the form [Lower, Higher]
     Returns
     -------
     DataList : list
