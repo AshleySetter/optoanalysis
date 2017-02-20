@@ -76,7 +76,7 @@ def MultiLoad(DirectoryPath, Channels, RunNos, RepeatNos):
         REGEXPattern = "CH([0-4]+)_RUN0*([0-9][0-9])_REPEAT000([0-5])"
         REGEXPattern = "CH([{0}-{1}]+)_RUN0*([{2}-{3}][{4}-{5}])_REPEAT000([{6}-{7}])".format(Channels[0], Channels[1], lower1stDigit, higher1stDigit, lower2ndDigit, higher2ndDigit, RepeatNos[0], RepeatNos[1])
         
-    ListOfFiles = glob(DirectoryPath+'/*')
+    ListOfFiles = glob(DirectoryPath)
     ListOfMatchingFiles = []
 
     for Filepath in ListOfFiles:
