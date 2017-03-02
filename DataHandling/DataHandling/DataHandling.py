@@ -16,7 +16,7 @@ def LoadData(Filepath):
     Parameters
     ----------
         Filepath : string
-            filepath to the file containing the data used to initialise 
+            filepath to the file containing the data used to initialise
             and create an instance of the DataObject class
 
     Returns
@@ -26,7 +26,7 @@ def LoadData(Filepath):
             that you requested to be loaded.
     """
     return DataObject(Filepath)
-    
+
 def MultiLoad(DirectoryPath, Channels, RunNos, RepeatNos):
     """
     This function uses ReGeX to search the direcory provided as DirectoryPath
@@ -47,52 +47,43 @@ def MultiLoad(DirectoryPath, Channels, RunNos, RepeatNos):
     Returns
     -------
     DataList : list
-        A list containing the instances of the DataObject class 
+        A list containing the instances of the DataObject class
         contaning the data that you requested to be loaded.
-        Data loaded from this function will have additional 
+        Data loaded from this function will have additional
         properties identifying it:
         ChannelNo - The Channel Number
         RunNo - The Run Number
         RepeatNo - The Repeat Number
     """
     if RepeatNos[1] > 9:
-        raise NotImplementedError ("Repeat numbers of with 2 or more digits have not been implemented") 
+        raise NotImplementedError ("Repeat numbers of with 2 or more digits have not been implemented")
     if Channels[1] > 9:
         raise NotImplementedError ("Channel numbers of with 2 or more digits have not been implemented")
-    if RunNos[1] > 99:
-        raise NotImplementedError ("Run numbers of with 3 or more digits have not been implemented")
-    
-    if RunNos[1] < 10:
-        REGEXPattern = "CH([{0}-{1}]+)_RUN0*([{2}-{3}])_REPEAT000([{4}-{5}])".format(Channels[0], Channels[1], RunNos[0], RunNos[1], RepeatNos[0], RepeatNos[1])
-    if RunNos[1] > 9 and RunNos[1] < 100:
-        if RunNos[0] > 9:
-            lower1stDigit = int(str(RunNos[0])[0])
-            lower2ndDigit = int(str(RunNos[0])[1])
-        else:
-            lower1stDigit = 0
-            lower2ndDigit = int(str(RunNos[0]))
-        higher1stDigit = str(RunNos[1])[0]
-        higher2ndDigit = str(RunNos[1])[1]
-        REGEXPattern = "CH([0-4]+)_RUN0*([0-9][0-9])_REPEAT000([0-5])"
-        REGEXPattern = "CH([{0}-{1}]+)_RUN0*([{2}-{3}][{4}-{5}])_REPEAT000([{6}-{7}])".format(Channels[0], Channels[1], lower1stDigit, higher1stDigit, lower2ndDigit, higher2ndDigit, RepeatNos[0], RepeatNos[1])
-        
+
+    REGEXPattern = "CH([{0}-{1}]+)_RUN0*([0-9]+)_REPEAT000([{2}-{3}])".format(Channels[0], Channels[1], RepeatNos[0], RepeatNos[1])
+
     ListOfFiles = glob(DirectoryPath)
+    ListOfFiles.sort()
     ListOfMatchingFiles = []
 
     for Filepath in ListOfFiles:
         matchObj = re.search(REGEXPattern, Filepath)
         if matchObj != None:
-            Data = LoadData(Filepath)
-            Data.ChannelNo = matchObj.group(1)
-            Data.RunNo = matchObj.group(2)
-            Data.RepeatNo = matchObj.group(3)
-            ListOfMatchingFiles.append(Data)
+            ChannelNo = int(matchObj.group(1))
+            RunNo = int(matchObj.group(2))
+            RepeatNo = int(matchObj.group(3))
+            if RunNo >= RunNos[0] and RunNo <= RunNos[1]:
+                Data = LoadData(Filepath)
+                Data.ChannelNo = ChannelNo
+                Data.RunNo     = RunNo
+                Data.RepeatNo  = RepeatNo
+                ListOfMatchingFiles.append(Data)
     return ListOfMatchingFiles
 
 
 class DataObject():
     """
-    Creates an object containing data and all it's properties. 
+    Creates an object containing data and all it's properties.
 
     Attributes
     ----------
@@ -116,12 +107,12 @@ class DataObject():
 	PSD : ndarray
 		Contains the values for the PSD (Pulse Spectral Density) as calculated
 		at each frequency contained in freqs
-	
+
 	The following attributes are only assigned after getFit has been called.
 
 	A : uncertainties.ufloat
 		Fitting constant A
-		A = γ**2*Γ_0*(K_b*T_0)/(π*m) 
+		A = γ**2*Γ_0*(K_b*T_0)/(π*m)
 		where:
 			γ = conversionFactor
 			Γ_0 = Damping factor due to environment
@@ -158,13 +149,13 @@ class DataObject():
     def getTimeData(self):
         """
         Gets the time and voltage data and the wave description.
-        
+
         Returns
         -------
         time : ndarray
 			array containing the value of time (in seconds) at which the
 			voltage is sampled
-        Voltage : ndarray 
+        Voltage : ndarray
 			array containing the sampled voltages
         """
         f = open(self.filepath,'rb')
@@ -174,17 +165,17 @@ class DataObject():
         	DataHandling.LeCroy.InterpretWaveform(raw)
         self.SampleFreq = (1/self.waveDescription["HORIZ_INTERVAL"])
         return self.time, self.Voltage
-    
+
     def plotTimeData(self, ShowFig=True):
         """
         plot time data against voltage data.
 
         Parameters
         ----------
-        ShowFig : bool, optional 
+        ShowFig : bool, optional
             If True runs plt.show() before returning figure
             if False it just returns the figure object.
-            (the default is True, it shows the figure) 
+            (the default is True, it shows the figure)
 
         Returns
         -------
@@ -194,14 +185,14 @@ class DataObject():
 	    The subplot object created
         """
         fig = _plt.figure(figsize=[10, 6])
-        ax = fig.add_subplot(111)        
+        ax = fig.add_subplot(111)
         ax.plot(self.time, self.Voltage)
         ax.set_xlabel("time (s)")
         ax.set_ylabel("Voltage (V)")
         if ShowFig == True:
             _plt.show()
         return fig, ax
-    
+
     def getPSD(self, NPerSegment=100000, window="hann"):
         """
         Extracts the pulse spectral density (PSD) from the data.
@@ -213,9 +204,9 @@ class DataObject():
             default =100000
 
         window : str or tuple or array_like, optional
-            Desired window to use. See get_window for a list of windows 
-            and required parameters. If window is array_like it will be 
-            used directly as the window and its length will be used for 
+            Desired window to use. See get_window for a list of windows
+            and required parameters. If window is array_like it will be
+            used directly as the window and its length will be used for
             nperseg.
             default = "hann"
 
@@ -225,13 +216,13 @@ class DataObject():
         	Array containing the frequencies at which the PSD has been
         	calculated
         PSD : ndarray
-        	Array containing the value of the PSD at the corresponding 
+        	Array containing the value of the PSD at the corresponding
         	frequency value in V**2/Hz
         """
-        self.freqs, self.PSD = scipy.signal.welch(self.Voltage, self.SampleFreq, 
+        self.freqs, self.PSD = scipy.signal.welch(self.Voltage, self.SampleFreq,
                                 window=window, nperseg=NPerSegment)
         return self.freqs, self.PSD
-    
+
     def plotPSD(self, xlim, ShowFig=True):
         """
         plot the pulse spectral density.
@@ -270,26 +261,27 @@ class DataObject():
 
         Parameters
         ----------
-	
-	Returns
+
+        Returns
 	-------
 	A : uncertainties.ufloat
 		Fitting constant A
-		A = γ**2*Γ_0*(K_b*T_0)/(π*m) 
+		A = γ**2*Γ_0*(K_b*T_0)/(π*m)
 		where:
 			γ = conversionFactor
 			Γ_0 = Damping factor due to environment
 			π = pi
 	Ftrap : uncertainties.ufloat
-		The trapping frequency in the z axis
+		The trapping frequency in the z axis (in angular frequency)
 	Gamma : uncertainties.ufloat
 		The damping factor Gamma = Γ = Γ_0 + δΓ
 		where:
 			Γ_0 = Damping factor due to environment
 			δΓ = extra damping due to feedback
         """
-        Params, ParamsErr = fitPSD(self, WidthOfPeakToFit, NMovAveToFit, Verbosity, TrapFreq, A_Initial, Gamma_Initial)
-
+        Params, ParamsErr, fig, ax = fitPSD(self, WidthOfPeakToFit, NMovAveToFit, Verbosity, TrapFreq, A_Initial, Gamma_Initial)
+        _plt.show()
+        
         print("\n")
         print("A: {} +- {}% ".format(Params[0], ParamsErr[0]/Params[0]*100))
         print("Trap Frequency: {} +- {}% ".format(Params[1], ParamsErr[1]/Params[1]*100))
@@ -303,14 +295,14 @@ class DataObject():
 
 #    def extractXYZMotion(self, [zf, xf, yf], uncertaintyInFreqs, PeakWidth, subSampleFraction):
 #        """
-#        Extracts the x, y and z signals (in volts) from the 
-#        
+#        Extracts the x, y and z signals (in volts) from the
+#
 #        """
 #        zf, xf, yf = DataHandling.GetxyzFreqs(self, 64000, 160000, 185000, bandwidth=5000)
 #        self.zVolts, self.xVolts, self.yVolts = DataHandling.getXYZData(self, zf, xf, yf, 2, zwidth=3000, xwidth=#3000, ywidth=3000)
 #        return self.zVolts, self.xVolts, self.yVolts
-        
-    
+
+
 def calcTemp(Data_ref, Data):
     T = 300*(Data.A/Data.Gamma)/(Data_ref.A/Data_ref.Gamma)
     return T
@@ -320,7 +312,7 @@ def fit_curvefit(p0, datax, datay, function, yerr=None, **kwargs):
     pfit, pcov = \
          _curve_fit(function,datax,datay,p0=p0,\
                             sigma=yerr, epsfcn=0.0001, **kwargs)
-    error = [] 
+    error = []
     for i in range(len(pfit)):
         try:
             error.append(_np.absolute(pcov[i][i])**0.5)
@@ -328,7 +320,7 @@ def fit_curvefit(p0, datax, datay, function, yerr=None, **kwargs):
             error.append( 0.00 )
     pfit_curvefit = pfit
     perr_curvefit = _np.array(error)
-    return pfit_curvefit, perr_curvefit 
+    return pfit_curvefit, perr_curvefit
 
 def moving_average(a, n=3) :
     ret = _np.cumsum(a, dtype=float)
@@ -363,35 +355,35 @@ def fitPSD(Data, bandwidth, NMovAve, verbosity, TrapFreqGuess, AGuess=0.1e10, Ga
     """
     Fits theory PSD to Data. Assumes highest point of PSD is the
     trapping frequency.
-    
+
     Parameters
     ----------
-    Data - data object to be fitted 
+    Data - data object to be fitted
     bandwidth - bandwidth around trapping frequency peak to
                 fit the theory PSD to
     NMovAve - amount of moving averages to take before the fitting
     verbosity - (defaults to 0) if set to 1 this function plots the
         PSD of the data, smoothed data and theory peak from fitting.
-    
+
     Returns
     -------
-    ParamsFit - Fitted parameters: 
+    ParamsFit - Fitted parameters:
         [A, TrappingFrequency, Gamma]
-    ParamsFitErr - Error in fitted parameters: 
+    ParamsFitErr - Error in fitted parameters:
         [AErr, TrappingFrequencyErr, GammaErr]
-        
-    """    
+
+    """
     AngFreqs = 2*_np.pi*Data.freqs
     Angbandwidth = 2*_np.pi*bandwidth
     AngTrapFreqGuess = 2*_np.pi*TrapFreqGuess
-    
+
     ClosestToAngTrapFreqGuess = takeClosest(AngFreqs, AngTrapFreqGuess)
     index_ftrap = _np.where(AngFreqs == ClosestToAngTrapFreqGuess)
     ftrap = AngFreqs[index_ftrap]
-    
+
     f_fit_lower = takeClosest(AngFreqs, ftrap-Angbandwidth/2)
     f_fit_upper = takeClosest(AngFreqs, ftrap+Angbandwidth/2)
-    
+
     indx_fit_lower = int(_np.where(AngFreqs==f_fit_lower)[0])
     indx_fit_upper = int(_np.where(AngFreqs==f_fit_upper)[0])
 
@@ -403,56 +395,57 @@ def fitPSD(Data, bandwidth, NMovAve, verbosity, TrapFreqGuess, AGuess=0.1e10, Ga
     ftrap = AngFreqs[index_ftrap]
 
 #    print(ftrap)
-    
+
     f_fit_lower = takeClosest(AngFreqs, ftrap-Angbandwidth/2)
     f_fit_upper = takeClosest(AngFreqs, ftrap+Angbandwidth/2)
-    
+
     indx_fit_lower = int(_np.where(AngFreqs==f_fit_lower)[0])
     indx_fit_upper = int(_np.where(AngFreqs==f_fit_upper)[0])
-    
+
     PSD_smoothed = moving_average(Data.PSD, NMovAve)
-    freqs_smoothed = moving_average(AngFreqs, NMovAve) 
-    
-    logPSD_smoothed = 10*_np.log10(PSD_smoothed) 
-    
+    freqs_smoothed = moving_average(AngFreqs, NMovAve)
+
+    logPSD_smoothed = 10*_np.log10(PSD_smoothed)
+
     def CalcTheoryPSD_curvefit(freqs, A, TrapFreq, BigGamma):
         Theory_PSD = PSD_Fitting(A, TrapFreq, BigGamma, freqs)
         if A < 0 or TrapFreq < 0 or BigGamma < 0:
             return 1e9
         else:
-            return Theory_PSD 
-    
+            return Theory_PSD
+
     datax = freqs_smoothed[indx_fit_lower:indx_fit_upper]
     datay = logPSD_smoothed[indx_fit_lower:indx_fit_upper]
-    
+
     p0 = _np.array([AGuess, ftrap, GammaGuess])
-    
+
     Params_Fit, Params_Fit_Err = fit_curvefit(p0,
                                       datax, datay, CalcTheoryPSD_curvefit)
 
     if verbosity == 1:
         #    print("Params Fitted:", Params_Fit, "Error in Params:", Params_Fit_Err)
-
-        PSDTheory_fit_initial = PSD_Fitting(p0[0], p0[1], 
+        fig = _plt.figure()
+        ax = fig.add_subplot(111)
+        
+        PSDTheory_fit_initial = PSD_Fitting(p0[0], p0[1],
                                     p0[2], freqs_smoothed)
 
-        PSDTheory_fit = PSD_Fitting(Params_Fit[0], Params_Fit[1], 
+        PSDTheory_fit = PSD_Fitting(Params_Fit[0], Params_Fit[1],
                                     Params_Fit[2], freqs_smoothed)
-        
-        _plt.plot(AngFreqs/(2*_np.pi), 10*_np.log10(Data.PSD), color="darkblue", label="Raw PSD Data", alpha=0.5)
-        _plt.plot(freqs_smoothed/(2*_np.pi), logPSD_smoothed, color='blue', label="smoothed", linewidth=1.5)
-        _plt.plot(freqs_smoothed/(2*_np.pi), PSDTheory_fit_initial, color="purple", label="initial")
-        _plt.plot(freqs_smoothed/(2*_np.pi), PSDTheory_fit, color="red", label="fitted")
-        _plt.xlim([(ftrap-5*Angbandwidth)/(2*_np.pi), (ftrap+5*Angbandwidth)/(2*_np.pi)])
-        _plt.plot([(ftrap-Angbandwidth)/(2*_np.pi), (ftrap-Angbandwidth)/(2*_np.pi)],
+
+        ax.plot(AngFreqs/(2*_np.pi), 10*_np.log10(Data.PSD), color="darkblue", label="Raw PSD Data", alpha=0.5)
+        ax.plot(freqs_smoothed/(2*_np.pi), logPSD_smoothed, color='blue', label="smoothed", linewidth=1.5)
+        ax.plot(freqs_smoothed/(2*_np.pi), PSDTheory_fit_initial, color="purple", label="initial")
+        ax.plot(freqs_smoothed/(2*_np.pi), PSDTheory_fit, color="red", label="fitted")
+        ax.xlim([(ftrap-5*Angbandwidth)/(2*_np.pi), (ftrap+5*Angbandwidth)/(2*_np.pi)])
+        ax.plot([(ftrap-Angbandwidth)/(2*_np.pi), (ftrap-Angbandwidth)/(2*_np.pi)],
                  [min(logPSD_smoothed), max(logPSD_smoothed)], '--',
                  color="grey")
-        _plt.plot([(ftrap+Angbandwidth)/(2*_np.pi), (ftrap+Angbandwidth)/(2*_np.pi)],
+        ax.plot([(ftrap+Angbandwidth)/(2*_np.pi), (ftrap+Angbandwidth)/(2*_np.pi)],
                  [min(logPSD_smoothed), max(logPSD_smoothed)], '--',
                  color="grey")
-        _plt.legend()
-        _plt.show()
-    return Params_Fit, Params_Fit_Err
+        ax.legend()
+    return Params_Fit, Params_Fit_Err, fig, ax
 
 
 
@@ -463,10 +456,10 @@ def ExtractParameters(Pressure, A, AErr, Gamma0, Gamma0Err):
     at pressures of around 1mbar (this is because the equations assume
     harmonic motion and at lower pressures the uncooled particle experiences
     anharmonic motion (due to exploring furthur outside the middle of the trap).
-    When cooled the value of Gamma (the damping) is a combination of the 
+    When cooled the value of Gamma (the damping) is a combination of the
     enviromental damping and feedback damping and so is not the correct value
-    for use in this equation (as it requires the enviromental damping). 
-    Environmental damping can be predicted though as A=const*Gamma0. By 
+    for use in this equation (as it requires the enviromental damping).
+    Environmental damping can be predicted though as A=const*Gamma0. By
     fitting to 1mbar data one can find the value of the const and therefore
     Gamma0 = A/const
 
@@ -476,7 +469,7 @@ def ExtractParameters(Pressure, A, AErr, Gamma0, Gamma0Err):
     	Pressure in mbar when the data was taken
     A : float
 		Fitting constant A
-		A = γ**2*Γ_0*(K_b*T_0)/(π*m) 
+		A = γ**2*Γ_0*(K_b*T_0)/(π*m)
 		where:
 			γ = conversionFactor
 			Γ_0 = Damping factor due to environment
@@ -496,29 +489,29 @@ def ExtractParameters(Pressure, A, AErr, Gamma0, Gamma0Err):
     """
     PressureErr = 0.15
     Pressure = 100*Pressure # conversion to Pascals
-    
+
     rho= 2200 # kgm^3
     dm = 0.372e-9 # m I'Hanlon, 2003
-    T0 = 300 # kelvin 
+    T0 = 300 # kelvin
     kB = 1.38e-23 # m^2 kg s^-2 K-1
-    eta = 18.27e-6 # Pa s, viscosity of air 
-    
+    eta = 18.27e-6 # Pa s, viscosity of air
+
     radius = (0.169*9*_np.pi*eta*dm**2)/(_np.sqrt(2)*rho*kB*T0)*(Pressure)/(Gamma0)
     err_radius = radius*_np.sqrt(((PressureErr*Pressure)/Pressure)**2+(Gamma0Err/Gamma0)**2);
     mass = rho*((4*_np.pi*radius**3)/3);
     err_mass = mass*2*err_radius/radius;
     conversionFactor = _np.sqrt(A*_np.pi*mass/(kB*T0*Gamma0));
-    err_conversionFactor = conversionFactor*_np.sqrt((AErr/A)**2+(err_mass/mass)**2 + (Gamma0Err/Gamma0)**2);  
-    
+    err_conversionFactor = conversionFactor*_np.sqrt((AErr/A)**2+(err_mass/mass)**2 + (Gamma0Err/Gamma0)**2);
+
     return [radius, mass, conversionFactor], [err_radius, err_mass, err_conversionFactor]
 
 def GetxyzFreqs(Data, zfreq, xfreq, yfreq, bandwidth=5000):
     """
     Determines the exact z, x and y peak frequencies from approximate
-    frequencies by finding the highest peak in the PSD "close to" the 
+    frequencies by finding the highest peak in the PSD "close to" the
     approximate peak frequency. By "close to" I mean within the range:
     approxFreq - bandwidth/2 to approxFreq + bandwidth/2
-    
+
     Parameters
     ----------
     Data : DataObject
@@ -527,12 +520,12 @@ def GetxyzFreqs(Data, zfreq, xfreq, yfreq, bandwidth=5000):
     zfreq : float
         An approximate frequency for the z peak
     xfreq : float
-        An approximate frequency for the z peak    
+        An approximate frequency for the z peak
     yfreq : float
         An approximate frequency for the z peak
     bandwidth : float
         The bandwidth around the approximate peak to look for the actual peak.
-	
+
 	Returns:
 	trapfreqs : list
 		List containing the trap frequencies in the following order (z, x, y)
@@ -540,21 +533,21 @@ def GetxyzFreqs(Data, zfreq, xfreq, yfreq, bandwidth=5000):
     """
     trapfreqs = []
     for freq in [zfreq, xfreq, yfreq]:
-        z_f_fit_lower = takeClosest(Data.freqs, freq-bandwidth/2)                                                                                                                                                                          
+        z_f_fit_lower = takeClosest(Data.freqs, freq-bandwidth/2)
         z_f_fit_upper = takeClosest(Data.freqs, freq+bandwidth/2)
-        z_indx_fit_lower = int(_np.where(Data.freqs==z_f_fit_lower)[0])                                                                                                                                                                           
-        z_indx_fit_upper = int(_np.where(Data.freqs==z_f_fit_upper)[0]) 
+        z_indx_fit_lower = int(_np.where(Data.freqs==z_f_fit_lower)[0])
+        z_indx_fit_upper = int(_np.where(Data.freqs==z_f_fit_upper)[0])
 
-        z_index_ftrap = _np.where(Data.PSD == max(Data.PSD[z_indx_fit_lower:z_indx_fit_upper])) 
+        z_index_ftrap = _np.where(Data.PSD == max(Data.PSD[z_indx_fit_lower:z_indx_fit_upper]))
         # find highest point in region about guess for trap frequency
-        # use that as guess for trap frequency and recalculate region 
+        # use that as guess for trap frequency and recalculate region
         # about the trap frequency
         z_ftrap = Data.freqs[z_index_ftrap]
         trapfreqs.append(z_ftrap)
     return trapfreqs
 
 def getXYZData(Data, zf, xf, yf, FractionOfSampleFreq,
-               zwidth=10000, xwidth=5000, ywidth=5000, 
+               zwidth=10000, xwidth=5000, ywidth=5000,
                ztransition=10000, xtransition=5000, ytransition=5000,
                verbosity=True):
     """
@@ -562,7 +555,7 @@ def getXYZData(Data, zf, xf, yf, FractionOfSampleFreq,
     optional parameters for the created filters) this function extracts the
     individual z, x and y signals (in volts) by creating IIR filters and filtering
     the Data.
-    
+
     Parameters
     ----------
     Data : DataObject
@@ -579,26 +572,26 @@ def getXYZData(Data, zf, xf, yf, FractionOfSampleFreq,
         This sometimes needs to be done because a filter with the appropriate
         frequency response may not be generated using the sample rate at which
         the data was taken. Increasing this number means the x, y and z signals
-        produced by this function will be sampled at a lower rate but a higher 
+        produced by this function will be sampled at a lower rate but a higher
         number means a higher chance that the filter produced will have a nice
         frequency response.
     zwidth : float
-        The width of the pass-band of the IIR filter to be generated to 
+        The width of the pass-band of the IIR filter to be generated to
         filter Z.
     xwidth : float
-        The width of the pass-band of the IIR filter to be generated to 
+        The width of the pass-band of the IIR filter to be generated to
         filter X.
     ywidth : float
-        The width of the pass-band of the IIR filter to be generated to 
+        The width of the pass-band of the IIR filter to be generated to
         filter Y.
     ztransition : float
-        The width of the transition-band of the IIR filter to be generated to 
+        The width of the transition-band of the IIR filter to be generated to
         filter Z.
     xtransition : float
-        The width of the transition-band of the IIR filter to be generated to 
+        The width of the transition-band of the IIR filter to be generated to
         filter X.
     ytransition : float
-        The width of the transition-band of the IIR filter to be generated to 
+        The width of the transition-band of the IIR filter to be generated to
         filter Y.
     verbosity : bool
         If True - plot unfiltered and filtered PSD for z, x and y.
@@ -628,12 +621,12 @@ def getXYZData(Data, zf, xf, yf, FractionOfSampleFreq,
     bY, aY = IIRFilterDesign(yf, ywidth, ytransition, SAMPLEFREQ, GainStop=100)
 
     ydata = scipy.signal.filtfilt(bY, aY, input_signal)
-    
+
     if verbosity == True:
         f, PSD = scipy.signal.welch(input_signal, SAMPLEFREQ, nperseg=10000)
         f_z, PSD_z = scipy.signal.welch(zdata, SAMPLEFREQ, nperseg=10000)
         f_y, PSD_y = scipy.signal.welch(ydata, SAMPLEFREQ, nperseg=10000)
-        f_x, PSD_x = scipy.signal.welch(xdata, SAMPLEFREQ, nperseg=10000)    
+        f_x, PSD_x = scipy.signal.welch(xdata, SAMPLEFREQ, nperseg=10000)
         _plt.plot(f, 10*_np.log10(PSD))
         _plt.plot(f_z, 10*_np.log10(PSD_z), label="z")
         _plt.plot(f_x, 10*_np.log10(PSD_x), label="x")
@@ -641,16 +634,16 @@ def getXYZData(Data, zf, xf, yf, FractionOfSampleFreq,
         _plt.legend(loc="best")
         _plt.xlim([zf-zwidth-ztransition, yf+ywidth+ytransition])
         _plt.show()
-        
+
     return zdata, xdata, ydata
 
-def animate(zdata, xdata, ydata, 
-            conversionFactor, SampleFreq, FractionOfSampleFreq, 
+def animate(zdata, xdata, ydata,
+            conversionFactor, SampleFreq, FractionOfSampleFreq,
             timeSteps=100, filename="particle"):
     """
     Animates the particle's motion given the z, x and y signal (in Volts)
     and the conversion factor (to convert between V and nm).
-    
+
     Parameters
     ----------
     zdata : ndarray
@@ -667,10 +660,10 @@ def animate(zdata, xdata, ydata,
         The fraction of the sample frequency used to sub-sample the data by.
         This would have been used in the getXYZData function.
     timeSteps : int
-        Number of time steps to animate 
+        Number of time steps to animate
     filename : string
         filename to create the mp4 under ({filename}.mp4)
-    
+
     """
     timePerFrame = 0.203
     print("This will take ~ {} minutes".format(timePerFrame*timeSteps/60))
@@ -779,7 +772,7 @@ def animate(zdata, xdata, ydata,
 def IIRFilterDesign(CentralFreq, bandwidth, transitionWidth, SampleFreq, GainStop=40, GainPass=0.01):
     """
     Function to calculate the coefficients of an IIR filter.
-    
+
     Parameters
     ----------
     CentralFreq : float
@@ -789,12 +782,12 @@ def IIRFilterDesign(CentralFreq, bandwidth, transitionWidth, SampleFreq, GainSto
     transitionWidth : float
         The width of the transition band between the pass-band and stop-band
     SampleFreq : float
-        The sample frequency (rate) of the data to be filtered 
+        The sample frequency (rate) of the data to be filtered
     GainStop : float
         The dB of attenuation within the stopband (i.e. outside the passband)
     GainPass : float
         The dB attenuation inside the passband (ideally close to 0 for a bandpass filter)
-        
+
     Returns
     -------
     b : ndarray
@@ -842,7 +835,7 @@ def GetFreqResponse(a, b, verbosity=1, SampleFreq=(2*_np.pi), NumOfFreqs=500, wh
         Number of frequencies to use to simulate the frequency and phase
         response of the filter. Default is 500.
     Whole : int (0 or 1)
-        Sets whether to plot the whole response (0 to sample freq) 
+        Sets whether to plot the whole response (0 to sample freq)
         or just to plot 0 to Nyquist (SampleFreq/2):
         0 - plot 0 to Nyquist (SampleFreq/2)
         1 - plot the whole response (0 to sample freq)
@@ -871,7 +864,7 @@ def GetFreqResponse(a, b, verbosity=1, SampleFreq=(2*_np.pi), NumOfFreqs=500, wh
         ax.set_title("Frequency Response")
         if SampleFreq == 2*_np.pi:
             ax.set_xlabel(("$\Omega$ - Normalized frequency "
-                           "($\pi$=Nyquist Frequency)"))            
+                           "($\pi$=Nyquist Frequency)"))
         else:
             ax.set_xlabel("frequency (Hz)")
         ax.set_ylabel("Gain (dB)")
@@ -882,7 +875,7 @@ def GetFreqResponse(a, b, verbosity=1, SampleFreq=(2*_np.pi), NumOfFreqs=500, wh
         ax.set_title("Phase Response")
         if SampleFreq == 2*_np.pi:
             ax.set_xlabel(("$\Omega$ - Normalized frequency "
-                           "($\pi$=Nyquist Frequency)"))            
+                           "($\pi$=Nyquist Frequency)"))
         else:
             ax.set_xlabel("frequency (Hz)")
 
@@ -908,7 +901,7 @@ def MultiPlotPSD(DataArray, xlim=[0, 500e3], LabelArray=[], ShowFig=True):
     ShowFig : bool, optional
        If True runs plt.show() before returning figure
        if False it just returns the figure object.
-       (the default is True, it shows the figure) 
+       (the default is True, it shows the figure)
 
     Returns
     -------
@@ -984,3 +977,4 @@ def MultiPlotTime(DataArray, SubSampleN = 1, xlim="default", ylim="default", Lab
     if ShowFig == True:
         _plt.show()
     return fig, ax
+
