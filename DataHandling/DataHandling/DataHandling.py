@@ -892,7 +892,7 @@ def GetFreqResponse(a, b, verbosity=1, SampleFreq=(2*_np.pi), NumOfFreqs=500, wh
 
     return freqList, GainArray, PhaseDiffArray
 
-def MultiPlot(DataArray, xlim, LabelArray=[], ShowFig=True):
+def MultiPlotPSD(DataArray, xlim=[0, 500e3], LabelArray=[], ShowFig=True):
     """
     plot the pulse spectral density.
 
@@ -924,7 +924,7 @@ def MultiPlot(DataArray, xlim, LabelArray=[], ShowFig=True):
 
     for i, data in enumerate(DataArray):
         ax.semilogy(data.freqs, data.PSD, alpha=0.8, label=LabelArray[i])
-    ax.set_xlabel("Frequency Hz")
+    ax.set_xlabel("Frequency (Hz)")
     ax.set_xlim(xlim)
     ax.grid(which="major")
     ax.legend(loc="best")
@@ -932,4 +932,55 @@ def MultiPlot(DataArray, xlim, LabelArray=[], ShowFig=True):
     if ShowFig == True:
         _plt.show()
     return fig, ax
-    
+
+def MultiPlotTime(DataArray, SubSampleN = 1, xlim="default", ylim="default", LabelArray=[], ShowFig=True):
+    """
+    plot the pulse spectral density.
+
+    Parameters
+    ----------
+    DataArray : array-like
+        array of DataObject instances for which to plot the PSDs
+    SubSampleN : int
+        Number of intervals between points to remove (to sub-sample data so
+        that you effectively have lower sample rate to make plotting easier
+        and quicker.
+    xlim : array-like
+        2 element array specifying the lower and upper x limit for which to
+        plot the time signal
+    LabelArray : array-like, optional
+        array of labels for each data-set to be plotted
+    ShowFig : bool, optional
+       If True runs plt.show() before returning figure
+       if False it just returns the figure object.
+       (the default is True, it shows the figure) 
+
+    Returns
+    -------
+    fig : plt.figure
+        The figure object created
+    ax : fig.add_subplot(111)
+        The subplot object created
+    """
+    if LabelArray == []:
+        LabelArray = ["DataSet {}".format(i) for i in _np.arange(0, len(DataArray), 1)]
+    fig = _plt.figure(figsize=[10, 6])
+    ax = fig.add_subplot(111)
+
+    for i, data in enumerate(DataArray):
+        ax.plot(data.time[::SubSampleN], data.Voltage[::SubSampleN], alpha=0.8, label=LabelArray[i])
+    ax.set_xlabel("time (s)")
+    if xlim != "default":
+        ax.set_xlim(xlim)
+    else:
+        ax.set_xlim([DataArray[0].time[0], DataArray[0].time[-1]])
+    if ylim != "default":
+        ax.set_ylim(ylim)
+    else:
+        ax.set_xlim([DataArray[0].Voltage[0]], [DataArray[0].Voltage[-1]])
+    ax.grid(which="major")
+    ax.legend(loc="best")
+    ax.set_ylabel("Voltage (V)")
+    if ShowFig == True:
+        _plt.show()
+    return fig, ax

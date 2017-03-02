@@ -4,7 +4,7 @@ with open('requirements.txt') as f:
     requirements = f.read().splitlines()
 
 setup(name='DataHandling',
-      version='1.2.0',
+      version='1.2.1',
       description='Python package with functions for data analysis',
       author='Ashley Setter',
       auther_email='A.Setter@soton.ac.uk',
