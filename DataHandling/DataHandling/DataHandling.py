@@ -293,6 +293,32 @@ class DataObject():
 
         return self.A, self.Ftrap, self.Gamma
 
+
+    def ExtractParameters(P_mbar, P_Error):
+        """
+        Extracts the Radius  mass and Conversion factor for a particle.
+
+        P_mbar : float 
+            The pressure in mbar when the data was taken.
+        P_Error : float
+            The error in the pressure value (as a decimal e.g. 15% = 0.15)
+
+        
+        """
+
+        [R, M, ConvFactor],[RErr, MErr, ConvFactorErr] = \
+            DataHandling.ExtractParameters(P_mbar, P_Error,
+                                           self.A.n, self.A.std_dev, 
+                                           self.Gamma.n, self.Gamma.std_dev)
+        self.Radius = _uncertainties.ufloat(R, RErr)
+        self.Mass = _uncertainties.ufloat(M, MErr)
+        self.ConvFactor = _uncertainties.ufloat(ConvFactor, ConvFactorErr)
+
+        return self.Radius, self.Mass, self.ConvFactor
+
+        
+    
+    
 #    def extractXYZMotion(self, [zf, xf, yf], uncertaintyInFreqs, PeakWidth, subSampleFraction):
 #        """
 #        Extracts the x, y and z signals (in volts) from the
@@ -450,7 +476,7 @@ def fitPSD(Data, bandwidth, NMovAve, verbosity, TrapFreqGuess, AGuess=0.1e10, Ga
 
 
 
-def ExtractParameters(Pressure, A, AErr, Gamma0, Gamma0Err):
+def ExtractParameters(Pressure, PressureErr, A, AErr, Gamma0, Gamma0Err):
     """
     Calculates the radius, mass and conversion factor and thier uncertainties.
     For values to be correct data must have been taken with feedback off and
@@ -468,6 +494,8 @@ def ExtractParameters(Pressure, A, AErr, Gamma0, Gamma0Err):
     ----------
     Pressure : float
     	Pressure in mbar when the data was taken
+    PressureErr : float
+    	Error in the Pressure as a decimal (e.g. 15% error is 0.15) 
     A : float
 		Fitting constant A
 		A = γ**2*Γ_0*(K_b*T_0)/(π*m)
@@ -488,7 +516,6 @@ def ExtractParameters(Pressure, A, AErr, Gamma0, Gamma0Err):
     ParamsError : list
     	[radiusError, massError, conversionFactorError]
     """
-    PressureErr = 0.15
     Pressure = 100*Pressure # conversion to Pascals
 
     rho= 2200 # kgm^3
