@@ -255,7 +255,7 @@ class DataObject():
             _plt.show()
         return  fig, ax
 
-    def getFit(self, WidthOfPeakToFit, NMovAveToFit, TrapFreq, A_Initial, Gamma_Initial, Verbosity=1):
+    def getFit(self, WidthOfPeakToFit, NMovAveToFit, TrapFreq, A_Initial=0.1e10, Gamma_Initial=400, Verbosity=1):
         """
         Function that fits peak to the PSD.
 
@@ -304,7 +304,8 @@ class DataObject():
 
 
 def calcTemp(Data_ref, Data):
-    T = 300*(Data.A/Data.Gamma)/(Data_ref.A/Data_ref.Gamma)
+    #T = 300*(Data.A/Data.Gamma)/(Data_ref.A/Data_ref.Gamma)
+    T = 300*((Data.A*Data_ref.Gamma)/(Data_ref.A*Data.Gamma))
     return T
 
 def fit_curvefit(p0, datax, datay, function, yerr=None, **kwargs):
@@ -437,7 +438,7 @@ def fitPSD(Data, bandwidth, NMovAve, verbosity, TrapFreqGuess, AGuess=0.1e10, Ga
         ax.plot(freqs_smoothed/(2*_np.pi), logPSD_smoothed, color='blue', label="smoothed", linewidth=1.5)
         ax.plot(freqs_smoothed/(2*_np.pi), PSDTheory_fit_initial, color="purple", label="initial")
         ax.plot(freqs_smoothed/(2*_np.pi), PSDTheory_fit, color="red", label="fitted")
-        ax.xlim([(ftrap-5*Angbandwidth)/(2*_np.pi), (ftrap+5*Angbandwidth)/(2*_np.pi)])
+        ax.set_xlim([(ftrap-5*Angbandwidth)/(2*_np.pi), (ftrap+5*Angbandwidth)/(2*_np.pi)])
         ax.plot([(ftrap-Angbandwidth)/(2*_np.pi), (ftrap-Angbandwidth)/(2*_np.pi)],
                  [min(logPSD_smoothed), max(logPSD_smoothed)], '--',
                  color="grey")
