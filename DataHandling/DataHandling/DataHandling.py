@@ -193,7 +193,7 @@ class DataObject():
             _plt.show()
         return fig, ax
 
-    def getPSD(self, NPerSegment=100000, window="hann"):
+    def getPSD(self, NPerSegment='Default', window="hann"):
         """
         Extracts the pulse spectral density (PSD) from the data.
 
@@ -201,7 +201,7 @@ class DataObject():
 	----------
         NPerSegment : int, optional
             Length of each segment used in scipy.welch
-            default =100000
+            default = the Number of time points
 
         window : str or tuple or array_like, optional
             Desired window to use. See get_window for a list of windows
@@ -219,18 +219,21 @@ class DataObject():
         	Array containing the value of the PSD at the corresponding
         	frequency value in V**2/Hz
         """
+        if NPerSegment == "Default":
+            NPerSegment = len(self.time)
         self.freqs, self.PSD = scipy.signal.welch(self.Voltage, self.SampleFreq,
                                 window=window, nperseg=NPerSegment)
         return self.freqs, self.PSD
 
-    def plotPSD(self, xlim, ShowFig=True):
+    def plotPSD(self, xlim="Default", ShowFig=True):
         """
         plot the pulse spectral density.
 
         Parameters
         ----------
-        xlim : array_like
+        xlim : array_like, optional
             The x limits of the plotted PSD [LowerLimit, UpperLimit]
+            Default value is [0, SampleFreq/2]
         ShowFig : bool, optional
             If True runs plt.show() before returning figure
             if False it just returns the figure object.
@@ -243,7 +246,9 @@ class DataObject():
 		ax : fig.add_subplot(111)
 			The subplot object created
         """
-        self.getPSD()
+#        self.getPSD()
+        if xlim == "Default":
+            xlim = [0, self.SampleFreq/2]
         fig = _plt.figure(figsize=[10, 6])
         ax = fig.add_subplot(111)
         ax.semilogy(self.freqs, self.PSD, color="blue")
@@ -294,7 +299,7 @@ class DataObject():
         return self.A, self.Ftrap, self.Gamma
 
 
-    def ExtractParameters(P_mbar, P_Error):
+    def ExtractParameters(self, P_mbar, P_Error):
         """
         Extracts the Radius  mass and Conversion factor for a particle.
 
@@ -319,14 +324,17 @@ class DataObject():
         
     
     
-#    def extractXYZMotion(self, [zf, xf, yf], uncertaintyInFreqs, PeakWidth, subSampleFraction):
-#        """
-#        Extracts the x, y and z signals (in volts) from the
-#
-#        """
-#        zf, xf, yf = DataHandling.GetxyzFreqs(self, 64000, 160000, 185000, bandwidth=5000)
-#        self.zVolts, self.xVolts, self.yVolts = DataHandling.getXYZData(self, zf, xf, yf, 2, zwidth=3000, xwidth=#3000, ywidth=3000)
-#        return self.zVolts, self.xVolts, self.yVolts
+    def extractZXYMotion(self, ApproxZXYFreqs, uncertaintyInFreqs, ZXYPeakWidths, subSampleFraction):
+        """
+        Extracts the x, y and z signals (in volts) from the
+
+        """
+        [zf, xf, yf] = ApproxZXYFreqs
+        zf, xf, yf = DataHandling.GetZXYFreqs(self, zf, xf, yf, bandwidth=uncertaintyInFreqs)
+        print(zf, xf, yf)
+        [zwidth, xwidth, ywidth] =  ZXYPeakWidths 
+        self.zVolts, self.xVolts, self.yVolts = DataHandling.getZXYData(self, zf, xf, yf, subSampleFraction, zwidth, xwidth, ywidth)
+        return self.zVolts, self.xVolts, self.yVolts
 
 
 def calcTemp(Data_ref, Data):
@@ -462,8 +470,8 @@ def fitPSD(Data, bandwidth, NMovAve, verbosity, TrapFreqGuess, AGuess=0.1e10, Ga
 
         ax.plot(AngFreqs/(2*_np.pi), 10*_np.log10(Data.PSD), color="darkblue", label="Raw PSD Data", alpha=0.5)
         ax.plot(freqs_smoothed/(2*_np.pi), logPSD_smoothed, color='blue', label="smoothed", linewidth=1.5)
-        ax.plot(freqs_smoothed/(2*_np.pi), PSDTheory_fit_initial, color="purple", label="initial")
-        ax.plot(freqs_smoothed/(2*_np.pi), PSDTheory_fit, color="red", label="fitted")
+        ax.plot(freqs_smoothed/(2*_np.pi), PSDTheory_fit_initial, '--', alpha=0.7, color="purple", label="initial vals")
+        ax.plot(freqs_smoothed/(2*_np.pi), PSDTheory_fit, color="red", label="fitted vals")
         ax.set_xlim([(ftrap-5*Angbandwidth)/(2*_np.pi), (ftrap+5*Angbandwidth)/(2*_np.pi)])
         ax.plot([(ftrap-Angbandwidth)/(2*_np.pi), (ftrap-Angbandwidth)/(2*_np.pi)],
                  [min(logPSD_smoothed), max(logPSD_smoothed)], '--',
@@ -471,7 +479,7 @@ def fitPSD(Data, bandwidth, NMovAve, verbosity, TrapFreqGuess, AGuess=0.1e10, Ga
         ax.plot([(ftrap+Angbandwidth)/(2*_np.pi), (ftrap+Angbandwidth)/(2*_np.pi)],
                  [min(logPSD_smoothed), max(logPSD_smoothed)], '--',
                  color="grey")
-        ax.legend()
+        ax.legend(loc="best")
     return Params_Fit, Params_Fit_Err, fig, ax
 
 
@@ -533,7 +541,7 @@ def ExtractParameters(Pressure, PressureErr, A, AErr, Gamma0, Gamma0Err):
 
     return [radius, mass, conversionFactor], [err_radius, err_mass, err_conversionFactor]
 
-def GetxyzFreqs(Data, zfreq, xfreq, yfreq, bandwidth=5000):
+def GetZXYFreqs(Data, zfreq, xfreq, yfreq, bandwidth=5000):
     """
     Determines the exact z, x and y peak frequencies from approximate
     frequencies by finding the highest peak in the PSD "close to" the
@@ -555,8 +563,8 @@ def GetxyzFreqs(Data, zfreq, xfreq, yfreq, bandwidth=5000):
         The bandwidth around the approximate peak to look for the actual peak.
 
 	Returns:
-	trapfreqs : list
-		List containing the trap frequencies in the following order (z, x, y)
+    trapfreqs : list
+        List containing the trap frequencies in the following order (z, x, y)
 
     """
     trapfreqs = []
@@ -574,10 +582,11 @@ def GetxyzFreqs(Data, zfreq, xfreq, yfreq, bandwidth=5000):
         trapfreqs.append(z_ftrap)
     return trapfreqs
 
-def getXYZData(Data, zf, xf, yf, FractionOfSampleFreq,
+def getZXYData(Data, zf, xf, yf, FractionOfSampleFreq,
                zwidth=10000, xwidth=5000, ywidth=5000,
                ztransition=10000, xtransition=5000, ytransition=5000,
-               verbosity=True):
+               timeStart = "Default", timeEnd = "Default",
+               showPlots=True):
     """
     Given a Data object and the frequencies of the z, x and y peaks (and some
     optional parameters for the created filters) this function extracts the
@@ -621,40 +630,62 @@ def getXYZData(Data, zf, xf, yf, FractionOfSampleFreq,
     ytransition : float
         The width of the transition-band of the IIR filter to be generated to
         filter Y.
-    verbosity : bool
+    showPlots : bool
         If True - plot unfiltered and filtered PSD for z, x and y.
         If False - don't plot anything
 
     Returns
     -------
     zdata : ndarray
-	 	Array containing the z signal in volts with time.
-   	xdata : ndarray
-		Array containing the x signal in volts with time.
-   	ydata : ndarray
-		Array containing the y signal in volts with time.
-
+        Array containing the z signal in volts with time.
+    xdata : ndarray
+        Array containing the x signal in volts with time.
+    ydata : ndarray
+        Array containing the y signal in volts with time.
+    timedata : ndarray
+        Array containing the time data to go with the z, x, and y signal.
     """
-    SAMPLEFREQ = Data.SampleFreq/FractionOfSampleFreq
+    if timeStart == "Default":
+        timeStart = Data.time[0]
+    if timeEnd == "Default":
+        timeEnd = Data.time[-1]
 
+    StartIndex = list(Data.time).index(takeClosest(Data.time, timeStart))
+    EndIndex = list(Data.time).index(takeClosest(Data.time, timeEnd))
+
+    print(StartIndex, EndIndex)
+    
+    SAMPLEFREQ = Data.SampleFreq/FractionOfSampleFreq
+    
+    input_signal = Data.Voltage[StartIndex : EndIndex][0::FractionOfSampleFreq]
+    
     bZ, aZ = IIRFilterDesign(zf, zwidth, ztransition, SAMPLEFREQ, GainStop=100)
 
-    input_signal = Data.Voltage[0::FractionOfSampleFreq]
     zdata = scipy.signal.filtfilt(bZ, aZ, input_signal)
-
+    
+    if(_np.isnan(zdata).any()):
+        raise ValueError("Value Error: FractionOfSampleFreq must be higher, a sufficiently small sample frequency should be used to produce a working IIR filter.")
+    
     bX, aX = IIRFilterDesign(xf, xwidth, xtransition, SAMPLEFREQ, GainStop=100)
 
     xdata = scipy.signal.filtfilt(bX, aX, input_signal)
+    
+    if(_np.isnan(xdata).any()):
+        raise ValueError("Value Error: FractionOfSampleFreq must be higher, a sufficiently small sample frequency should be used to produce a working IIR filter.")
 
     bY, aY = IIRFilterDesign(yf, ywidth, ytransition, SAMPLEFREQ, GainStop=100)
 
     ydata = scipy.signal.filtfilt(bY, aY, input_signal)
+    
+    if(_np.isnan(ydata).any()):
+        raise ValueError("Value Error: FractionOfSampleFreq must be higher, a sufficiently small sample frequency should be used to produce a working IIR filter.")
 
-    if verbosity == True:
-        f, PSD = scipy.signal.welch(input_signal, SAMPLEFREQ, nperseg=10000)
-        f_z, PSD_z = scipy.signal.welch(zdata, SAMPLEFREQ, nperseg=10000)
-        f_y, PSD_y = scipy.signal.welch(ydata, SAMPLEFREQ, nperseg=10000)
-        f_x, PSD_x = scipy.signal.welch(xdata, SAMPLEFREQ, nperseg=10000)
+    
+    if showPlots == True:
+        f, PSD = scipy.signal.welch(input_signal, SAMPLEFREQ, nperseg=100000)
+        f_z, PSD_z = scipy.signal.welch(zdata, SAMPLEFREQ, nperseg=100000)
+        f_y, PSD_y = scipy.signal.welch(ydata, SAMPLEFREQ, nperseg=100000)
+        f_x, PSD_x = scipy.signal.welch(xdata, SAMPLEFREQ, nperseg=100000)
         _plt.plot(f, 10*_np.log10(PSD))
         _plt.plot(f_z, 10*_np.log10(PSD_z), label="z")
         _plt.plot(f_x, 10*_np.log10(PSD_x), label="x")
@@ -663,10 +694,12 @@ def getXYZData(Data, zf, xf, yf, FractionOfSampleFreq,
         _plt.xlim([zf-zwidth-ztransition, yf+ywidth+ytransition])
         _plt.show()
 
-    return zdata, xdata, ydata
+        timedata = Data.time[StartIndex : EndIndex][0::FractionOfSampleFreq]
+    return zdata, xdata, ydata, timedata
 
 def animate(zdata, xdata, ydata,
-            conversionFactor, SampleFreq, FractionOfSampleFreq,
+            conversionFactor, timedata,
+            BoxSize,
             timeSteps=100, filename="particle"):
     """
     Animates the particle's motion given the z, x and y signal (in Volts)
@@ -682,11 +715,10 @@ def animate(zdata, xdata, ydata,
         Array containing the y signal in volts with time.
     conversionFactor : float
         conversion factor (in units of Volts/Metre)
-    SampleFreq : float
-        The frequency at which the original data was sampled
-    FractionOfSampleFreq : int
-        The fraction of the sample frequency used to sub-sample the data by.
-        This would have been used in the getXYZData function.
+    timedata : ndarray
+        Array containing the time data in seconds.
+    BoxSize : float
+        The size of the box in which to animate the particle - in nm
     timeSteps : int
         Number of time steps to animate
     filename : string
@@ -696,14 +728,14 @@ def animate(zdata, xdata, ydata,
     timePerFrame = 0.203
     print("This will take ~ {} minutes".format(timePerFrame*timeSteps/60))
 
-    SAMPLEFREQ = SampleFreq/FractionOfSampleFreq
     conv = conversionFactor*1e-9
-    ZBoxStart = 1/conv*(_np.mean(zdata)-0.06)
-    ZBoxEnd = 1/conv*(_np.mean(zdata)+0.06)
-    XBoxStart = 1/conv*(_np.mean(xdata)-0.06)
-    XBoxEnd = 1/conv*(_np.mean(xdata)+0.06)
-    YBoxStart = 1/conv*(_np.mean(ydata)-0.06)
-    YBoxEnd = 1/conv*(_np.mean(ydata)+0.06)
+
+    ZBoxStart = -BoxSize #1/conv*(_np.mean(zdata)-0.06)
+    ZBoxEnd = BoxSize #1/conv*(_np.mean(zdata)+0.06)
+    XBoxStart = -BoxSize #1/conv*(_np.mean(xdata)-0.06)
+    XBoxEnd = BoxSize #1/conv*(_np.mean(xdata)+0.06)
+    YBoxStart = -BoxSize #1/conv*(_np.mean(ydata)-0.06)
+    YBoxEnd = BoxSize #1/conv*(_np.mean(ydata)+0.06)
 
     FrameInterval = 1 # how many timesteps = 1 frame in animation
 
@@ -714,7 +746,7 @@ def animate(zdata, xdata, ydata,
 
     fig = _plt.figure(figsize = (a,b))
     ax = fig.add_subplot(111, projection='3d')
-    ax.set_title("{} us".format(1/SAMPLEFREQ*1e6*0))
+    ax.set_title("{} us".format(timedata[0]*1e6))
     ax.set_xlabel('X (nm)')
     ax.set_xlim([XBoxStart,XBoxEnd])
     ax.set_ylabel('Y (nm)')
@@ -737,7 +769,7 @@ def animate(zdata, xdata, ydata,
         print("Frame: {}".format(i), end="\r")
         ax.clear()
         ax.view_init(20, -30)
-        ax.set_title("{} us".format(1/SAMPLEFREQ*1e6*i))
+        ax.set_title("{} us".format(timedata[i]*1e6))
         ax.set_xlabel('X (nm)')
         ax.set_xlim([XBoxStart,XBoxEnd])
         ax.set_ylabel('Y (nm)')
@@ -794,7 +826,7 @@ def animate(zdata, xdata, ydata,
 
     _plt.rcParams['animation.ffmpeg_path'] = '/usr/bin/ffmpeg'
     mywriter = _animation.FFMpegWriter(fps = myFPS, bitrate = myBitrate)
-    anim.save('{}.mp4'.format(filename),writer=mywriter, fps = myFPS, bitrate = myBitrate)
+    anim.save('{}.mp4'.format(filename), writer=mywriter) #, fps = myFPS, bitrate = myBitrate)
     return None
 
 def IIRFilterDesign(CentralFreq, bandwidth, transitionWidth, SampleFreq, GainStop=40, GainPass=0.01):
@@ -825,8 +857,8 @@ def IIRFilterDesign(CentralFreq, bandwidth, transitionWidth, SampleFreq, GainSto
     """
     NyquistFreq = SampleFreq/2
     if (CentralFreq+bandwidth/2+transitionWidth > NyquistFreq):
-        print("Need a higher Sample Frequency for this Central Freq, Bandwidth and transition Width")
-        return 0, 0
+        raise ValueError("Need a higher Sample Frequency for this Central Freq, Bandwidth and transition Width")
+
     CentralFreqNormed = CentralFreq/NyquistFreq
     bandwidthNormed = bandwidth/NyquistFreq
     transitionWidthNormed = transitionWidth/NyquistFreq
@@ -998,7 +1030,7 @@ def MultiPlotTime(DataArray, SubSampleN = 1, xlim="default", ylim="default", Lab
     if ylim != "default":
         ax.set_ylim(ylim)
     else:
-        ax.set_xlim([DataArray[0].Voltage[0]], [DataArray[0].Voltage[-1]])
+        ax.set_xlim([min(DataArray[0].Voltage), max(DataArray[0].Voltage)])
     ax.grid(which="major")
     ax.legend(loc="best")
     ax.set_ylabel("Voltage (V)")
