@@ -85,7 +85,7 @@ class SimData(DataObject):
             w = 2*_np.pi*Freq
             self.TrueSignals[Freq] = _np.sin(w*self.time)
         self.Noise = _np.random.normal(0, self.NoiseStdDev, len(self.time))
-        self.Voltage = self.Noise
+        self.Voltage = _np.copy(self.Noise)
         for signal in [self.TrueSignals[key] for key in self.TrueSignals]:
             self.Voltage += signal
         return None
@@ -113,7 +113,7 @@ class SimData(DataObject):
                 TSinceLastPhaseChange += Ts
             self.TrueSignals[Freq] = _np.array(TrueSignal)
         self.Noise = _np.random.normal(0, self.NoiseStdDev, len(self.time))
-        self.Voltage = self.Noise
+        self.Voltage = _np.copy(self.Noise)
         for signal in [self.TrueSignals[key] for key in self.TrueSignals]:
             self.Voltage += signal
         return None
