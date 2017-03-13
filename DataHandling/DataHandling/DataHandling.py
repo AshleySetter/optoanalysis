@@ -682,10 +682,11 @@ def getZXYData(Data, zf, xf, yf, FractionOfSampleFreq,
 
     
     if showPlots == True:
-        f, PSD = scipy.signal.welch(input_signal, SAMPLEFREQ, nperseg=100000)
-        f_z, PSD_z = scipy.signal.welch(zdata, SAMPLEFREQ, nperseg=100000)
-        f_y, PSD_y = scipy.signal.welch(ydata, SAMPLEFREQ, nperseg=100000)
-        f_x, PSD_x = scipy.signal.welch(xdata, SAMPLEFREQ, nperseg=100000)
+        NPerSegment = len(Data.time)
+        f, PSD = scipy.signal.welch(input_signal, SAMPLEFREQ, nperseg=NPerSegment)
+        f_z, PSD_z = scipy.signal.welch(zdata, SAMPLEFREQ, nperseg=NPerSegment)
+        f_y, PSD_y = scipy.signal.welch(ydata, SAMPLEFREQ, nperseg=NPerSegment)
+        f_x, PSD_x = scipy.signal.welch(xdata, SAMPLEFREQ, nperseg=NPerSegment)
         _plt.plot(f, 10*_np.log10(PSD))
         _plt.plot(f_z, 10*_np.log10(PSD_z), label="z")
         _plt.plot(f_x, 10*_np.log10(PSD_x), label="x")
