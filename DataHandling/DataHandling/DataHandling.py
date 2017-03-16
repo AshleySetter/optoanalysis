@@ -262,7 +262,7 @@ class DataObject():
             _plt.show()
         return  fig, ax
 
-    def getFit(self, WidthOfPeakToFit, NMovAveToFit, TrapFreq, A_Initial=0.1e10, Gamma_Initial=400, Verbosity=1):
+    def getFit(self, WidthOfPeakToFit, NMovAveToFit, TrapFreq, A_Initial=0.1e10, Gamma_Initial=400, ShowPlots=True):
         """
         Function that fits peak to the PSD.
 
@@ -286,7 +286,7 @@ class DataObject():
 			Γ_0 = Damping factor due to environment
 			δΓ = extra damping due to feedback
         """
-        Params, ParamsErr, fig, ax = fitPSD(self, WidthOfPeakToFit, NMovAveToFit, Verbosity, TrapFreq, A_Initial, Gamma_Initial)
+        Params, ParamsErr, fig, ax = fitPSD(self, WidthOfPeakToFit, NMovAveToFit, TrapFreq, A_Initial, Gamma_Initial, ShowPlots)
         _plt.show()
         
         print("\n")
