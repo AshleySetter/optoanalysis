@@ -5,4 +5,6 @@ python:
 # command to install dependancies
 install: "pip install -e DataHandling" # installs DataHandling and all requirements
 # command to run tests
-script: pytest -v --cov=DataHandling --mpl # runs pytest in verbose mode, reports coverage of the DataHandling library and with pytest-mpl so that the figures created are compared to the baselines in tests/baseline
+script:
+  - python tests.py
+#  - pytest -v --cov=DataHandling --mpl # runs pytest in verbose mode, reports coverage of the DataHandling library and with pytest-mpl so that the figures created are compared to the baselines in tests/baseline
