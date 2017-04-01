@@ -4,7 +4,10 @@ python:
   - "3.6"
 # command to install dependancies
 install: "pip install -e DataHandling" # installs DataHandling and all requirements
+before_script: # configure a headless display to test plot generation
+- "export DISPLAY=:99.0"
+- "sh -e /etc/init.d/xvfb start"
+- sleep 3 # give xvfb some time to start
 # command to run tests
 script:
-  - python tests.py
 #  - pytest -v --cov=DataHandling --mpl # runs pytest in verbose mode, reports coverage of the DataHandling library and with pytest-mpl so that the figures created are compared to the baselines in tests/baseline
