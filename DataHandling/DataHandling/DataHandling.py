@@ -10,6 +10,8 @@ from matplotlib import rcParams
 import matplotlib.animation as _animation
 from glob import glob
 import re
+import seaborn as _sns
+import pandas as _pd
 
 def LoadData(Filepath):
     """
@@ -287,7 +289,6 @@ class DataObject():
 			δΓ = extra damping due to feedback
         """
         Params, ParamsErr, fig, ax = fitPSD(self, WidthOfPeakToFit, NMovAveToFit, TrapFreq, A_Initial, Gamma_Initial, ShowFig)
-        _plt.show()
         
         print("\n")
         print("A: {} +- {}% ".format(Params[0], ParamsErr[0]/Params[0]*100))
@@ -298,7 +299,7 @@ class DataObject():
         self.Ftrap = _uncertainties.ufloat(Params[1], ParamsErr[1])
         self.Gamma = _uncertainties.ufloat(Params[2], ParamsErr[2])
 
-        return self.A, self.Ftrap, self.Gamma
+        return self.A, self.Ftrap, self.Gamma, fig, ax
 
 
     def ExtractParameters(self, P_mbar, P_Error):
@@ -338,7 +339,35 @@ class DataObject():
         self.zVolts, self.xVolts, self.yVolts = DataHandling.getZXYData(self, zf, xf, yf, subSampleFraction, zwidth, xwidth, ywidth)
         return self.zVolts, self.xVolts, self.yVolts
 
+    def phasespaceplot(self,zf,xf=80000,yf=120000,FractionOfSampleFreq=4,zwidth=10000,xwidth=5000,ywidth=5000,ShowPlots=True):
+        """
+        author: Markus Rademacher
+        """
+        Z, X, Y, Time = DataHandling.getZXYData(self,zf,xf,yf,FractionOfSampleFreq,zwidth,xwidth,ywidth,showPlots=False)
+        conv = self.ConvFactor.n
+        ZArray = Z/conv 
+        ZVArray = _np.diff(ZArray)*(self.SampleFreq/FractionOfSampleFreq)
+        VarZ=_np.var(ZArray)
+        VarZV=_np.var(ZVArray)
+        MaxZ=_np.max(ZArray)
+        MaxZV=_np.max(ZVArray)
+        if MaxZ>MaxZV/(2*_np.pi*zf):
+            _plotlimit=MaxZ*1.1
+        else:
+            _plotlimit=MaxZV/(2*_np.pi*zf)*1.1
+        
+        _JP1 = _sns.jointplot(_pd.Series(ZArray[1:],name="$z$(m) \n filepath=%s"%(self.filepath)),_pd.Series(ZVArray/(2*_np.pi*zf),name="$v_z$/$\omega$(m)"),stat_func=None,xlim=[-_plotlimit,_plotlimit],ylim=[-_plotlimit,_plotlimit])
+        _JP1.ax_joint.text(_np.mean(ZArray),MaxZV/(2*_np.pi*zf)*1.15,
+                          r"$\sigma_z=$ %.2Em, $\sigma_v=$ %.2Em"%(VarZ,VarZV),
+                          horizontalalignment='center')
+        _JP1.ax_joint.text(_np.mean(ZArray),MaxZV/(2*_np.pi*zf)*1.6,
+                          "filepath=%s"%(self.filepath),
+                          horizontalalignment='center')
+        if ShowPlots==True:
+            _plt.show()
 
+        return VarZ,VarZV,_JP1,self.Mass
+            
 def calcTemp(Data_ref, Data):
     #T = 300*(Data.A/Data.Gamma)/(Data_ref.A/Data_ref.Gamma)
     T = 300*((Data.A*Data_ref.Gamma)/(Data_ref.A*Data.Gamma))
@@ -719,7 +748,7 @@ def getZXYData(Data, zf, xf, yf, FractionOfSampleFreq,
         _plt.xlim([zf-zwidth-ztransition, yf+ywidth+ytransition])
         _plt.show()
 
-        timedata = Data.time[StartIndex : EndIndex][0::FractionOfSampleFreq]
+    timedata = Data.time[StartIndex : EndIndex][0::FractionOfSampleFreq]
     return zdata, xdata, ydata, timedata
 
 def animate(zdata, xdata, ydata,
