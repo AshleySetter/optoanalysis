@@ -7,6 +7,7 @@ from matplotlib.testing.decorators import image_comparison
 
 def test_nothing():
     print("Nothing Tested")
+    print(dir(DataHandling))
 
 def test_LoadData():
     data = DataHandling.LoadData("testData.raw")
