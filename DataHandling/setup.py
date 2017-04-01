@@ -11,7 +11,7 @@ setup(name='DataHandling',
       url=None,
       packages=['DataHandling',
                 'DataHandling.LeCroy',
-                'Datahandling.SimData',
+                'DataHandling.SimData',
       ],
       install_requires=requirements,
 )
