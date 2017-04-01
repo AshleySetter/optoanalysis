@@ -7,4 +7,6 @@ scipy
 matplotlib
 uncertainties
 seaborn
+pytest
+pytest-cov
 #

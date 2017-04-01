@@ -1,0 +1,8 @@
+language: python
+python:
+  - "3.5"
+  - "3.6"
+# command to install dependancies
+install: "pip install -r DataHanding/requirements.txt"
+# command to run tests
+script: pytest --cov=DataHandling -v
