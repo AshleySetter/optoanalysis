@@ -10,4 +10,4 @@ before_script: # configure a headless display to test plot generation
 - sleep 3 # give xvfb some time to start
 # command to run tests
 script:
-#  - pytest -v --cov=DataHandling --mpl # runs pytest in verbose mode, reports coverage of the DataHandling library and with pytest-mpl so that the figures created are compared to the baselines in tests/baseline
+  - pytest -v --cov=DataHandling --mpl # runs pytest in verbose mode, reports coverage of the DataHandling library and with pytest-mpl so that the figures created are compared to the baselines in tests/baseline
