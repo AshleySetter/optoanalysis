@@ -262,7 +262,7 @@ class DataObject():
             _plt.show()
         return  fig, ax
 
-    def getFit(self, WidthOfPeakToFit, NMovAveToFit, TrapFreq, A_Initial=0.1e10, Gamma_Initial=400, ShowPlots=True):
+    def getFit(self, WidthOfPeakToFit, NMovAveToFit, TrapFreq, A_Initial=0.1e10, Gamma_Initial=400, ShowFig=True):
         """
         Function that fits peak to the PSD.
 
@@ -286,7 +286,7 @@ class DataObject():
 			Γ_0 = Damping factor due to environment
 			δΓ = extra damping due to feedback
         """
-        Params, ParamsErr, fig, ax = fitPSD(self, WidthOfPeakToFit, NMovAveToFit, TrapFreq, A_Initial, Gamma_Initial, ShowPlots)
+        Params, ParamsErr, fig, ax = fitPSD(self, WidthOfPeakToFit, NMovAveToFit, TrapFreq, A_Initial, Gamma_Initial, ShowFig)
         _plt.show()
         
         print("\n")
@@ -388,7 +388,7 @@ def PSD_Fitting(A, Omega0, gamma, omega):
     # gamma = Big Gamma - damping (due to environment and feedback (if feedback is on))
     return 10*_np.log10(A/((Omega0**2-omega**2)**2 + (omega*gamma)**2))
 
-def fitPSD(Data, bandwidth, NMovAve, TrapFreqGuess, AGuess=0.1e10, GammaGuess=400, ShowPlots=True):
+def fitPSD(Data, bandwidth, NMovAve, TrapFreqGuess, AGuess=0.1e10, GammaGuess=400, ShowFig=True):
     """
     Fits theory PSD to Data. Assumes highest point of PSD is the
     trapping frequency.
@@ -400,7 +400,7 @@ def fitPSD(Data, bandwidth, NMovAve, TrapFreqGuess, AGuess=0.1e10, GammaGuess=40
                 fit the theory PSD to
     NMovAve - amount of moving averages to take before the fitting
     
-    ShowPlots - (defaults to True) if set to True this function plots the
+    ShowFig - (defaults to True) if set to True this function plots the
         PSD of the data, smoothed data and theory peak from fitting.
 
     Returns
@@ -483,7 +483,7 @@ def fitPSD(Data, bandwidth, NMovAve, TrapFreqGuess, AGuess=0.1e10, GammaGuess=40
             [min(logPSD_smoothed), max(logPSD_smoothed)], '--',
             color="grey")
     ax.legend(loc="best")
-    if ShowPlots == True:
+    if ShowFig == True:
         _plt.show()
     return Params_Fit, Params_Fit_Err, fig, ax
 
@@ -592,7 +592,7 @@ def getZXYData(Data, zf, xf, yf, FractionOfSampleFreq,
                ztransition=10000, xtransition=5000, ytransition=5000,
                filterImplementation = "filtfilt",
                timeStart = "Default", timeEnd = "Default",
-               showPlots=True):
+               ShowFig=True):
     """
     Given a Data object and the frequencies of the z, x and y peaks (and some
     optional parameters for the created filters) this function extracts the
@@ -643,7 +643,7 @@ def getZXYData(Data, zf, xf, yf, FractionOfSampleFreq,
         Starting time for filtering
     timeEnd : float
         Ending time for filtering
-    showPlots : bool
+    ShowFig : bool
         If True - plot unfiltered and filtered PSD for z, x and y.
         If False - don't plot anything
 
@@ -703,7 +703,7 @@ def getZXYData(Data, zf, xf, yf, FractionOfSampleFreq,
         raise ValueError("Value Error: FractionOfSampleFreq must be higher, a sufficiently small sample frequency should be used to produce a working IIR filter.")
 
     
-    if showPlots == True:
+    if ShowFig == True:
         NPerSegment = len(Data.time)
         if NPerSegment > 1e5:
             NPerSegment = int(1e5)
@@ -895,11 +895,11 @@ def IIRFilterDesign(CentralFreq, bandwidth, transitionWidth, SampleFreq, GainSto
     return b, a
 
 
-def GetFreqResponse(a, b, ShowPlots=True, SampleFreq=(2*_np.pi), NumOfFreqs=500, whole=False):
+def GetFreqResponse(a, b, ShowFig=True, SampleFreq=(2*_np.pi), NumOfFreqs=500, whole=False):
     """
     This function takes an array of coefficients and finds the frequency
     response of the filter using scipy.signal.freqz.
-    ShowPlots sets if the response should be plotted
+    ShowFig sets if the response should be plotted
 
     Parameters
     ----------
@@ -907,7 +907,7 @@ def GetFreqResponse(a, b, ShowPlots=True, SampleFreq=(2*_np.pi), NumOfFreqs=500,
         Coefficients multiplying the y values (outputs of the filter)
     b : array_like
         Coefficients multiplying the x values (inputs of the filter)
-    ShowPlots : bool
+    ShowFig : bool
         Verbosity of function (i.e. whether to plot frequency and phase
         response or whether to just return the values.)
         Options (Default is 1):
@@ -942,7 +942,7 @@ def GetFreqResponse(a, b, ShowPlots=True, SampleFreq=(2*_np.pi), NumOfFreqs=500,
     himag = _np.array([hi.imag for hi in h])
     GainArray = 20*_np.log10(_np.abs(h))
     PhaseDiffArray = _np.unwrap(_np.arctan2(_np.imag(h), _np.real(h)))
-    if ShowPlots == True:
+    if ShowFig == True:
         fig1 = _plt.figure()
         ax = fig1.add_subplot(111)
         ax.plot(freqList, GainArray, '-', label="Specified Filter")
