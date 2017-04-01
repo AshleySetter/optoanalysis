@@ -3,7 +3,6 @@ python:
   - "3.5"
   - "3.6"
 # command to install dependancies
-install: "pip install -r DataHandling/requirements.txt"
-install: "pip install -e ."
+install: "pip install -e DataHandling" # installs DataHandling and all requirements
 # command to run tests
-script: pytest --cov=DataHandling -v --mpl
+script: pytest -v --cov=DataHandling --mpl # runs pytest in verbose mode, reports coverage of the DataHandling library and with pytest-mpl so that the figures created are compared to the baselines in tests/baseline
