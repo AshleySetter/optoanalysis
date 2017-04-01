@@ -221,6 +221,8 @@ class DataObject():
         """
         if NPerSegment == "Default":
             NPerSegment = len(self.time)
+            if NPerSegment > 1e5:
+                NPerSegment = int(1e5)
         self.freqs, self.PSD = scipy.signal.welch(self.Voltage, self.SampleFreq,
                                 window=window, nperseg=NPerSegment)
         return self.freqs, self.PSD
@@ -260,7 +262,7 @@ class DataObject():
             _plt.show()
         return  fig, ax
 
-    def getFit(self, WidthOfPeakToFit, NMovAveToFit, TrapFreq, A_Initial=0.1e10, Gamma_Initial=400, Verbosity=1):
+    def getFit(self, WidthOfPeakToFit, NMovAveToFit, TrapFreq, A_Initial=0.1e10, Gamma_Initial=400, ShowPlots=True):
         """
         Function that fits peak to the PSD.
 
@@ -284,7 +286,7 @@ class DataObject():
 			Γ_0 = Damping factor due to environment
 			δΓ = extra damping due to feedback
         """
-        Params, ParamsErr, fig, ax = fitPSD(self, WidthOfPeakToFit, NMovAveToFit, Verbosity, TrapFreq, A_Initial, Gamma_Initial)
+        Params, ParamsErr, fig, ax = fitPSD(self, WidthOfPeakToFit, NMovAveToFit, TrapFreq, A_Initial, Gamma_Initial, ShowPlots)
         _plt.show()
         
         print("\n")
@@ -386,7 +388,7 @@ def PSD_Fitting(A, Omega0, gamma, omega):
     # gamma = Big Gamma - damping (due to environment and feedback (if feedback is on))
     return 10*_np.log10(A/((Omega0**2-omega**2)**2 + (omega*gamma)**2))
 
-def fitPSD(Data, bandwidth, NMovAve, verbosity, TrapFreqGuess, AGuess=0.1e10, GammaGuess=400):
+def fitPSD(Data, bandwidth, NMovAve, TrapFreqGuess, AGuess=0.1e10, GammaGuess=400, ShowPlots=True):
     """
     Fits theory PSD to Data. Assumes highest point of PSD is the
     trapping frequency.
@@ -397,7 +399,8 @@ def fitPSD(Data, bandwidth, NMovAve, verbosity, TrapFreqGuess, AGuess=0.1e10, Ga
     bandwidth - bandwidth around trapping frequency peak to
                 fit the theory PSD to
     NMovAve - amount of moving averages to take before the fitting
-    verbosity - (defaults to 0) if set to 1 this function plots the
+    
+    ShowPlots - (defaults to True) if set to True this function plots the
         PSD of the data, smoothed data and theory peak from fitting.
 
     Returns
@@ -457,29 +460,31 @@ def fitPSD(Data, bandwidth, NMovAve, verbosity, TrapFreqGuess, AGuess=0.1e10, Ga
     Params_Fit, Params_Fit_Err = fit_curvefit(p0,
                                       datax, datay, CalcTheoryPSD_curvefit)
 
-    if verbosity == 1:
-        #    print("Params Fitted:", Params_Fit, "Error in Params:", Params_Fit_Err)
-        fig = _plt.figure()
-        ax = fig.add_subplot(111)
-        
-        PSDTheory_fit_initial = PSD_Fitting(p0[0], p0[1],
-                                    p0[2], freqs_smoothed)
 
-        PSDTheory_fit = PSD_Fitting(Params_Fit[0], Params_Fit[1],
+    #    print("Params Fitted:", Params_Fit, "Error in Params:", Params_Fit_Err)
+    fig = _plt.figure()
+    ax = fig.add_subplot(111)
+        
+    PSDTheory_fit_initial = PSD_Fitting(p0[0], p0[1],
+                                        p0[2], freqs_smoothed)
+
+    PSDTheory_fit = PSD_Fitting(Params_Fit[0], Params_Fit[1],
                                     Params_Fit[2], freqs_smoothed)
 
-        ax.plot(AngFreqs/(2*_np.pi), 10*_np.log10(Data.PSD), color="darkblue", label="Raw PSD Data", alpha=0.5)
-        ax.plot(freqs_smoothed/(2*_np.pi), logPSD_smoothed, color='blue', label="smoothed", linewidth=1.5)
-        ax.plot(freqs_smoothed/(2*_np.pi), PSDTheory_fit_initial, '--', alpha=0.7, color="purple", label="initial vals")
-        ax.plot(freqs_smoothed/(2*_np.pi), PSDTheory_fit, color="red", label="fitted vals")
-        ax.set_xlim([(ftrap-5*Angbandwidth)/(2*_np.pi), (ftrap+5*Angbandwidth)/(2*_np.pi)])
-        ax.plot([(ftrap-Angbandwidth)/(2*_np.pi), (ftrap-Angbandwidth)/(2*_np.pi)],
-                 [min(logPSD_smoothed), max(logPSD_smoothed)], '--',
-                 color="grey")
-        ax.plot([(ftrap+Angbandwidth)/(2*_np.pi), (ftrap+Angbandwidth)/(2*_np.pi)],
-                 [min(logPSD_smoothed), max(logPSD_smoothed)], '--',
-                 color="grey")
-        ax.legend(loc="best")
+    ax.plot(AngFreqs/(2*_np.pi), 10*_np.log10(Data.PSD), color="darkblue", label="Raw PSD Data", alpha=0.5)
+    ax.plot(freqs_smoothed/(2*_np.pi), logPSD_smoothed, color='blue', label="smoothed", linewidth=1.5)
+    ax.plot(freqs_smoothed/(2*_np.pi), PSDTheory_fit_initial, '--', alpha=0.7, color="purple", label="initial vals")
+    ax.plot(freqs_smoothed/(2*_np.pi), PSDTheory_fit, color="red", label="fitted vals")
+    ax.set_xlim([(ftrap-5*Angbandwidth)/(2*_np.pi), (ftrap+5*Angbandwidth)/(2*_np.pi)])
+    ax.plot([(ftrap-Angbandwidth)/(2*_np.pi), (ftrap-Angbandwidth)/(2*_np.pi)],
+            [min(logPSD_smoothed), max(logPSD_smoothed)], '--',
+            color="grey")
+    ax.plot([(ftrap+Angbandwidth)/(2*_np.pi), (ftrap+Angbandwidth)/(2*_np.pi)],
+            [min(logPSD_smoothed), max(logPSD_smoothed)], '--',
+            color="grey")
+    ax.legend(loc="best")
+    if ShowPlots == True:
+        _plt.show()
     return Params_Fit, Params_Fit_Err, fig, ax
 
 
@@ -585,6 +590,7 @@ def GetZXYFreqs(Data, zfreq, xfreq, yfreq, bandwidth=5000):
 def getZXYData(Data, zf, xf, yf, FractionOfSampleFreq,
                zwidth=10000, xwidth=5000, ywidth=5000,
                ztransition=10000, xtransition=5000, ytransition=5000,
+               filterImplementation = "filtfilt",
                timeStart = "Default", timeEnd = "Default",
                showPlots=True):
     """
@@ -630,6 +636,13 @@ def getZXYData(Data, zf, xf, yf, FractionOfSampleFreq,
     ytransition : float
         The width of the transition-band of the IIR filter to be generated to
         filter Y.
+    filterImplementation : string
+        filtfilt or lfilter - use scipy.filtfilt or lfilter
+        default: filtfilt
+    timeStart : float
+        Starting time for filtering
+    timeEnd : float
+        Ending time for filtering
     showPlots : bool
         If True - plot unfiltered and filtered PSD for z, x and y.
         If False - don't plot anything
@@ -657,25 +670,34 @@ def getZXYData(Data, zf, xf, yf, FractionOfSampleFreq,
     
     SAMPLEFREQ = Data.SampleFreq/FractionOfSampleFreq
     
+    if filterImplementation == "filtfilt":
+        ApplyFilter = scipy.signal.filtfilt
+    elif filterImplementation == "lfilter":
+        ApplyFilter = scipy.signal.lfilter        
+    else:
+        raise ValueError("filterImplementation must be one of [filtfilt, lfilter] you entered: {}".format(filterImplementation))
+
+
     input_signal = Data.Voltage[StartIndex : EndIndex][0::FractionOfSampleFreq]
     
     bZ, aZ = IIRFilterDesign(zf, zwidth, ztransition, SAMPLEFREQ, GainStop=100)
 
-    zdata = scipy.signal.filtfilt(bZ, aZ, input_signal)
+    zdata = ApplyFilter(bZ, aZ, input_signal)
     
     if(_np.isnan(zdata).any()):
         raise ValueError("Value Error: FractionOfSampleFreq must be higher, a sufficiently small sample frequency should be used to produce a working IIR filter.")
+
     
     bX, aX = IIRFilterDesign(xf, xwidth, xtransition, SAMPLEFREQ, GainStop=100)
-
-    xdata = scipy.signal.filtfilt(bX, aX, input_signal)
+    
+    xdata = ApplyFilter(bX, aX, input_signal)
     
     if(_np.isnan(xdata).any()):
         raise ValueError("Value Error: FractionOfSampleFreq must be higher, a sufficiently small sample frequency should be used to produce a working IIR filter.")
 
     bY, aY = IIRFilterDesign(yf, ywidth, ytransition, SAMPLEFREQ, GainStop=100)
 
-    ydata = scipy.signal.filtfilt(bY, aY, input_signal)
+    ydata = ApplyFilter(bY, aY, input_signal)
     
     if(_np.isnan(ydata).any()):
         raise ValueError("Value Error: FractionOfSampleFreq must be higher, a sufficiently small sample frequency should be used to produce a working IIR filter.")
@@ -683,6 +705,8 @@ def getZXYData(Data, zf, xf, yf, FractionOfSampleFreq,
     
     if showPlots == True:
         NPerSegment = len(Data.time)
+        if NPerSegment > 1e5:
+            NPerSegment = int(1e5)
         f, PSD = scipy.signal.welch(input_signal, SAMPLEFREQ, nperseg=NPerSegment)
         f_z, PSD_z = scipy.signal.welch(zdata, SAMPLEFREQ, nperseg=NPerSegment)
         f_y, PSD_y = scipy.signal.welch(ydata, SAMPLEFREQ, nperseg=NPerSegment)
@@ -871,11 +895,11 @@ def IIRFilterDesign(CentralFreq, bandwidth, transitionWidth, SampleFreq, GainSto
     return b, a
 
 
-def GetFreqResponse(a, b, verbosity=1, SampleFreq=(2*_np.pi), NumOfFreqs=500, whole=False):
+def GetFreqResponse(a, b, ShowPlots=True, SampleFreq=(2*_np.pi), NumOfFreqs=500, whole=False):
     """
     This function takes an array of coefficients and finds the frequency
     response of the filter using scipy.signal.freqz.
-    Verbosity sets if the response should be plotted
+    ShowPlots sets if the response should be plotted
 
     Parameters
     ----------
@@ -883,12 +907,12 @@ def GetFreqResponse(a, b, verbosity=1, SampleFreq=(2*_np.pi), NumOfFreqs=500, wh
         Coefficients multiplying the y values (outputs of the filter)
     b : array_like
         Coefficients multiplying the x values (inputs of the filter)
-    verbosity : int
+    ShowPlots : bool
         Verbosity of function (i.e. whether to plot frequency and phase
         response or whether to just return the values.)
         Options (Default is 1):
-        0 - Do not plot anything, just return values
-        1 - Plot Frequency and Phase response and return values
+        False - Do not plot anything, just return values
+        True - Plot Frequency and Phase response and return values
     SampleFreq : float
         Sample frequency (in Hz) to simulate (used to convert frequency range
         to normalised frequency range)
@@ -918,7 +942,7 @@ def GetFreqResponse(a, b, verbosity=1, SampleFreq=(2*_np.pi), NumOfFreqs=500, wh
     himag = _np.array([hi.imag for hi in h])
     GainArray = 20*_np.log10(_np.abs(h))
     PhaseDiffArray = _np.unwrap(_np.arctan2(_np.imag(h), _np.real(h)))
-    if verbosity == 1:
+    if ShowPlots == True:
         fig1 = _plt.figure()
         ax = fig1.add_subplot(111)
         ax.plot(freqList, GainArray, '-', label="Specified Filter")
