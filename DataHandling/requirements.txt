@@ -9,4 +9,5 @@ uncertainties
 seaborn
 pytest
 pytest-cov
+pytest-mpl
 #
