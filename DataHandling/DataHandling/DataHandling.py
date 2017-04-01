@@ -339,11 +339,11 @@ class DataObject():
         self.zVolts, self.xVolts, self.yVolts = DataHandling.getZXYData(self, zf, xf, yf, subSampleFraction, zwidth, xwidth, ywidth)
         return self.zVolts, self.xVolts, self.yVolts
 
-    def phasespaceplot(self,zf,xf=80000,yf=120000,FractionOfSampleFreq=4,zwidth=10000,xwidth=5000,ywidth=5000,ShowPlots=True):
+    def phasespaceplot(self,zf,xf=80000,yf=120000,FractionOfSampleFreq=4,zwidth=10000,xwidth=5000,ywidth=5000,ShowFig=True):
         """
         author: Markus Rademacher
         """
-        Z, X, Y, Time = DataHandling.getZXYData(self,zf,xf,yf,FractionOfSampleFreq,zwidth,xwidth,ywidth,showPlots=False)
+        Z, X, Y, Time = DataHandling.getZXYData(self,zf,xf,yf,FractionOfSampleFreq,zwidth,xwidth,ywidth,ShowFig=False)
         conv = self.ConvFactor.n
         ZArray = Z/conv 
         ZVArray = _np.diff(ZArray)*(self.SampleFreq/FractionOfSampleFreq)
@@ -363,7 +363,7 @@ class DataObject():
         _JP1.ax_joint.text(_np.mean(ZArray),MaxZV/(2*_np.pi*zf)*1.6,
                           "filepath=%s"%(self.filepath),
                           horizontalalignment='center')
-        if ShowPlots==True:
+        if ShowFig==True:
             _plt.show()
 
         return VarZ,VarZV,_JP1,self.Mass
