@@ -4,6 +4,7 @@ import pytest
 import DataHandling
 import numpy as np
 from matplotlib.testing.decorators import image_comparison
+import matplotlib.pyplot as plt
 
 def test_nothing():
     print("Nothing Tested")
@@ -21,8 +22,9 @@ def test_LoadData():
     
     return None
 
-@pytest.mark.mpl_image_compare # this decorator compares the figure object returned by the following function to the baseline png image stored in tests/baseline
+@pytest.mark.mpl_image_compare #(tolerance=15) # this decorator compares the figure object returned by the following function to the baseline png image stored in tests/baseline
 def test_plotPSD():
     data = DataHandling.LoadData("testData.raw")
+    plt.xkcd()
     fig, ax = data.plotPSD([0, 400e3], ShowFig=False)
     return fig
