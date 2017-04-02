@@ -1,5 +1,5 @@
 import matplotlib
-matplotlib.use('agg')
+matplotlib.use('agg', warn=False, force=True)
 import pytest
 import DataHandling
 import numpy as np
