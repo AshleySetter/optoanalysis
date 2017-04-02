@@ -22,9 +22,8 @@ def test_LoadData():
     
     return None
 
-@pytest.mark.mpl_image_compare #(tolerance=15) # this decorator compares the figure object returned by the following function to the baseline png image stored in tests/baseline
+@pytest.mark.mpl_image_compare(tolerance=20) # this decorator compares the figure object returned by the following function to the baseline png image stored in tests/baseline
 def test_plotPSD():
     data = DataHandling.LoadData("testData.raw")
-    plt.xkcd()
     fig, ax = data.plotPSD([0, 400e3], ShowFig=False)
     return fig
