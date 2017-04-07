@@ -883,6 +883,39 @@ def animate(zdata, xdata, ydata,
     anim.save('{}.mp4'.format(filename), writer=mywriter) #, fps = myFPS, bitrate = myBitrate)
     return None
 
+def IFFTFilter(Signal, SampleFreq, lowerFreq, upperFreq):
+    """
+    Filters data using fft -> zeroing out fft bins -> ifft
+
+    Parameters
+    ----------
+    Signal : ndarray
+        Signal to be filtered
+    SampleFreq : float
+        Sample frequency of signal
+    lowerFreq : float
+        Lower frequency of bandpass to allow through filter
+    upperFreq : float
+       Upper frequency of bandpass to allow through filter
+
+    Returns
+    -------
+    FilteredData : ndarray
+        Array containing the filtered data
+    """
+    print("starting fft")
+    Signalfft = scipy.fftpack.fft(Signal)
+    print("starting freq calc")
+    freqs = np.fft.fftfreq(len(Signal))*SampleFreq
+    print("starting bin zeroing")
+    for i, freq in enumerate(freqs):
+        if freq < lowerFreq or freq > upperFreq:
+            Signalfft[i] = 0
+    print("starting ifft")
+    FilteredSignal = 2*scipy.fftpack.ifft(Signalfft)
+    print("done")
+    return FilteredSignal
+    
 def IIRFilterDesign(CentralFreq, bandwidth, transitionWidth, SampleFreq, GainStop=40, GainPass=0.01):
     """
     Function to calculate the coefficients of an IIR filter.
