@@ -906,7 +906,7 @@ def IFFTFilter(Signal, SampleFreq, lowerFreq, upperFreq):
     print("starting fft")
     Signalfft = scipy.fftpack.fft(Signal)
     print("starting freq calc")
-    freqs = np.fft.fftfreq(len(Signal))*SampleFreq
+    freqs = _np.fft.fftfreq(len(Signal))*SampleFreq
     print("starting bin zeroing")
     for i, freq in enumerate(freqs):
         if freq < lowerFreq or freq > upperFreq:
