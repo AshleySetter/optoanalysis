@@ -353,7 +353,7 @@ class DataObject():
 
         return VarZ,VarZV,_JP1,self.Mass
             
-
+def calcTemp(Data_ref, Data):
     #T = 300*(Data.A/Data.Gamma)/(Data_ref.A/Data_ref.Gamma)
     T = 300*((Data.A*Data_ref.Gamma)/(Data_ref.A*Data.Gamma))
     return T
