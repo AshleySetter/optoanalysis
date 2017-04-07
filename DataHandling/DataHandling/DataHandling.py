@@ -1288,7 +1288,7 @@ def parse_orgtable(lines):
 
 class PressureData():
     def __init__(self, filename):
-        with open("orgModeTable.org", 'r') as file:
+        with open(filename, 'r') as file:
             fileContents = file.readlines()
         self.PressureData = parse_orgtable(fileContents)
     def GetPressure(self, RunNo):        
