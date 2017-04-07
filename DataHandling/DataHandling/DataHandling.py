@@ -1208,3 +1208,26 @@ def MultiPlotTime(DataArray, SubSampleN = 1, xlim="default", ylim="default", Lab
         _plt.show()
     return fig, ax
 
+def parse_orgtable(lines):
+    """Parse an org-table (input as a list of strings split by newline) into a Pandas data frame."""
+    def parseline(l):
+        w = l.split('|')[1:-1]
+        return [wi.strip() for wi in w]
+    columns = parseline(lines[0])
+    
+    data = []
+    for line in lines[2:]:
+        data.append(map(str,parseline(line)))
+    dataframe = _pd.DataFrame(data=data,columns=columns)
+    dataframe.set_index("RunNo")
+    return dataframe
+
+
+class PressureData():
+    def __init__(self, filename):
+        with open("orgModeTable.org", 'r') as file:
+            fileContents = file.readlines()
+        self.PressureData = parse_orgtable(fileContents)
+    def GetPressure(self, RunNo):        
+        Pressure = float(self.PressureData[self.PressureData.RunNo == '{}'.format(RunNo)]['Pressure (mbar)'])
+        return Pressure
