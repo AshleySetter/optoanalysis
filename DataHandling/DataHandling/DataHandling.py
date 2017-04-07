@@ -166,7 +166,7 @@ class DataObject():
         self.SampleFreq = (1/self.waveDescription["HORIZ_INTERVAL"])
         return self.time, self.Voltage
 
-    def plotTimeData(self, ShowFig=True):
+    def plotTimeData(self, timeStart, timeEnd, ShowFig=True):
         """
         plot time data against voltage data.
 
@@ -184,11 +184,20 @@ class DataObject():
 	ax : fig.add_subplot(111)
 	    The subplot object created
         """
+        if timeStart == "Default":
+            timeStart = self.time[0]
+        if timeEnd == "Default":
+            timeEnd = self.time[-1]
+
+        StartIndex = list(self.time).index(takeClosest(self.time, timeStart))
+        EndIndex = list(self.time).index(takeClosest(self.time, timeEnd))
+
         fig = _plt.figure(figsize=[10, 6])
         ax = fig.add_subplot(111)
-        ax.plot(self.time, self.Voltage)
+        ax.plot(self.time[StartIndex:EndIndex], self.Voltage[StartIndex:EndIndex])
         ax.set_xlabel("time (s)")
         ax.set_ylabel("Voltage (V)")
+        ax.set_xlim([timeStart, timeEnd])
         if ShowFig == True:
             _plt.show()
         return fig, ax
@@ -666,8 +675,6 @@ def getZXYData(Data, zf, xf, yf, FractionOfSampleFreq,
     StartIndex = list(Data.time).index(takeClosest(Data.time, timeStart))
     EndIndex = list(Data.time).index(takeClosest(Data.time, timeEnd))
 
-    print(StartIndex, EndIndex)
-    
     SAMPLEFREQ = Data.SampleFreq/FractionOfSampleFreq
     
     if filterImplementation == "filtfilt":
@@ -894,8 +901,62 @@ def IIRFilterDesign(CentralFreq, bandwidth, transitionWidth, SampleFreq, GainSto
     b, a = scipy.signal.iirdesign(bandpass, bandstop, GainPass, GainStop)
     return b, a
 
+def IIRFilterDesign_New(Order, btype, CriticalFreqs, SampleFreq, StopbandAttenuation=40, ftype='cheby2'):
+    """
+    Function to calculate the coefficients of an IIR filter.
 
-def GetFreqResponse(a, b, ShowPlots=True, SampleFreq=(2*_np.pi), NumOfFreqs=500, whole=False):
+    Parameters
+    ----------
+    CentralFreq : float
+        Central frequency of the IIR filter to be designed
+    bandwidth : float
+        The width of the passband to be created about the central frequency
+    transitionWidth : float
+        The width of the transition band between the pass-band and stop-band
+    SampleFreq : float
+        The sample frequency (rate) of the data to be filtered
+    GainStop : float
+        The dB of attenuation within the stopband (i.e. outside the passband)
+    GainPass : float
+        The dB attenuation inside the passband (ideally close to 0 for a bandpass filter)
+
+    Returns
+    -------
+    b : ndarray
+        coefficients multiplying the current and past inputs (feedforward coefficients)
+    a : ndarray
+        coefficients multiplying the past outputs (feedback coefficients)
+    """
+    NyquistFreq = SampleFreq/2
+    if len(CriticalFreqs) > 1:
+        if (CriticalFreqs[1] > NyquistFreq):
+            raise ValueError("Need a higher Sample Frequency for this Frequency range")
+
+        BandStartNormed = CriticalFreqs[0]/NyquistFreq
+        BandStopNormed = CriticalFreqs[1]/NyquistFreq
+
+    
+        bandpass = [BandStartNormed, BandStopNormed]
+
+        b, a = scipy.signal.iirfilter(Order, bandpass, rs=StopbandAttenuation,
+                                      btype=btype, analog=False, ftype=ftype)
+    else:
+        CriticalFreq = CriticalFreqs[0]
+        
+        if (CriticalFreq > NyquistFreq):
+            raise ValueError("Need a higher Sample Frequency for this Critical Frequency")
+
+        CriticalFreqNormed = CriticalFreq/NyquistFreq
+
+        b, a = scipy.signal.iirfilter(Order, CriticalFreqNormed, rs=StopbandAttenuation,
+                                      btype=btype, analog=False, ftype=ftype)
+
+        
+        
+    return b, a
+
+
+def GetFreqResponse(b, a, ShowPlots=True, SampleFreq=(2*_np.pi), NumOfFreqs=500, whole=False):
     """
     This function takes an array of coefficients and finds the frequency
     response of the filter using scipy.signal.freqz.
@@ -903,10 +964,10 @@ def GetFreqResponse(a, b, ShowPlots=True, SampleFreq=(2*_np.pi), NumOfFreqs=500,
 
     Parameters
     ----------
-    a : array_like
-        Coefficients multiplying the y values (outputs of the filter)
     b : array_like
         Coefficients multiplying the x values (inputs of the filter)
+    a : array_like
+        Coefficients multiplying the y values (outputs of the filter)
     ShowPlots : bool
         Verbosity of function (i.e. whether to plot frequency and phase
         response or whether to just return the values.)
@@ -937,7 +998,7 @@ def GetFreqResponse(a, b, ShowPlots=True, SampleFreq=(2*_np.pi), NumOfFreqs=500,
         difference between the input signal and output signal at
         different frequencies
     """
-    w, h = _scipy_signal.freqz(b=b, a=a, worN=NumOfFreqs, whole=whole)
+    w, h = scipy.signal.freqz(b=b, a=a, worN=NumOfFreqs, whole=whole)
     freqList = w/(_np.pi)*SampleFreq/2.0
     himag = _np.array([hi.imag for hi in h])
     GainArray = 20*_np.log10(_np.abs(h))
@@ -954,6 +1015,7 @@ def GetFreqResponse(a, b, ShowPlots=True, SampleFreq=(2*_np.pi), NumOfFreqs=500,
             ax.set_xlabel("frequency (Hz)")
         ax.set_ylabel("Gain (dB)")
         ax.set_xlim([0, SampleFreq/2.0])
+        _plt.show()
         fig2 = _plt.figure()
         ax = fig2.add_subplot(111)
         ax.plot(freqList, PhaseDiffArray, '-', label="Specified Filter")
