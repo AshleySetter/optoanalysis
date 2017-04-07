@@ -12,6 +12,7 @@ from glob import glob
 import re
 import seaborn as _sns
 import pandas as _pd
+import fnmatch as _fnmatch
 
 def LoadData(Filepath):
     """
@@ -28,60 +29,38 @@ def LoadData(Filepath):
             that you requested to be loaded.
     """
     return DataObject(Filepath)
-
-def MultiLoad(DirectoryPath, Channels, RunNos, RepeatNos):
+def MultiLoadData(Channel, RunNos, RepeatNos, directoryPath='.'):
     """
-    This function uses ReGeX to search the direcory provided as DirectoryPath
-    for files matching the specifications given in the arguments. Data
-    loaded from this function will have additional properties identifying it:
-    ChannelNo - The Channel Number
-    RunNo - The Run Number
-    RepeatNo - The Repeat Number
+    Lets you load multiple datasets at once.
 
-    Parameters
-    ----------
-    Channels : list
-        The channel numbers you want to load in the form [Lower, Higher]
-    RunNos : list
-        The run nubmers you want to load in the form [Lower, Higher]
-    RepeatNos : list
-        The repeat numbers you want to load in the form [Lower, Higher]
-    Returns
-    -------
-    DataList : list
-        A list containing the instances of the DataObject class
-        contaning the data that you requested to be loaded.
-        Data loaded from this function will have additional
-        properties identifying it:
-        ChannelNo - The Channel Number
-        RunNo - The Run Number
-        RepeatNo - The Repeat Number
+    Channel : int
+        The channel you want to load
+    RunNos : sequence
+        Sequence of run numbers you want to load
+    RepeatNos : sequence
+        Sequence of repeat numbers you want to load
+
+    
     """
-    if RepeatNos[1] > 9:
-        raise NotImplementedError ("Repeat numbers of with 2 or more digits have not been implemented")
-    if Channels[1] > 9:
-        raise NotImplementedError ("Channel numbers of with 2 or more digits have not been implemented")
-
-    REGEXPattern = "CH([{0}-{1}]+)_RUN0*([0-9]+)_REPEAT000([{2}-{3}])".format(Channels[0], Channels[1], RepeatNos[0], RepeatNos[1])
-
-    ListOfFiles = glob(DirectoryPath)
-    ListOfFiles.sort()
-    ListOfMatchingFiles = []
-
-    for Filepath in ListOfFiles:
-        matchObj = re.search(REGEXPattern, Filepath)
-        if matchObj != None:
-            ChannelNo = int(matchObj.group(1))
-            RunNo = int(matchObj.group(2))
-            RepeatNo = int(matchObj.group(3))
-            if RunNo >= RunNos[0] and RunNo <= RunNos[1]:
-                Data = LoadData(Filepath)
-                Data.ChannelNo = ChannelNo
-                Data.RunNo     = RunNo
-                Data.RepeatNo  = RepeatNo
-                ListOfMatchingFiles.append(Data)
-    return ListOfMatchingFiles
-
+    files = glob('{}/*'.format(directoryPath))
+    files_CorrectChannel = []
+    for file_ in files:
+        if 'CH{}'.format(Channel) in file_:
+            files_CorrectChannel.append(file_)
+    files_CorrectRunNo = []
+    for RunNo in RunNos:
+        files_match = _fnmatch.filter(files_CorrectChannel, '*RUN*{}_*'.format(RunNo))
+        for file_ in files_match:
+            files_CorrectRunNo.append(file_)
+    files_CorrectRepeatNo = []
+    for RepeatNo in RepeatNos:
+        files_match = _fnmatch.filter(files_CorrectRunNo, '*REPEAT*{}.*'.format(RepeatNo))
+        for file_ in files_match:
+            files_CorrectRepeatNo.append(file_)
+    data = []
+    for filepath in files_CorrectRepeatNo:
+        data.append(LoadData(filepath))
+    return data
 
 class DataObject():
     """
@@ -374,7 +353,7 @@ class DataObject():
 
         return VarZ,VarZV,_JP1,self.Mass
             
-def calcTemp(Data_ref, Data):
+
     #T = 300*(Data.A/Data.Gamma)/(Data_ref.A/Data_ref.Gamma)
     T = 300*((Data.A*Data_ref.Gamma)/(Data_ref.A*Data.Gamma))
     return T
