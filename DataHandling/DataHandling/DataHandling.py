@@ -324,9 +324,6 @@ class DataObject():
 
         return self.Radius, self.Mass, self.ConvFactor
 
-        
-    
-    
     def extractZXYMotion(self, ApproxZXYFreqs, uncertaintyInFreqs, ZXYPeakWidths, subSampleFraction):
         """
         Extracts the x, y and z signals (in volts) from the
@@ -749,6 +746,92 @@ def getZXYData(Data, zf, xf, yf, FractionOfSampleFreq,
         _plt.show()
 
     timedata = Data.time[StartIndex : EndIndex][0::FractionOfSampleFreq]
+    return zdata, xdata, ydata, timedata
+
+def getZXYData_IFFT(Data, zf, xf, yf, 
+               zwidth=10000, xwidth=5000, ywidth=5000,
+               timeStart = "Default", timeEnd = "Default",
+               ShowFig=True):
+    """
+    Given a Data object and the frequencies of the z, x and y peaks (and some
+    optional parameters for the created filters) this function extracts the
+    individual z, x and y signals (in volts) by creating IIR filters and filtering
+    the Data.
+
+    Parameters
+    ----------
+    Data : DataObject
+        DataObject containing the data for which you want to extract the
+        z, x and y signals.
+    zf : float
+        The frequency of the z peak in the PSD
+    xf : float
+        The frequency of the x peak in the PSD
+    yf : float
+        The frequency of the y peak in the PSD
+    zwidth : float
+        The width of the pass-band of the IIR filter to be generated to
+        filter Z.
+    xwidth : float
+        The width of the pass-band of the IIR filter to be generated to
+        filter X.
+    ywidth : float
+        The width of the pass-band of the IIR filter to be generated to
+        filter Y.
+    timeStart : float
+        Starting time for filtering
+    timeEnd : float
+        Ending time for filtering
+    ShowFig : bool
+        If True - plot unfiltered and filtered PSD for z, x and y.
+        If False - don't plot anything
+
+    Returns
+    -------
+    zdata : ndarray
+        Array containing the z signal in volts with time.
+    xdata : ndarray
+        Array containing the x signal in volts with time.
+    ydata : ndarray
+        Array containing the y signal in volts with time.
+    timedata : ndarray
+        Array containing the time data to go with the z, x, and y signal.
+    """
+    if timeStart == "Default":
+        timeStart = Data.time[0]
+    if timeEnd == "Default":
+        timeEnd = Data.time[-1]
+
+    StartIndex = list(Data.time).index(takeClosest(Data.time, timeStart))
+    EndIndex = list(Data.time).index(takeClosest(Data.time, timeEnd))
+    
+    SAMPLEFREQ = Data.SampleFreq
+    
+    input_signal = Data.Voltage[StartIndex : EndIndex]
+
+    zdata = IFFTFilter(input_signal, SAMPLEFREQ, zf-zwidth/2, zf+zwidth/2)
+    
+    xdata = IFFTFilter(input_signal, SAMPLEFREQ, xf-zwidth/2, xf+zwidth/2)
+    
+    ydata = IFFTFilter(input_signal, SAMPLEFREQ, yf-zwidth/2, yf+zwidth/2)
+    
+    if ShowFig == True:
+        NPerSegment = len(Data.time)
+        if NPerSegment > 1e5:
+            NPerSegment = int(1e5)
+        f, PSD = scipy.signal.welch(input_signal, SAMPLEFREQ, nperseg=NPerSegment)
+        f_z, PSD_z = scipy.signal.welch(zdata, SAMPLEFREQ, nperseg=NPerSegment)
+        f_y, PSD_y = scipy.signal.welch(ydata, SAMPLEFREQ, nperseg=NPerSegment)
+        f_x, PSD_x = scipy.signal.welch(xdata, SAMPLEFREQ, nperseg=NPerSegment)
+        _plt.plot(f, 10*_np.log10(PSD))
+        _plt.plot(f_z, 10*_np.log10(PSD_z), label="z")
+        _plt.plot(f_x, 10*_np.log10(PSD_x), label="x")
+        _plt.plot(f_y, 10*_np.log10(PSD_y), label="y")
+        _plt.legend(loc="best")
+        _plt.xlim([zf-zwidth-ztransition, yf+ywidth+ytransition])
+        _plt.show()
+
+    timedata = Data.time[StartIndex : EndIndex]
     return zdata, xdata, ydata, timedata
 
 def animate(zdata, xdata, ydata,
