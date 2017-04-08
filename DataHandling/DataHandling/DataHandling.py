@@ -49,16 +49,17 @@ def MultiLoadData(Channel, RunNos, RepeatNos, directoryPath='.'):
             files_CorrectChannel.append(file_)
     files_CorrectRunNo = []
     for RunNo in RunNos:
-        files_match = _fnmatch.filter(files_CorrectChannel, '*RUN*{}_*'.format(RunNo))
+        files_match = _fnmatch.filter(files_CorrectChannel, '*RUN*0{}_*'.format(RunNo))
         for file_ in files_match:
             files_CorrectRunNo.append(file_)
     files_CorrectRepeatNo = []
     for RepeatNo in RepeatNos:
-        files_match = _fnmatch.filter(files_CorrectRunNo, '*REPEAT*{}.*'.format(RepeatNo))
+        files_match = _fnmatch.filter(files_CorrectRunNo, '*REPEAT*0{}.*'.format(RepeatNo))
         for file_ in files_match:
             files_CorrectRepeatNo.append(file_)
     data = []
     for filepath in files_CorrectRepeatNo:
+        print(filepath)
         data.append(LoadData(filepath))
     return data
 
