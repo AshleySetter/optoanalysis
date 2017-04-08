@@ -12,6 +12,7 @@ from glob import glob
 import re
 import seaborn as _sns
 import pandas as _pd
+import fnmatch as _fnmatch
 
 def LoadData(Filepath):
     """
@@ -28,60 +29,38 @@ def LoadData(Filepath):
             that you requested to be loaded.
     """
     return DataObject(Filepath)
-
-def MultiLoad(DirectoryPath, Channels, RunNos, RepeatNos):
+def MultiLoadData(Channel, RunNos, RepeatNos, directoryPath='.'):
     """
-    This function uses ReGeX to search the direcory provided as DirectoryPath
-    for files matching the specifications given in the arguments. Data
-    loaded from this function will have additional properties identifying it:
-    ChannelNo - The Channel Number
-    RunNo - The Run Number
-    RepeatNo - The Repeat Number
+    Lets you load multiple datasets at once.
 
-    Parameters
-    ----------
-    Channels : list
-        The channel numbers you want to load in the form [Lower, Higher]
-    RunNos : list
-        The run nubmers you want to load in the form [Lower, Higher]
-    RepeatNos : list
-        The repeat numbers you want to load in the form [Lower, Higher]
-    Returns
-    -------
-    DataList : list
-        A list containing the instances of the DataObject class
-        contaning the data that you requested to be loaded.
-        Data loaded from this function will have additional
-        properties identifying it:
-        ChannelNo - The Channel Number
-        RunNo - The Run Number
-        RepeatNo - The Repeat Number
+    Channel : int
+        The channel you want to load
+    RunNos : sequence
+        Sequence of run numbers you want to load
+    RepeatNos : sequence
+        Sequence of repeat numbers you want to load
+
+    
     """
-    if RepeatNos[1] > 9:
-        raise NotImplementedError ("Repeat numbers of with 2 or more digits have not been implemented")
-    if Channels[1] > 9:
-        raise NotImplementedError ("Channel numbers of with 2 or more digits have not been implemented")
-
-    REGEXPattern = "CH([{0}-{1}]+)_RUN0*([0-9]+)_REPEAT000([{2}-{3}])".format(Channels[0], Channels[1], RepeatNos[0], RepeatNos[1])
-
-    ListOfFiles = glob(DirectoryPath)
-    ListOfFiles.sort()
-    ListOfMatchingFiles = []
-
-    for Filepath in ListOfFiles:
-        matchObj = re.search(REGEXPattern, Filepath)
-        if matchObj != None:
-            ChannelNo = int(matchObj.group(1))
-            RunNo = int(matchObj.group(2))
-            RepeatNo = int(matchObj.group(3))
-            if RunNo >= RunNos[0] and RunNo <= RunNos[1]:
-                Data = LoadData(Filepath)
-                Data.ChannelNo = ChannelNo
-                Data.RunNo     = RunNo
-                Data.RepeatNo  = RepeatNo
-                ListOfMatchingFiles.append(Data)
-    return ListOfMatchingFiles
-
+    files = glob('{}/*'.format(directoryPath))
+    files_CorrectChannel = []
+    for file_ in files:
+        if 'CH{}'.format(Channel) in file_:
+            files_CorrectChannel.append(file_)
+    files_CorrectRunNo = []
+    for RunNo in RunNos:
+        files_match = _fnmatch.filter(files_CorrectChannel, '*RUN*{}_*'.format(RunNo))
+        for file_ in files_match:
+            files_CorrectRunNo.append(file_)
+    files_CorrectRepeatNo = []
+    for RepeatNo in RepeatNos:
+        files_match = _fnmatch.filter(files_CorrectRunNo, '*REPEAT*{}.*'.format(RepeatNo))
+        for file_ in files_match:
+            files_CorrectRepeatNo.append(file_)
+    data = []
+    for filepath in files_CorrectRepeatNo:
+        data.append(LoadData(filepath))
+    return data
 
 class DataObject():
     """
@@ -168,7 +147,7 @@ class DataObject():
         self.SampleFreq = (1/self.waveDescription["HORIZ_INTERVAL"])
         return self.time, self.Voltage
 
-    def plotTimeData(self, ShowFig=True):
+    def plotTimeData(self, timeStart, timeEnd, ShowFig=True):
         """
         plot time data against voltage data.
 
@@ -186,11 +165,20 @@ class DataObject():
 	ax : fig.add_subplot(111)
 	    The subplot object created
         """
+        if timeStart == "Default":
+            timeStart = self.time[0]
+        if timeEnd == "Default":
+            timeEnd = self.time[-1]
+
+        StartIndex = list(self.time).index(takeClosest(self.time, timeStart))
+        EndIndex = list(self.time).index(takeClosest(self.time, timeEnd))
+
         fig = _plt.figure(figsize=[10, 6])
         ax = fig.add_subplot(111)
-        ax.plot(self.time, self.Voltage)
+        ax.plot(self.time[StartIndex:EndIndex], self.Voltage[StartIndex:EndIndex])
         ax.set_xlabel("time (s)")
         ax.set_ylabel("Voltage (V)")
+        ax.set_xlim([timeStart, timeEnd])
         if ShowFig == True:
             _plt.show()
         return fig, ax
@@ -215,7 +203,7 @@ class DataObject():
         Returns
         -------
         freqs : ndarray
-        	Array >containing the frequencies at which the PSD has been
+        	Array containing the frequencies at which the PSD has been
         	calculated
         PSD : ndarray
         	Array containing the value of the PSD at the corresponding
@@ -264,7 +252,7 @@ class DataObject():
             _plt.show()
         return  fig, ax
 
-    def getFit(self, WidthOfPeakToFit, NMovAveToFit, TrapFreq, A_Initial=0.1e10, Gamma_Initial=400, ShowPlots=True):
+    def getFit(self, WidthOfPeakToFit, NMovAveToFit, TrapFreq, A_Initial=0.1e10, Gamma_Initial=400, ShowFig=True):
         """
         Function that fits peak to the PSD.
 
@@ -288,8 +276,7 @@ class DataObject():
 			Γ_0 = Damping factor due to environment
 			δΓ = extra damping due to feedback
         """
-        Params, ParamsErr, fig, ax = fitPSD(self, WidthOfPeakToFit, NMovAveToFit, TrapFreq, A_Initial, Gamma_Initial, ShowPlots)
-
+        Params, ParamsErr, fig, ax = fitPSD(self, WidthOfPeakToFit, NMovAveToFit, TrapFreq, A_Initial, Gamma_Initial, ShowFig)
         
         print("\n")
         print("A: {} +- {}% ".format(Params[0], ParamsErr[0]/Params[0]*100))
@@ -325,9 +312,6 @@ class DataObject():
 
         return self.Radius, self.Mass, self.ConvFactor
 
-        
-    
-    
     def extractZXYMotion(self, ApproxZXYFreqs, uncertaintyInFreqs, ZXYPeakWidths, subSampleFraction):
         """
         Extracts the x, y and z signals (in volts) from the
@@ -340,11 +324,12 @@ class DataObject():
         self.zVolts, self.xVolts, self.yVolts = DataHandling.getZXYData(self, zf, xf, yf, subSampleFraction, zwidth, xwidth, ywidth)
         return self.zVolts, self.xVolts, self.yVolts
 
-    def phasespaceplot(self,zf,xf=80000,yf=120000,FractionOfSampleFreq=4,zwidth=10000,xwidth=5000,ywidth=5000,ShowPlots=True):
+    def phasespaceplot(self,zf,xf=80000,yf=120000,FractionOfSampleFreq=4,zwidth=10000,xwidth=5000,ywidth=5000,ShowFig=True):
         """
         author: Markus Rademacher
         """
-        Z, X, Y, Time = DataHandling.getZXYData(self,zf,xf,yf,FractionOfSampleFreq,zwidth,xwidth,ywidth,ShowPlots)
+        Z, X, Y, Time = DataHandling.getZXYData(self,zf,xf,yf,FractionOfSampleFreq,zwidth,xwidth,ywidth,ShowFig=False)
+
         conv = self.ConvFactor.n
         ZArray = Z/conv 
         ZVArray = _np.diff(ZArray)*(self.SampleFreq/FractionOfSampleFreq)
@@ -364,7 +349,7 @@ class DataObject():
         JP1.ax_joint.text(_np.mean(ZArray),MaxZV/(2*_np.pi*zf)*1.6,
                           "filepath=%s"%(self.filepath),
                           horizontalalignment='center')
-        if ShowPlots==True:
+        if ShowFig==True:
             _plt.show()
 
         return VarZ,VarZV,JP1,self.Mass
@@ -418,7 +403,7 @@ def PSD_Fitting(A, Omega0, gamma, omega):
     # gamma = Big Gamma - damping (due to environment and feedback (if feedback is on))
     return 10*_np.log10(A/((Omega0**2-omega**2)**2 + (omega*gamma)**2))
 
-def fitPSD(Data, bandwidth, NMovAve, TrapFreqGuess, AGuess=0.1e10, GammaGuess=400, ShowPlots=True):
+def fitPSD(Data, bandwidth, NMovAve, TrapFreqGuess, AGuess=0.1e10, GammaGuess=400, ShowFig=True):
     """
     Fits theory PSD to Data. Assumes highest point of PSD is the
     trapping frequency.
@@ -430,7 +415,7 @@ def fitPSD(Data, bandwidth, NMovAve, TrapFreqGuess, AGuess=0.1e10, GammaGuess=40
                 fit the theory PSD to
     NMovAve - amount of moving averages to take before the fitting
     
-    ShowPlots - (defaults to True) if set to True this function plots the
+    ShowFig - (defaults to True) if set to True this function plots the
         PSD of the data, smoothed data and theory peak from fitting.
 
     Returns
@@ -513,7 +498,7 @@ def fitPSD(Data, bandwidth, NMovAve, TrapFreqGuess, AGuess=0.1e10, GammaGuess=40
             [min(logPSD_smoothed), max(logPSD_smoothed)], '--',
             color="grey")
     ax.legend(loc="best")
-    if ShowPlots == True:
+    if ShowFig == True:
         _plt.show()
     return Params_Fit, Params_Fit_Err, fig, ax
 
@@ -622,7 +607,7 @@ def getZXYData(Data, zf, xf, yf, FractionOfSampleFreq,
                ztransition=10000, xtransition=5000, ytransition=5000,
                filterImplementation = "filtfilt",
                timeStart = "Default", timeEnd = "Default",
-               showPlots=True):
+               ShowFig=True):
     """
     Given a Data object and the frequencies of the z, x and y peaks (and some
     optional parameters for the created filters) this function extracts the
@@ -673,7 +658,7 @@ def getZXYData(Data, zf, xf, yf, FractionOfSampleFreq,
         Starting time for filtering
     timeEnd : float
         Ending time for filtering
-    showPlots : bool
+    ShowFig : bool
         If True - plot unfiltered and filtered PSD for z, x and y.
         If False - don't plot anything
 
@@ -696,8 +681,6 @@ def getZXYData(Data, zf, xf, yf, FractionOfSampleFreq,
     StartIndex = list(Data.time).index(takeClosest(Data.time, timeStart))
     EndIndex = list(Data.time).index(takeClosest(Data.time, timeEnd))
 
-    print(StartIndex, EndIndex)
-    
     SAMPLEFREQ = Data.SampleFreq/FractionOfSampleFreq
     
     if filterImplementation == "filtfilt":
@@ -733,7 +716,7 @@ def getZXYData(Data, zf, xf, yf, FractionOfSampleFreq,
         raise ValueError("Value Error: FractionOfSampleFreq must be higher, a sufficiently small sample frequency should be used to produce a working IIR filter.")
 
     
-    if showPlots == True:
+    if ShowFig == True:
         NPerSegment = len(Data.time)
         if NPerSegment > 1e5:
             NPerSegment = int(1e5)
@@ -750,6 +733,92 @@ def getZXYData(Data, zf, xf, yf, FractionOfSampleFreq,
         _plt.show()
 
     timedata = Data.time[StartIndex : EndIndex][0::FractionOfSampleFreq]
+    return zdata, xdata, ydata, timedata
+
+def getZXYData_IFFT(Data, zf, xf, yf, 
+               zwidth=10000, xwidth=5000, ywidth=5000,
+               timeStart = "Default", timeEnd = "Default",
+               ShowFig=True):
+    """
+    Given a Data object and the frequencies of the z, x and y peaks (and some
+    optional parameters for the created filters) this function extracts the
+    individual z, x and y signals (in volts) by creating IIR filters and filtering
+    the Data.
+
+    Parameters
+    ----------
+    Data : DataObject
+        DataObject containing the data for which you want to extract the
+        z, x and y signals.
+    zf : float
+        The frequency of the z peak in the PSD
+    xf : float
+        The frequency of the x peak in the PSD
+    yf : float
+        The frequency of the y peak in the PSD
+    zwidth : float
+        The width of the pass-band of the IIR filter to be generated to
+        filter Z.
+    xwidth : float
+        The width of the pass-band of the IIR filter to be generated to
+        filter X.
+    ywidth : float
+        The width of the pass-band of the IIR filter to be generated to
+        filter Y.
+    timeStart : float
+        Starting time for filtering
+    timeEnd : float
+        Ending time for filtering
+    ShowFig : bool
+        If True - plot unfiltered and filtered PSD for z, x and y.
+        If False - don't plot anything
+
+    Returns
+    -------
+    zdata : ndarray
+        Array containing the z signal in volts with time.
+    xdata : ndarray
+        Array containing the x signal in volts with time.
+    ydata : ndarray
+        Array containing the y signal in volts with time.
+    timedata : ndarray
+        Array containing the time data to go with the z, x, and y signal.
+    """
+    if timeStart == "Default":
+        timeStart = Data.time[0]
+    if timeEnd == "Default":
+        timeEnd = Data.time[-1]
+
+    StartIndex = list(Data.time).index(takeClosest(Data.time, timeStart))
+    EndIndex = list(Data.time).index(takeClosest(Data.time, timeEnd))
+    
+    SAMPLEFREQ = Data.SampleFreq
+    
+    input_signal = Data.Voltage[StartIndex : EndIndex]
+
+    zdata = IFFTFilter(input_signal, SAMPLEFREQ, zf-zwidth/2, zf+zwidth/2)
+    
+    xdata = IFFTFilter(input_signal, SAMPLEFREQ, xf-zwidth/2, xf+zwidth/2)
+    
+    ydata = IFFTFilter(input_signal, SAMPLEFREQ, yf-zwidth/2, yf+zwidth/2)
+    
+    if ShowFig == True:
+        NPerSegment = len(Data.time)
+        if NPerSegment > 1e5:
+            NPerSegment = int(1e5)
+        f, PSD = scipy.signal.welch(input_signal, SAMPLEFREQ, nperseg=NPerSegment)
+        f_z, PSD_z = scipy.signal.welch(zdata, SAMPLEFREQ, nperseg=NPerSegment)
+        f_y, PSD_y = scipy.signal.welch(ydata, SAMPLEFREQ, nperseg=NPerSegment)
+        f_x, PSD_x = scipy.signal.welch(xdata, SAMPLEFREQ, nperseg=NPerSegment)
+        _plt.plot(f, 10*_np.log10(PSD))
+        _plt.plot(f_z, 10*_np.log10(PSD_z), label="z")
+        _plt.plot(f_x, 10*_np.log10(PSD_x), label="x")
+        _plt.plot(f_y, 10*_np.log10(PSD_y), label="y")
+        _plt.legend(loc="best")
+        _plt.xlim([zf-zwidth-ztransition, yf+ywidth+ytransition])
+        _plt.show()
+
+    timedata = Data.time[StartIndex : EndIndex]
     return zdata, xdata, ydata, timedata
 
 def animate(zdata, xdata, ydata,
@@ -884,6 +953,39 @@ def animate(zdata, xdata, ydata,
     anim.save('{}.mp4'.format(filename), writer=mywriter) #, fps = myFPS, bitrate = myBitrate)
     return None
 
+def IFFTFilter(Signal, SampleFreq, lowerFreq, upperFreq):
+    """
+    Filters data using fft -> zeroing out fft bins -> ifft
+
+    Parameters
+    ----------
+    Signal : ndarray
+        Signal to be filtered
+    SampleFreq : float
+        Sample frequency of signal
+    lowerFreq : float
+        Lower frequency of bandpass to allow through filter
+    upperFreq : float
+       Upper frequency of bandpass to allow through filter
+
+    Returns
+    -------
+    FilteredData : ndarray
+        Array containing the filtered data
+    """
+    print("starting fft")
+    Signalfft = scipy.fftpack.fft(Signal)
+    print("starting freq calc")
+    freqs = _np.fft.fftfreq(len(Signal))*SampleFreq
+    print("starting bin zeroing")
+    for i, freq in enumerate(freqs):
+        if freq < lowerFreq or freq > upperFreq:
+            Signalfft[i] = 0
+    print("starting ifft")
+    FilteredSignal = 2*scipy.fftpack.ifft(Signalfft)
+    print("done")
+    return FilteredSignal
+    
 def IIRFilterDesign(CentralFreq, bandwidth, transitionWidth, SampleFreq, GainStop=40, GainPass=0.01):
     """
     Function to calculate the coefficients of an IIR filter.
@@ -924,20 +1026,75 @@ def IIRFilterDesign(CentralFreq, bandwidth, transitionWidth, SampleFreq, GainSto
     b, a = scipy.signal.iirdesign(bandpass, bandstop, GainPass, GainStop)
     return b, a
 
-
-def GetFreqResponse(a, b, ShowPlots=True, SampleFreq=(2*_np.pi), NumOfFreqs=500, whole=False):
+def IIRFilterDesign_New(Order, btype, CriticalFreqs, SampleFreq, StopbandAttenuation=40, ftype='cheby2'):
     """
-    This function takes an array of coefficients and finds the frequency
-    response of the filter using scipy.signal.freqz.
-    ShowPlots sets if the response should be plotted
+    Function to calculate the coefficients of an IIR filter.
 
     Parameters
     ----------
-    a : array_like
-        Coefficients multiplying the y values (outputs of the filter)
+    CentralFreq : float
+        Central frequency of the IIR filter to be designed
+    bandwidth : float
+        The width of the passband to be created about the central frequency
+    transitionWidth : float
+        The width of the transition band between the pass-band and stop-band
+    SampleFreq : float
+        The sample frequency (rate) of the data to be filtered
+    GainStop : float
+        The dB of attenuation within the stopband (i.e. outside the passband)
+    GainPass : float
+        The dB attenuation inside the passband (ideally close to 0 for a bandpass filter)
+
+    Returns
+    -------
+    b : ndarray
+        coefficients multiplying the current and past inputs (feedforward coefficients)
+    a : ndarray
+        coefficients multiplying the past outputs (feedback coefficients)
+    """
+    NyquistFreq = SampleFreq/2
+    if len(CriticalFreqs) > 1:
+        if (CriticalFreqs[1] > NyquistFreq):
+            raise ValueError("Need a higher Sample Frequency for this Frequency range")
+
+        BandStartNormed = CriticalFreqs[0]/NyquistFreq
+        BandStopNormed = CriticalFreqs[1]/NyquistFreq
+
+    
+        bandpass = [BandStartNormed, BandStopNormed]
+
+        b, a = scipy.signal.iirfilter(Order, bandpass, rs=StopbandAttenuation,
+                                      btype=btype, analog=False, ftype=ftype)
+    else:
+        CriticalFreq = CriticalFreqs[0]
+        
+        if (CriticalFreq > NyquistFreq):
+            raise ValueError("Need a higher Sample Frequency for this Critical Frequency")
+
+        CriticalFreqNormed = CriticalFreq/NyquistFreq
+
+        b, a = scipy.signal.iirfilter(Order, CriticalFreqNormed, rs=StopbandAttenuation,
+                                      btype=btype, analog=False, ftype=ftype)
+
+        
+        
+    return b, a
+
+
+def GetFreqResponse(a, b, ShowFig=True, SampleFreq=(2*_np.pi), NumOfFreqs=500, whole=False):
+    """
+    This function takes an array of coefficients and finds the frequency
+    response of the filter using scipy.signal.freqz.
+    ShowFig sets if the response should be plotted
+
+    Parameters
+    ----------
     b : array_like
         Coefficients multiplying the x values (inputs of the filter)
-    ShowPlots : bool
+
+    a : array_like
+        Coefficients multiplying the y values (outputs of the filter)
+    ShowFig : bool
         Verbosity of function (i.e. whether to plot frequency and phase
         response or whether to just return the values.)
         Options (Default is 1):
@@ -967,12 +1124,12 @@ def GetFreqResponse(a, b, ShowPlots=True, SampleFreq=(2*_np.pi), NumOfFreqs=500,
         difference between the input signal and output signal at
         different frequencies
     """
-    w, h = _scipy_signal.freqz(b=b, a=a, worN=NumOfFreqs, whole=whole)
+    w, h = scipy.signal.freqz(b=b, a=a, worN=NumOfFreqs, whole=whole)
     freqList = w/(_np.pi)*SampleFreq/2.0
     himag = _np.array([hi.imag for hi in h])
     GainArray = 20*_np.log10(_np.abs(h))
     PhaseDiffArray = _np.unwrap(_np.arctan2(_np.imag(h), _np.real(h)))
-    if ShowPlots == True:
+    if ShowFig == True:
         fig1 = _plt.figure()
         ax = fig1.add_subplot(111)
         ax.plot(freqList, GainArray, '-', label="Specified Filter")
@@ -984,6 +1141,7 @@ def GetFreqResponse(a, b, ShowPlots=True, SampleFreq=(2*_np.pi), NumOfFreqs=500,
             ax.set_xlabel("frequency (Hz)")
         ax.set_ylabel("Gain (dB)")
         ax.set_xlim([0, SampleFreq/2.0])
+        _plt.show()
         fig2 = _plt.figure()
         ax = fig2.add_subplot(111)
         ax.plot(freqList, PhaseDiffArray, '-', label="Specified Filter")
@@ -1093,3 +1251,26 @@ def MultiPlotTime(DataArray, SubSampleN = 1, xlim="default", ylim="default", Lab
         _plt.show()
     return fig, ax
 
+def parse_orgtable(lines):
+    """Parse an org-table (input as a list of strings split by newline) into a Pandas data frame."""
+    def parseline(l):
+        w = l.split('|')[1:-1]
+        return [wi.strip() for wi in w]
+    columns = parseline(lines[0])
+    
+    data = []
+    for line in lines[2:]:
+        data.append(map(str,parseline(line)))
+    dataframe = _pd.DataFrame(data=data,columns=columns)
+    dataframe.set_index("RunNo")
+    return dataframe
+
+
+class PressureData():
+    def __init__(self, filename):
+        with open(filename, 'r') as file:
+            fileContents = file.readlines()
+        self.PressureData = parse_orgtable(fileContents)
+    def GetPressure(self, RunNo):        
+        Pressure = float(self.PressureData[self.PressureData.RunNo == '{}'.format(RunNo)]['Pressure (mbar)'])
+        return Pressure

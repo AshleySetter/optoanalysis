@@ -6,4 +6,8 @@ numpy
 scipy
 matplotlib
 uncertainties
+seaborn
+pytest
+pytest-cov
+pytest-mpl
 #
