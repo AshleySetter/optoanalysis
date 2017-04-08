@@ -344,7 +344,7 @@ class DataObject():
         """
         author: Markus Rademacher
         """
-        Z, X, Y, Time = DataHandling.getZXYData(self,zf,xf,yf,FractionOfSampleFreq,zwidth,xwidth,ywidth,showPlots=False)
+        Z, X, Y, Time = DataHandling.getZXYData(self,zf,xf,yf,FractionOfSampleFreq,zwidth,xwidth,ywidth,ShowPlots)
         conv = self.ConvFactor.n
         ZArray = Z/conv 
         ZVArray = _np.diff(ZArray)*(self.SampleFreq/FractionOfSampleFreq)
@@ -357,17 +357,17 @@ class DataObject():
         else:
             _plotlimit=MaxZV/(2*_np.pi*zf)*1.1
         
-        _JP1 = _sns.jointplot(_pd.Series(ZArray[1:],name="$z$(m) \n filepath=%s"%(self.filepath)),_pd.Series(ZVArray/(2*_np.pi*zf),name="$v_z$/$\omega$(m)"),stat_func=None,xlim=[-_plotlimit,_plotlimit],ylim=[-_plotlimit,_plotlimit])
-        _JP1.ax_joint.text(_np.mean(ZArray),MaxZV/(2*_np.pi*zf)*1.15,
+        JP1 = _sns.jointplot(_pd.Series(ZArray[1:],name="$z$(m) \n filepath=%s"%(self.filepath)),_pd.Series(ZVArray/(2*_np.pi*zf),name="$v_z$/$\omega$(m)"),stat_func=None,xlim=[-_plotlimit,_plotlimit],ylim=[-_plotlimit,_plotlimit])
+        JP1.ax_joint.text(_np.mean(ZArray),MaxZV/(2*_np.pi*zf)*1.15,
                           r"$\sigma_z=$ %.2Em, $\sigma_v=$ %.2Em"%(VarZ,VarZV),
                           horizontalalignment='center')
-        _JP1.ax_joint.text(_np.mean(ZArray),MaxZV/(2*_np.pi*zf)*1.6,
+        JP1.ax_joint.text(_np.mean(ZArray),MaxZV/(2*_np.pi*zf)*1.6,
                           "filepath=%s"%(self.filepath),
                           horizontalalignment='center')
         if ShowPlots==True:
             _plt.show()
 
-        return VarZ,VarZV,_JP1,self.Mass
+        return VarZ,VarZV,JP1,self.Mass
             
 def calcTemp(Data_ref, Data):
     #T = 300*(Data.A/Data.Gamma)/(Data_ref.A/Data_ref.Gamma)
