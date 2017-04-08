@@ -815,7 +815,7 @@ def getZXYData_IFFT(Data, zf, xf, yf,
         _plt.plot(f_x, 10*_np.log10(PSD_x), label="x")
         _plt.plot(f_y, 10*_np.log10(PSD_y), label="y")
         _plt.legend(loc="best")
-        _plt.xlim([zf-zwidth-ztransition, yf+ywidth+ytransition])
+        _plt.xlim([zf-zwidth, yf+ywidth])
         _plt.show()
 
     timedata = Data.time[StartIndex : EndIndex]
