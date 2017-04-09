@@ -1,4 +1,4 @@
 #!/bin/bash
 
-pip install -e DataHandling
+pip install -e datahandling
 
