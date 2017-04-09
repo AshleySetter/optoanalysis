@@ -817,6 +817,9 @@ def getZXYData_IFFT(Data, zf, xf, yf,
         _plt.plot(f_y, 10*_np.log10(PSD_y), label="y")
         _plt.legend(loc="best")
         _plt.xlim([zf-zwidth, yf+ywidth])
+        _plt.xlabel('Frequency (Hz)')
+        _plt.ylabel(r'$S_{xx}$')
+        _plt.title("filepath = %s"%(Data.filepath))
         _plt.show()
 
     timedata = Data.time[StartIndex : EndIndex]
