@@ -1,8 +1,0 @@
-DataHandling/DataHandling.py
-DataHandling/LeCroy.py
-DataHandling/__init__.py
-DataHandling.egg-info/PKG-INFO
-DataHandling.egg-info/SOURCES.txt
-DataHandling.egg-info/dependency_links.txt
-DataHandling.egg-info/requires.txt
-DataHandling.egg-info/top_level.txt
