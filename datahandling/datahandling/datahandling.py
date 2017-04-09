@@ -1218,7 +1218,7 @@ def get_freq_response(a, b, ShowFig=True, SampleFreq=(2 * _np.pi), NumOfFreqs=50
     return freqList, GainArray, PhaseDiffArray
 
 
-def multiplot_PSD(DataArray, xlim=[0, 500e3], LabelArray=[], ShowFig=True):
+def multi_plot_PSD(DataArray, xlim=[0, 500e3], LabelArray=[], ShowFig=True):
     """
     plot the pulse spectral density.
 
@@ -1261,7 +1261,7 @@ def multiplot_PSD(DataArray, xlim=[0, 500e3], LabelArray=[], ShowFig=True):
     return fig, ax
 
 
-def multiplot_Time(DataArray, SubSampleN=1, xlim="default", ylim="default", LabelArray=[], ShowFig=True):
+def multi_plot_Time(DataArray, SubSampleN=1, xlim="default", ylim="default", LabelArray=[], ShowFig=True):
     """
     plot the pulse spectral density.
 
