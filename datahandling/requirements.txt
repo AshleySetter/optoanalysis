@@ -1,0 +1,13 @@
+#
+####### requirements.txt for DataHandling #######
+#
+###### Requirements without Version Specifiers ######
+numpy
+scipy
+matplotlib
+uncertainties
+seaborn
+pytest
+pytest-cov
+pytest-mpl
+#
