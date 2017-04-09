@@ -838,13 +838,13 @@ def get_ZXY_data_IFFT(Data, zf, xf, yf,
 
     input_signal = Data.Voltage[StartIndex: EndIndex]
 
-    zdata = IFFTFilter(input_signal, SAMPLEFREQ, zf -
+    zdata = IFFT_filter(input_signal, SAMPLEFREQ, zf -
                        zwidth / 2, zf + zwidth / 2)
 
-    xdata = IFFTFilter(input_signal, SAMPLEFREQ, xf -
+    xdata = IFFT_filter(input_signal, SAMPLEFREQ, xf -
                        zwidth / 2, xf + zwidth / 2)
 
-    ydata = IFFTFilter(input_signal, SAMPLEFREQ, yf -
+    ydata = IFFT_filter(input_signal, SAMPLEFREQ, yf -
                        zwidth / 2, yf + zwidth / 2)
 
     if ShowFig == True:
