@@ -131,6 +131,7 @@ class DataObject():
         """
         self.filepath = filepath
         self.filename = filepath.split("/")[-1]
+        self.filedir = self.filepath[0:-len(self.filename)]
         self.get_time_data()
         self.get_PSD()
         return None
@@ -1279,6 +1280,9 @@ def multi_plot_PSD(DataArray, xlim=[0, 500e3], LabelArray=[], ShowFig=True):
     ax.grid(which="major")
     ax.legend(loc="best")
     ax.set_ylabel("PSD ($v^2/Hz$)")
+
+    _plt.title('filedir=%s'%(DataArray[0].filedir))
+    
     if ShowFig == True:
         _plt.show()
     return fig, ax
