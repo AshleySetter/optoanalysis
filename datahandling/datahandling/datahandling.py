@@ -261,7 +261,7 @@ class DataObject():
             _plt.show()
         return fig, ax
 
-    def CalcAreaUnderPSD(self, lowerFreq, upperFreq):
+    def calc_area_under_PSD(self, lowerFreq, upperFreq):
         """
         Sums the area under the PSD from lowerFreq to upperFreq.
 
