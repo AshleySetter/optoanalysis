@@ -178,8 +178,8 @@ class DataObject():
         if timeEnd == "Default":
             timeEnd = self.time[-1]
 
-        StartIndex = list(self.time).index(test_closest(self.time, timeStart))
-        EndIndex = list(self.time).index(test_closest(self.time, timeEnd))
+        StartIndex = list(self.time).index(take_closest(self.time, timeStart))
+        EndIndex = list(self.time).index(take_closest(self.time, timeEnd))
 
         fig = _plt.figure(figsize=[10, 6])
         ax = fig.add_subplot(111)
@@ -260,6 +260,29 @@ class DataObject():
         if ShowFig == True:
             _plt.show()
         return fig, ax
+
+    def CalcAreaUnderPSD(self, lowerFreq, upperFreq):
+        """
+        Sums the area under the PSD from lowerFreq to upperFreq.
+
+        Parameters
+        ----------
+        lowerFreq : float
+            The lower limit of frequency to sum from
+        upperFreq : float
+            The upper limit of frequency to sum to
+
+        Returns
+        -------
+        AreaUnderPSD : float
+            The area under the PSD from lowerFreq to upperFreq
+        """
+        Freq_startAreaPSD = take_closest(self.freqs, lowerFreq)
+        index_startAreaPSD = int(np.where(self.freqs==Freq_startAreaPSD)[0])
+        Freq_endAreaPSD = take_closest(self.freqs, upperFreq)
+        index_endAreaPSD = int(np.where(self.freqs==Freq_endAreaPSD)[0])
+        AreaUnderPSD = sum(self.PSD[index_startAreaPSD : index_endAreaPSD])
+        return AreaUnderPSD
 
     def get_fit(self, WidthOfPeakToFit, NMovAveToFit, TrapFreq, A_Initial=0.1e10, Gamma_Initial=400, ShowFig=True):
         """
@@ -400,7 +423,7 @@ def moving_average(a, n=3):
     return ret[n - 1:] / n
 
 
-def test_closest(myList, myNumber):
+def take_closest(myList, myNumber):
     """
     Assumes myList is sorted. Returns closest value to myNumber.
 
@@ -454,12 +477,12 @@ def fit_PSD(Data, bandwidth, NMovAve, TrapFreqGuess, AGuess=0.1e10, GammaGuess=4
     Angbandwidth = 2 * _np.pi * bandwidth
     AngTrapFreqGuess = 2 * _np.pi * TrapFreqGuess
 
-    ClosestToAngTrapFreqGuess = test_closest(AngFreqs, AngTrapFreqGuess)
+    ClosestToAngTrapFreqGuess = take_closest(AngFreqs, AngTrapFreqGuess)
     index_ftrap = _np.where(AngFreqs == ClosestToAngTrapFreqGuess)
     ftrap = AngFreqs[index_ftrap]
 
-    f_fit_lower = test_closest(AngFreqs, ftrap - Angbandwidth / 2)
-    f_fit_upper = test_closest(AngFreqs, ftrap + Angbandwidth / 2)
+    f_fit_lower = take_closest(AngFreqs, ftrap - Angbandwidth / 2)
+    f_fit_upper = take_closest(AngFreqs, ftrap + Angbandwidth / 2)
 
     indx_fit_lower = int(_np.where(AngFreqs == f_fit_lower)[0])
     indx_fit_upper = int(_np.where(AngFreqs == f_fit_upper)[0])
@@ -477,8 +500,8 @@ def fit_PSD(Data, bandwidth, NMovAve, TrapFreqGuess, AGuess=0.1e10, GammaGuess=4
 
 #    print(ftrap)
 
-    f_fit_lower = test_closest(AngFreqs, ftrap - Angbandwidth / 2)
-    f_fit_upper = test_closest(AngFreqs, ftrap + Angbandwidth / 2)
+    f_fit_lower = take_closest(AngFreqs, ftrap - Angbandwidth / 2)
+    f_fit_upper = take_closest(AngFreqs, ftrap + Angbandwidth / 2)
 
     indx_fit_lower = int(_np.where(AngFreqs == f_fit_lower)[0])
     indx_fit_upper = int(_np.where(AngFreqs == f_fit_upper)[0])
@@ -626,8 +649,8 @@ def get_ZXY_freqs(Data, zfreq, xfreq, yfreq, bandwidth=5000):
     """
     trapfreqs = []
     for freq in [zfreq, xfreq, yfreq]:
-        z_f_fit_lower = test_closest(Data.freqs, freq - bandwidth / 2)
-        z_f_fit_upper = test_closest(Data.freqs, freq + bandwidth / 2)
+        z_f_fit_lower = take_closest(Data.freqs, freq - bandwidth / 2)
+        z_f_fit_upper = take_closest(Data.freqs, freq + bandwidth / 2)
         z_indx_fit_lower = int(_np.where(Data.freqs == z_f_fit_lower)[0])
         z_indx_fit_upper = int(_np.where(Data.freqs == z_f_fit_upper)[0])
 
@@ -717,8 +740,8 @@ def get_ZXY_data(Data, zf, xf, yf, FractionOfSampleFreq,
     if timeEnd == "Default":
         timeEnd = Data.time[-1]
 
-    StartIndex = list(Data.time).index(test_closest(Data.time, timeStart))
-    EndIndex = list(Data.time).index(test_closest(Data.time, timeEnd))
+    StartIndex = list(Data.time).index(take_closest(Data.time, timeStart))
+    EndIndex = list(Data.time).index(take_closest(Data.time, timeEnd))
 
     SAMPLEFREQ = Data.SampleFreq / FractionOfSampleFreq
 
@@ -831,8 +854,8 @@ def get_ZXY_data_IFFT(Data, zf, xf, yf,
     if timeEnd == "Default":
         timeEnd = Data.time[-1]
 
-    StartIndex = list(Data.time).index(test_closest(Data.time, timeStart))
-    EndIndex = list(Data.time).index(test_closest(Data.time, timeEnd))
+    StartIndex = list(Data.time).index(take_closest(Data.time, timeStart))
+    EndIndex = list(Data.time).index(take_closest(Data.time, timeEnd))
 
     SAMPLEFREQ = Data.SampleFreq
 
