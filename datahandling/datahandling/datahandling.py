@@ -284,9 +284,9 @@ class DataObject():
             The area under the PSD from lowerFreq to upperFreq
         """
         Freq_startAreaPSD = take_closest(self.freqs, lowerFreq)
-        index_startAreaPSD = int(np.where(self.freqs==Freq_startAreaPSD)[0])
+        index_startAreaPSD = int(_np.where(self.freqs==Freq_startAreaPSD)[0])
         Freq_endAreaPSD = take_closest(self.freqs, upperFreq)
-        index_endAreaPSD = int(np.where(self.freqs==Freq_endAreaPSD)[0])
+        index_endAreaPSD = int(_np.where(self.freqs==Freq_endAreaPSD)[0])
         AreaUnderPSD = sum(self.PSD[index_startAreaPSD : index_endAreaPSD])
         return AreaUnderPSD
 
