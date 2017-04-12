@@ -13,7 +13,9 @@ import re
 import seaborn as _sns
 import pandas as _pd
 import fnmatch as _fnmatch
-
+from multiprocessing import Pool as _Pool
+from multiprocessing import cpu_count as _cpu_count
+from scipy.optimize import minimize as _minimize
 
 def load_data(Filepath):
     """
@@ -29,6 +31,7 @@ def load_data(Filepath):
             An instance of the DataObject class contaning the data
             that you requested to be loaded.
     """
+    print("Loading data from {}".format(Filepath))
     return DataObject(Filepath)
 
 
@@ -62,10 +65,12 @@ def multi_load_data(Channel, RunNos, RepeatNos, directoryPath='.'):
             files_CorrectRunNo, '*REPEAT*0{}.*'.format(RepeatNo))
         for file_ in files_match:
             files_CorrectRepeatNo.append(file_)
-    data = []
-    for filepath in files_CorrectRepeatNo:
-        print(filepath)
-        data.append(load_data(filepath))
+    cpu_count = _cpu_count()
+    workerPool = _Pool(cpu_count)
+    #for filepath in files_CorrectRepeatNo:
+    #    print(filepath)
+    #    data.append(load_data(filepath))
+    data = workerPool.map(load_data, files_CorrectRepeatNo)
     return data
 
 
@@ -156,7 +161,7 @@ class DataObject():
         self.SampleFreq = (1 / self.waveDescription["HORIZ_INTERVAL"])
         return self.time, self.Voltage
 
-    def plot_time_data(self, timeStart, timeEnd, ShowFig=True):
+    def plot_time_data(self, timeStart="Default", timeEnd="Default", ShowFig=True):
         """
         plot time data against voltage data.
 
@@ -310,7 +315,7 @@ class DataObject():
                         δΓ = extra damping due to feedback
         """
         Params, ParamsErr, fig, ax = fit_PSD(
-            self, WidthOfPeakToFit, NMovAveToFit, TrapFreq, A_Initial, Gamma_Initial, ShowFig)
+            self, WidthOfPeakToFit, NMovAveToFit, TrapFreq, A_Initial, Gamma_Initial, ShowFig=ShowFig)
 
         print("\n")
         print("A: {} +- {}% ".format(Params[0],
@@ -326,6 +331,82 @@ class DataObject():
 
         return self.A, self.Ftrap, self.Gamma, fig, ax
 
+    def get_fit_optimised(self, WidthOfPeakToFit, NMovAveToFit, TrapFreq, A_Initial=0.1e10, Gamma_Initial=400, ShowFig=True):
+        """
+        Function that fits peak to the PSD and optimises to minimise the error.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+        A : uncertainties.ufloat
+                Fitting constant A
+                A = γ**2*Γ_0*(K_b*T_0)/(π*m)
+                where:
+                        γ = conversionFactor
+                        Γ_0 = Damping factor due to environment
+                        π = pi
+        Ftrap : uncertainties.ufloat
+                The trapping frequency in the z axis (in angular frequency)
+        Gamma : uncertainties.ufloat
+                The damping factor Gamma = Γ = Γ_0 + δΓ
+                where:
+                        Γ_0 = Damping factor due to environment
+                        δΓ = extra damping due to feedback
+        """
+        def CalcFittingError(OptArgs, ConstArgs):
+            WidthOfPeakToFit = ConstArgs[0]
+            NMovAveToFit = ConstArgs[1]
+            TrapFreq = OptArgs[0]
+            A_Initial = OptArgs[1]
+            Gamma_Initial = OptArgs[2] 
+
+            Params, ParamsErr = fit_PSD(
+                self, WidthOfPeakToFit, NMovAveToFit, TrapFreq, A_Initial, Gamma_Initial, MakeFig=False, ShowFig=False)
+
+            Params = _np.array(Params)
+            ParamsErr = _np.array(ParamsErr)
+        
+            TotalPercentErrorSquared = _np.sum((ParamsErr / Params * 100)**2)
+
+            print(TotalPercentErrorSquared)
+            
+            return TotalPercentErrorSquared
+
+        OptArgs = [TrapFreq, A_Initial, Gamma_Initial]
+        ConstArgs = [WidthOfPeakToFit, NMovAveToFit]
+
+        print(OptArgs)
+
+        Result = _minimize(CalcFittingError, x0=OptArgs, args=ConstArgs, method="CG")
+
+        print(Result)
+        
+        BestInitialGuesses = Result['x']
+
+        [TrapFreqOpt, A_InitialOpt, Gamma_InitialOpt] = BestInitialGuesses
+
+        print(BestInitialGuesses)
+        
+        Params, ParamsErr, fig, ax = fit_PSD(
+            self, WidthOfPeakToFit, NMovAveToFit, TrapFreqOpt, A_InitialOpt, Gamma_InitialOpt, ShowFig=ShowFig)
+
+        print("\n")
+        print("A: {} +- {}% ".format(Params[0],
+                                     ParamsErr[0] / Params[0] * 100))
+        print(
+            "Trap Frequency: {} +- {}% ".format(Params[1], ParamsErr[1] / Params[1] * 100))
+        print(
+            "Big Gamma: {} +- {}% ".format(Params[2], ParamsErr[2] / Params[2] * 100))
+
+        self.A = _uncertainties.ufloat(Params[0], ParamsErr[0])
+        self.Ftrap = _uncertainties.ufloat(Params[1], ParamsErr[1])
+        self.Gamma = _uncertainties.ufloat(Params[2], ParamsErr[2])
+
+        return self.A, self.Ftrap, self.Gamma, fig, ax
+
+    
     def extract_parameters(self, P_mbar, P_Error):
         """
         Extracts the Radius  mass and Conversion factor for a particle.
@@ -451,7 +532,7 @@ def PSD_Fitting(A, Omega0, gamma, omega):
     return 10 * _np.log10(A / ((Omega0**2 - omega**2)**2 + (omega * gamma)**2))
 
 
-def fit_PSD(Data, bandwidth, NMovAve, TrapFreqGuess, AGuess=0.1e10, GammaGuess=400, ShowFig=True):
+def fit_PSD(Data, bandwidth, NMovAve, TrapFreqGuess, AGuess=0.1e10, GammaGuess=400, MakeFig=True, ShowFig=True):
     """
     Fits theory PSD to Data. Assumes highest point of PSD is the
     trapping frequency.
@@ -474,6 +555,7 @@ def fit_PSD(Data, bandwidth, NMovAve, TrapFreqGuess, AGuess=0.1e10, GammaGuess=4
         [AErr, TrappingFrequencyErr, GammaErr]
 
     """
+    print(TrapFreqGuess, AGuess, GammaGuess)
     AngFreqs = 2 * _np.pi * Data.freqs
     Angbandwidth = 2 * _np.pi * bandwidth
     AngTrapFreqGuess = 2 * _np.pi * TrapFreqGuess
@@ -527,36 +609,39 @@ def fit_PSD(Data, bandwidth, NMovAve, TrapFreqGuess, AGuess=0.1e10, GammaGuess=4
     Params_Fit, Params_Fit_Err = fit_curvefit(p0,
                                               datax, datay, calc_theory_PSD_curve_fit)
 
-    #    print("Params Fitted:", Params_Fit, "Error in Params:", Params_Fit_Err)
-    fig = _plt.figure()
-    ax = fig.add_subplot(111)
+    if MakeFig == True:
+        fig = _plt.figure()
+        ax = fig.add_subplot(111)
 
-    PSDTheory_fit_initial = PSD_Fitting(p0[0], p0[1],
-                                        p0[2], freqs_smoothed)
+        PSDTheory_fit_initial = PSD_Fitting(p0[0], p0[1],
+                                            p0[2], freqs_smoothed)
 
-    PSDTheory_fit = PSD_Fitting(Params_Fit[0], Params_Fit[1],
-                                Params_Fit[2], freqs_smoothed)
+        PSDTheory_fit = PSD_Fitting(Params_Fit[0], Params_Fit[1],
+                                    Params_Fit[2], freqs_smoothed)
 
-    ax.plot(AngFreqs / (2 * _np.pi), 10 * _np.log10(Data.PSD),
-            color="darkblue", label="Raw PSD Data", alpha=0.5)
-    ax.plot(freqs_smoothed / (2 * _np.pi), logPSD_smoothed,
-            color='blue', label="smoothed", linewidth=1.5)
-    ax.plot(freqs_smoothed / (2 * _np.pi), PSDTheory_fit_initial,
-            '--', alpha=0.7, color="purple", label="initial vals")
-    ax.plot(freqs_smoothed / (2 * _np.pi), PSDTheory_fit,
-            color="red", label="fitted vals")
-    ax.set_xlim([(ftrap - 5 * Angbandwidth) / (2 * _np.pi),
-                 (ftrap + 5 * Angbandwidth) / (2 * _np.pi)])
-    ax.plot([(ftrap - Angbandwidth) / (2 * _np.pi), (ftrap - Angbandwidth) / (2 * _np.pi)],
-            [min(logPSD_smoothed), max(logPSD_smoothed)], '--',
-            color="grey")
-    ax.plot([(ftrap + Angbandwidth) / (2 * _np.pi), (ftrap + Angbandwidth) / (2 * _np.pi)],
-            [min(logPSD_smoothed), max(logPSD_smoothed)], '--',
-            color="grey")
-    ax.legend(loc="best")
-    if ShowFig == True:
-        _plt.show()
-    return Params_Fit, Params_Fit_Err, fig, ax
+        ax.plot(AngFreqs / (2 * _np.pi), 10 * _np.log10(Data.PSD),
+                color="darkblue", label="Raw PSD Data", alpha=0.5)
+        ax.plot(freqs_smoothed / (2 * _np.pi), logPSD_smoothed,
+                color='blue', label="smoothed", linewidth=1.5)
+        ax.plot(freqs_smoothed / (2 * _np.pi), PSDTheory_fit_initial,
+                '--', alpha=0.7, color="purple", label="initial vals")
+        ax.plot(freqs_smoothed / (2 * _np.pi), PSDTheory_fit,
+                color="red", label="fitted vals")
+        ax.set_xlim([(ftrap - 5 * Angbandwidth) / (2 * _np.pi),
+                     (ftrap + 5 * Angbandwidth) / (2 * _np.pi)])
+        ax.plot([(ftrap - Angbandwidth) / (2 * _np.pi), (ftrap - Angbandwidth) / (2 * _np.pi)],
+                [min(logPSD_smoothed), max(logPSD_smoothed)], '--',
+                color="grey")
+        ax.plot([(ftrap + Angbandwidth) / (2 * _np.pi), (ftrap + Angbandwidth) / (2 * _np.pi)],
+                [min(logPSD_smoothed), max(logPSD_smoothed)], '--',
+                color="grey")
+        ax.legend(loc="best")
+        if ShowFig == True:
+            _plt.show()
+        return Params_Fit, Params_Fit_Err, fig, ax
+    else:
+        return Params_Fit, Params_Fit_Err
+            
 
 
 def extract_parameters(Pressure, PressureErr, A, AErr, Gamma0, Gamma0Err):
@@ -1288,7 +1373,7 @@ def multi_plot_PSD(DataArray, xlim=[0, 500e3], LabelArray=[], ShowFig=True):
     return fig, ax
 
 
-def multi_plot_Time(DataArray, SubSampleN=1, xlim="default", ylim="default", LabelArray=[], ShowFig=True):
+def multi_plot_time(DataArray, SubSampleN=1, xlim="default", ylim="default", LabelArray=[], ShowFig=True):
     """
     plot the pulse spectral density.
 
@@ -1329,18 +1414,67 @@ def multi_plot_Time(DataArray, SubSampleN=1, xlim="default", ylim="default", Lab
     ax.set_xlabel("time (s)")
     if xlim != "default":
         ax.set_xlim(xlim)
-    else:
-        ax.set_xlim([DataArray[0].time[0], DataArray[0].time[-1]])
     if ylim != "default":
         ax.set_ylim(ylim)
-    else:
-        ax.set_xlim([min(DataArray[0].Voltage), max(DataArray[0].Voltage)])
     ax.grid(which="major")
     ax.legend(loc="best")
     ax.set_ylabel("Voltage (V)")
     if ShowFig == True:
         _plt.show()
     return fig, ax
+
+def multi_subplots_time(DataArray, SubSampleN=1, xlim="default", ylim="default", LabelArray=[], ShowFig=True):
+    """
+    plot the pulse spectral density.
+
+    Parameters
+    ----------
+    DataArray : array-like
+        array of DataObject instances for which to plot the PSDs
+    SubSampleN : int
+        Number of intervals between points to remove (to sub-sample data so
+        that you effectively have lower sample rate to make plotting easier
+        and quicker.
+    xlim : array-like
+        2 element array specifying the lower and upper x limit for which to
+        plot the time signal
+    LabelArray : array-like, optional
+        array of labels for each data-set to be plotted
+    ShowFig : bool, optional
+       If True runs plt.show() before returning figure
+       if False it just returns the figure object.
+       (the default is True, it shows the figure) 
+
+    Returns
+    -------
+    fig : plt.figure
+        The figure object created
+    ax : fig.add_subplot(111)
+        The subplot object created
+    """
+    NumDataSets = len(DataArray)
+
+    
+    if LabelArray == []:
+        LabelArray = ["DataSet {}".format(i)
+                      for i in _np.arange(0, len(DataArray), 1)]
+
+    fig, axs = _plt.subplots(NumDataSets, 1)
+
+    for i, data in enumerate(DataArray):
+        axs[i].plot(data.time[::SubSampleN], data.Voltage[::SubSampleN],
+                alpha=0.8, label=LabelArray[i])
+        axs[i].set_xlabel("time (s)")
+        axs[i].grid(which="major")
+        axs[i].legend(loc="best")
+        axs[i].set_ylabel("Voltage (V)")        
+        if xlim != "default":
+            axs[i].set_xlim(xlim)
+        if ylim != "default":
+            axs[i].set_ylim(ylim)
+    if ShowFig == True:
+        _plt.show()
+    return fig, axs
 
 
 def parse_orgtable(lines):
