@@ -290,7 +290,7 @@ class DataObject():
         AreaUnderPSD = sum(self.PSD[index_startAreaPSD : index_endAreaPSD])
         return AreaUnderPSD
 
-    def get_fit(self, WidthOfPeakToFit, NMovAveToFit, TrapFreq, A_Initial=0.1e10, Gamma_Initial=400, ShowFig=True):
+    def get_fit(self, WidthOfPeakToFit, NMovAveToFit, TrapFreq, A_Initial=0.1e10, Gamma_Initial=400, MakeFig=True, ShowFig=True):
         """
         Function that fits peak to the PSD.
 
@@ -314,8 +314,12 @@ class DataObject():
                         Γ_0 = Damping factor due to environment
                         δΓ = extra damping due to feedback
         """
-        Params, ParamsErr, fig, ax = fit_PSD(
-            self, WidthOfPeakToFit, NMovAveToFit, TrapFreq, A_Initial, Gamma_Initial, ShowFig=ShowFig)
+        if MakeFig == True:
+            Params, ParamsErr, fig, ax = fit_PSD(
+                self, WidthOfPeakToFit, NMovAveToFit, TrapFreq, A_Initial, Gamma_Initial, MakeFig=MakeFig, ShowFig=ShowFig)
+        else:
+            Params, ParamsErr = fit_PSD(
+                self, WidthOfPeakToFit, NMovAveToFit, TrapFreq, A_Initial, Gamma_Initial, MakeFig=MakeFig, ShowFig=ShowFig)
 
         print("\n")
         print("A: {} +- {}% ".format(Params[0],
@@ -329,7 +333,10 @@ class DataObject():
         self.Ftrap = _uncertainties.ufloat(Params[1], ParamsErr[1])
         self.Gamma = _uncertainties.ufloat(Params[2], ParamsErr[2])
 
-        return self.A, self.Ftrap, self.Gamma, fig, ax
+        if MakeFig == True:
+            return self.A, self.Ftrap, self.Gamma, fig, ax
+        else:
+            return self.A, self.Ftrap, self.Gamma
     
     def extract_parameters(self, P_mbar, P_Error):
         """
