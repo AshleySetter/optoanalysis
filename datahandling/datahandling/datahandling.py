@@ -290,7 +290,7 @@ class DataObject():
         AreaUnderPSD = sum(self.PSD[index_startAreaPSD : index_endAreaPSD])
         return AreaUnderPSD
 
-    def get_fit(self, WidthOfPeakToFit, NMovAveToFit, TrapFreq, A_Initial=0.1e10, Gamma_Initial=400, MakeFig=True, ShowFig=True):
+    def get_fit(self, WidthOfPeakToFit, NMovAveToFit, TrapFreq, A_Initial=0.1e10, Gamma_Initial=400, Silent=False, MakeFig=True, ShowFig=True):
         """
         Function that fits peak to the PSD.
 
@@ -321,13 +321,14 @@ class DataObject():
             Params, ParamsErr = fit_PSD(
                 self, WidthOfPeakToFit, NMovAveToFit, TrapFreq, A_Initial, Gamma_Initial, MakeFig=MakeFig, ShowFig=ShowFig)
 
-        print("\n")
-        print("A: {} +- {}% ".format(Params[0],
-                                     ParamsErr[0] / Params[0] * 100))
-        print(
-            "Trap Frequency: {} +- {}% ".format(Params[1], ParamsErr[1] / Params[1] * 100))
-        print(
-            "Big Gamma: {} +- {}% ".format(Params[2], ParamsErr[2] / Params[2] * 100))
+        if Silent == False:
+            print("\n")
+            print("A: {} +- {}% ".format(Params[0],
+                                         ParamsErr[0] / Params[0] * 100))
+            print(
+                "Trap Frequency: {} +- {}% ".format(Params[1], ParamsErr[1] / Params[1] * 100))
+            print(
+                "Big Gamma: {} +- {}% ".format(Params[2], ParamsErr[2] / Params[2] * 100))
 
         self.A = _uncertainties.ufloat(Params[0], ParamsErr[0])
         self.Ftrap = _uncertainties.ufloat(Params[1], ParamsErr[1])
