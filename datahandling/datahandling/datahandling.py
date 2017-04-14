@@ -259,10 +259,10 @@ class DataObject():
         fig = _plt.figure(figsize=[10, 6])
         ax = fig.add_subplot(111)
         ax.semilogy(self.freqs, self.PSD, color="blue")
-        ax.set_xlabel("Frequency Hz")
+        ax.set_xlabel("Frequency (Hz)")
         ax.set_xlim(xlim)
         ax.grid(which="major")
-        ax.set_ylabel("PSD ($v^2/Hz$)")
+        ax.set_ylabel("$S_{xx}$ ($v^2/Hz$)")
         if ShowFig == True:
             _plt.show()
         return fig, ax
@@ -543,23 +543,26 @@ def fit_PSD(Data, bandwidth, NMovAve, TrapFreqGuess, AGuess=0.1e10, GammaGuess=4
         PSDTheory_fit = PSD_Fitting(Params_Fit[0], Params_Fit[1],
                                     Params_Fit[2], freqs_smoothed)
 
-        ax.plot(AngFreqs / (2 * _np.pi), 10 * _np.log10(Data.PSD),
+        ax.plot(AngFreqs / (2 * _np.pi), Data.PSD,
                 color="darkblue", label="Raw PSD Data", alpha=0.5)
-        ax.plot(freqs_smoothed / (2 * _np.pi), logPSD_smoothed,
+        ax.plot(freqs_smoothed / (2 * _np.pi), 10**(logPSD_smoothed/10),
                 color='blue', label="smoothed", linewidth=1.5)
-        ax.plot(freqs_smoothed / (2 * _np.pi), PSDTheory_fit_initial,
+        ax.plot(freqs_smoothed / (2 * _np.pi), 10**(PSDTheory_fit_initial/10),
                 '--', alpha=0.7, color="purple", label="initial vals")
-        ax.plot(freqs_smoothed / (2 * _np.pi), PSDTheory_fit,
+        ax.plot(freqs_smoothed / (2 * _np.pi), 10**(PSDTheory_fit/10),
                 color="red", label="fitted vals")
         ax.set_xlim([(ftrap - 5 * Angbandwidth) / (2 * _np.pi),
                      (ftrap + 5 * Angbandwidth) / (2 * _np.pi)])
         ax.plot([(ftrap - Angbandwidth) / (2 * _np.pi), (ftrap - Angbandwidth) / (2 * _np.pi)],
-                [min(logPSD_smoothed), max(logPSD_smoothed)], '--',
+                [min(10**(logPSD_smoothed/10)), max(10**(logPSD_smoothed/10))], '--',
                 color="grey")
         ax.plot([(ftrap + Angbandwidth) / (2 * _np.pi), (ftrap + Angbandwidth) / (2 * _np.pi)],
-                [min(logPSD_smoothed), max(logPSD_smoothed)], '--',
+                [min(10**(logPSD_smoothed/10)), max(10**(logPSD_smoothed/10))], '--',
                 color="grey")
+        ax.semilogy()
         ax.legend(loc="best")
+        ax.set_xlabel("Frequency (Hz)")
+        ax.set_ylabel("$S_{xx}$ ($v^2/Hz$)")
         if ShowFig == True:
             _plt.show()
         return Params_Fit, Params_Fit_Err, fig, ax
@@ -798,11 +801,12 @@ def get_ZXY_data(Data, zf, xf, yf, FractionOfSampleFreq,
         f_z, PSD_z = scipy.signal.welch(zdata, SAMPLEFREQ, nperseg=NPerSegment)
         f_y, PSD_y = scipy.signal.welch(ydata, SAMPLEFREQ, nperseg=NPerSegment)
         f_x, PSD_x = scipy.signal.welch(xdata, SAMPLEFREQ, nperseg=NPerSegment)
-        _plt.plot(f, 10 * _np.log10(PSD))
-        _plt.plot(f_z, 10 * _np.log10(PSD_z), label="z")
-        _plt.plot(f_x, 10 * _np.log10(PSD_x), label="x")
-        _plt.plot(f_y, 10 * _np.log10(PSD_y), label="y")
+        _plt.plot(f, PSD)
+        _plt.plot(f_z, PSD_z, label="z")
+        _plt.plot(f_x, PSD_x, label="x")
+        _plt.plot(f_y, PSD_y, label="y")
         _plt.legend(loc="best")
+        _ply.semilogy
         _plt.xlim([zf - zwidth - ztransition, yf + ywidth + ytransition])
         _plt.show()
 
@@ -889,14 +893,15 @@ def get_ZXY_data_IFFT(Data, zf, xf, yf,
         f_z, PSD_z = scipy.signal.welch(zdata, SAMPLEFREQ, nperseg=NPerSegment)
         f_y, PSD_y = scipy.signal.welch(ydata, SAMPLEFREQ, nperseg=NPerSegment)
         f_x, PSD_x = scipy.signal.welch(xdata, SAMPLEFREQ, nperseg=NPerSegment)
-        _plt.plot(f, 10 * _np.log10(PSD))
-        _plt.plot(f_z, 10 * _np.log10(PSD_z), label="z")
-        _plt.plot(f_x, 10 * _np.log10(PSD_x), label="x")
-        _plt.plot(f_y, 10 * _np.log10(PSD_y), label="y")
+        _plt.plot(f, PSD)
+        _plt.plot(f_z, PSD_z, label="z")
+        _plt.plot(f_x, PSD_x, label="x")
+        _plt.plot(f_y, PSD_y, label="y")
         _plt.legend(loc="best")
         _plt.xlim([zf - zwidth, yf + ywidth])
         _plt.xlabel('Frequency (Hz)')
         _plt.ylabel(r'$S_{xx}$')
+        _plt.semilogy()
         _plt.title("filepath = %s" % (Data.filepath))
         _plt.show()
 
