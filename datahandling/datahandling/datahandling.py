@@ -487,7 +487,6 @@ def fit_PSD(Data, bandwidth, NMovAve, TrapFreqGuess, AGuess=0.1e10, GammaGuess=4
         [AErr, TrappingFrequencyErr, GammaErr]
 
     """
-    print(TrapFreqGuess, AGuess, GammaGuess)
     AngFreqs = 2 * _np.pi * Data.freqs
     Angbandwidth = 2 * _np.pi * bandwidth
     AngTrapFreqGuess = 2 * _np.pi * TrapFreqGuess
