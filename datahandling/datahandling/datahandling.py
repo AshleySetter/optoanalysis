@@ -338,7 +338,119 @@ class DataObject():
             return self.A, self.Ftrap, self.Gamma, fig, ax
         else:
             return self.A, self.Ftrap, self.Gamma
-    
+
+    def get_fit_from_peak(self, lowerLimit, upperLimit, NumPointsSmoothing=1, Silent=False, ShowFig=True):
+        """
+        Finds an approximate values for the peaks central frequency, height, 
+        and FWHM by looking for the heighest peak in the frequncy range defined 
+        by the imput arguments. It then uses the central frequncy as the trapping 
+        frequency, peak height to an approximate A value and the FWHM to an approximate
+        Gamma (damping) value.
+
+        Parameters
+        ----------
+        lowerLimit : float
+            The lower frequency limit of the range in which it looks for a peak
+        upperLimit : float
+            The higher frequency limit of the range in which it looks for a peak
+        NumPointsSmoothing : float
+            The number of points of moving-average smoothing it applies before fitting the 
+            peak.
+        Silent : bool
+            Whether it prints the values fitted or is silent.
+        ShowFig : bool
+            Whether it makes and shows the figure object or not.
+
+        Returns
+        -------
+        Ftraps : ufloat
+            Trapping frequency
+        A : ufloat
+            A parameter
+        Gamma : ufloat
+            Gamma, the damping parameter
+        """
+        lowerIndex = list(self.freqs).index(take_closest(self.freqs, lowerLimit))
+        upperIndex = list(self.freqs).index(take_closest(self.freqs, upperLimit))
+
+        MaxPSD = max(self.PSD[lowerIndex:upperIndex])
+
+        CentralFreq = self.freqs[list(self.PSD).index(MaxPSD)]
+        centralIndex = list(self.freqs).index(CentralFreq)
+
+        approx_A = MaxPSD*1e16 # 1e16 was calibrated for a number of saves to be approximately the correct conversion factor between the height of the PSD and the A factor in the fitting
+
+        MinPSD = min(self.PSD[lowerIndex:upperIndex])
+
+        HalfMax = MinPSD + (MaxPSD-MinPSD)/2 # need to get this on log scale
+
+        try:
+            LeftSideOfPeak = self.freqs[list(self.PSD).index(take_closest(self.PSD[lowerIndex:centralIndex], HalfMax))]
+        except IndexError:
+            raise ValueError("range is too small")            
+
+        try:
+            RightSideOfPeak = self.freqs[list(self.PSD).index(take_closest(self.PSD[centralIndex:upperIndex], HalfMax))]
+        except IndexError:
+            raise ValueError("range is too small")            
+
+        FWHM = RightSideOfPeak - LeftSideOfPeak
+
+        approx_Gamma = FWHM/4
+
+        self.get_fit((upperLimit-lowerLimit)/2, 1, CentralFreq, 
+                     A_Initial=approx_A, Gamma_Initial=approx_Gamma, Silent=Silent,
+                     MakeFig=ShowFig, ShowFig=ShowFig)
+        FTrap = self.Ftrap
+        A = self.A
+        Gamma = self.Gamma
+        return FTrap, A, Gamma
+
+    def get_fit_auto(self, CentralFreq, MaxWidth=15000, MinWidth=500, WidthIntervals=500, ShowFig=True): 
+        """
+        Tries a range of regions to search for peaks and runs the one with the least error
+        and returns the parameters with the least errors.
+
+        Parameters
+        ----------
+        CentralFreq : float
+            The central frequency to use for the fittings.
+        MaxWidth : float
+            The maximum bandwidth to use for the fitting of the peaks.
+        MinWidth : float
+            The minimum bandwidth to use for the fitting of the peaks.
+        WidthIntervals : float
+            The intervals to use in going between the MaxWidth and MinWidth.
+        ShowFig : bool
+            Whether to plot and show the final (best) fitting or not.
+
+        Returns
+        -------
+        Ftraps : ufloat
+            Trapping frequency
+        A : ufloat
+            A parameter
+        Gamma : ufloat
+            Gamma, the damping parameter
+        """  
+        MinTotalSumSquaredError = 1e10
+        for Width in _np.arange(MaxWidth, MinWidth-WidthIntervals, -WidthIntervals):
+            try:
+                self.get_fit_from_peak(CentralFreq-Width/2, CentralFreq+Width/2, Silent=True, ShowFig=False)
+            except ValueError:
+                raise ValueError("Need to increase MinWidth in order to measure FWHM")
+            TotalSumSquaredError = (self.A.std_dev/self.A.n)**2 + (self.Gamma.std_dev/self.Gamma.n)**2 + (self.Ftrap.std_dev/self.Ftrap.n)**2
+            #print("totalError: {}".format(TotalSumSquaredError))
+            if TotalSumSquaredError < MinTotalSumSquaredError:
+                MinTotalSumSquaredError = TotalSumSquaredError
+                BestWidth = Width
+        print("found best")
+        self.get_fit_from_peak(CentralFreq-BestWidth/2, CentralFreq+BestWidth/2, ShowFig=ShowFig)
+        FTrap = self.Ftrap
+        A = self.A
+        Gamma = self.Gamma
+        return FTrap, A, Gamma
+
     def extract_parameters(self, P_mbar, P_Error):
         """
         Extracts the Radius  mass and Conversion factor for a particle.
