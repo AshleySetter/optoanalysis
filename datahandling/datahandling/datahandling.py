@@ -414,7 +414,12 @@ class DataObject():
         FTrap = self.Ftrap
         A = self.A
         Gamma = self.Gamma
-        return FTrap, A, Gamma
+
+        omegaArray = 2*_np.pi*self.freqs[LeftSideOfPeak:RightSideOfPeak]
+        PSDArray = self.PSD[LeftSideOfPeak:RightSideOfPeak]
+        FittedValues = _PSD_fitting_eqn(A, 2*_np.pi*FTrap, Gamma, omegaArray)
+        SumOfDeviation = sum((PSDArray-FittedValues)/PSDArray)
+        return FTrap, A, Gamma, SumOfDeviation
 
     def get_fit_auto(self, CentralFreq, MaxWidth=15000, MinWidth=500, WidthIntervals=500, ShowFig=True): 
         """
@@ -443,14 +448,15 @@ class DataObject():
         Gamma : ufloat
             Gamma, the damping parameter
         """  
-        MinTotalSumSquaredError = 1e10
+        MinTotalSumOfDeviation = _np.NaN
         for Width in _np.arange(MaxWidth, MinWidth-WidthIntervals, -WidthIntervals):
             
-            Ftrap, A, Gamma = self.get_fit_from_peak(CentralFreq-Width/2, CentralFreq+Width/2, Silent=True, ShowFig=False)
+            Ftrap, A, Gamma, SumOfDeviation = self.get_fit_from_peak(CentralFreq-Width/2, CentralFreq+Width/2, Silent=True, ShowFig=False)
             TotalSumSquaredError = (A.std_dev/A.n)**2 + (Gamma.std_dev/Gamma.n)**2 + (Ftrap.std_dev/Ftrap.n)**2
-            #print("totalError: {}".format(TotalSumSquaredError))
-            if TotalSumSquaredError < MinTotalSumSquaredError:
-                MinTotalSumSquaredError = TotalSumSquaredError
+            #print("totalError: {}".format(TotalSumSquaredError))            
+            #if TotalSumSquaredError < MinTotalSumSquaredError:
+            if SumOfDeviation < MinTotalSumOfDeviation:
+                MinTotalSumSquaredError = SumOfDeviation
                 BestWidth = Width
         print("found best")
         self.get_fit_from_peak(CentralFreq-BestWidth/2, CentralFreq+BestWidth/2, ShowFig=ShowFig)
