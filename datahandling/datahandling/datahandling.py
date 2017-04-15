@@ -391,18 +391,20 @@ class DataObject():
         HalfMax = MinPSD + (MaxPSD-MinPSD)/2 # need to get this on log scale
 
         try:
-            LeftSideOfPeak = self.freqs[list(self.PSD).index(take_closest(self.PSD[lowerIndex:centralIndex], HalfMax))]
+            LeftSideOfPeakIndex = list(self.PSD).index(take_closest(self.PSD[lowerIndex:centralIndex], HalfMax))
+            LeftSideOfPeak = self.freqs[LeftSideOfPeakIndex]
         except IndexError:
             _warnings.warn("range is too small, returning NaN", UserWarning)
             val = _uncertainties.ufloat(_np.NaN, _np.NaN)
-            return val, val, val
+            return val, val, val, val
 
         try:
-            RightSideOfPeak = self.freqs[list(self.PSD).index(take_closest(self.PSD[centralIndex:upperIndex], HalfMax))]
+            RightSideOfPeakIndex = list(self.PSD).index(take_closest(self.PSD[centralIndex:upperIndex], HalfMax))
+            RightSideOfPeak = self.freqs[RightSideOfPeakIndex]
         except IndexError:
             _warnings.warn("range is too small, returning NaN", UserWarning)
             val = _uncertainties.ufloat(_np.NaN, _np.NaN)
-            return val, val, val 
+            return val, val, val, val
 
         FWHM = RightSideOfPeak - LeftSideOfPeak
 
@@ -415,11 +417,11 @@ class DataObject():
         A = self.A
         Gamma = self.Gamma
 
-        omegaArray = 2*_np.pi*self.freqs[LeftSideOfPeak:RightSideOfPeak]
-        PSDArray = self.PSD[LeftSideOfPeak:RightSideOfPeak]
+        omegaArray = 2*_np.pi*self.freqs[LeftSideOfPeakIndex:RightSideOfPeakIndex]
+        PSDArray = self.PSD[LeftSideOfPeakIndex:RightSideOfPeakIndex]
         FittedValues = _PSD_fitting_eqn(A, 2*_np.pi*FTrap, Gamma, omegaArray)
-        SumOfDeviation = sum((PSDArray-FittedValues)/PSDArray)
-        return FTrap, A, Gamma, SumOfDeviation
+        AveOfDeviation = sum((PSDArray-FittedValues)/PSDArray)/len(PSDArray)
+        return FTrap, A, Gamma, AveOfDeviation
 
     def get_fit_auto(self, CentralFreq, MaxWidth=15000, MinWidth=500, WidthIntervals=500, ShowFig=True): 
         """
@@ -448,15 +450,16 @@ class DataObject():
         Gamma : ufloat
             Gamma, the damping parameter
         """  
-        MinTotalSumOfDeviation = _np.NaN
+        MinTotalAveOfDeviation = _np.infty
         for Width in _np.arange(MaxWidth, MinWidth-WidthIntervals, -WidthIntervals):
             
-            Ftrap, A, Gamma, SumOfDeviation = self.get_fit_from_peak(CentralFreq-Width/2, CentralFreq+Width/2, Silent=True, ShowFig=False)
-            TotalSumSquaredError = (A.std_dev/A.n)**2 + (Gamma.std_dev/Gamma.n)**2 + (Ftrap.std_dev/Ftrap.n)**2
+            Ftrap, A, Gamma, AveOfDeviation = self.get_fit_from_peak(CentralFreq-Width/2, CentralFreq+Width/2, Silent=True, ShowFig=False)
+            #TotalSumSquaredError = (A.std_dev/A.n)**2 + (Gamma.std_dev/Gamma.n)**2 + (Ftrap.std_dev/Ftrap.n)**2
             #print("totalError: {}".format(TotalSumSquaredError))            
             #if TotalSumSquaredError < MinTotalSumSquaredError:
-            if SumOfDeviation < MinTotalSumOfDeviation:
-                MinTotalSumSquaredError = SumOfDeviation
+            print("{} < {} = {}".format(AveOfDeviation, MinTotalAveOfDeviation, AveOfDeviation < MinTotalAveOfDeviation))
+            if AveOfDeviation < MinTotalAveOfDeviation:
+                MinTotalAveOfDeviation = AveOfDeviation
                 BestWidth = Width
         print("found best")
         self.get_fit_from_peak(CentralFreq-BestWidth/2, CentralFreq+BestWidth/2, ShowFig=ShowFig)
