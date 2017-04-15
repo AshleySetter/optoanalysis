@@ -567,8 +567,7 @@ def take_closest(myList, myNumber):
     else:
         return before
 
-
-def PSD_Fitting(A, Omega0, gamma, omega):
+def _PSD_fitting_eqn(A, Omega0, gamma, omega):
     # Amp = amplitude
     # Omega0 = trapping (Angular) frequency
     # gamma = Big Gamma - damping (due to environment and feedback (if
@@ -638,7 +637,7 @@ def fit_PSD(Data, bandwidth, NMovAve, TrapFreqGuess, AGuess=0.1e10, GammaGuess=4
     logPSD_smoothed = 10 * _np.log10(PSD_smoothed)
 
     def calc_theory_PSD_curve_fit(freqs, A, TrapFreq, BigGamma):
-        Theory_PSD = PSD_Fitting(A, TrapFreq, BigGamma, freqs)
+        Theory_PSD = 10*_np.log10(_PSD_fitting_eqn(A, TrapFreq, BigGamma, freqs))
         if A < 0 or TrapFreq < 0 or BigGamma < 0:
             return 1e9
         else:
@@ -656,11 +655,15 @@ def fit_PSD(Data, bandwidth, NMovAve, TrapFreqGuess, AGuess=0.1e10, GammaGuess=4
         fig = _plt.figure()
         ax = fig.add_subplot(111)
 
-        PSDTheory_fit_initial = PSD_Fitting(p0[0], p0[1],
-                                            p0[2], freqs_smoothed)
+        PSDTheory_fit_initial = 10*_np.log10(
+            _PSD_fitting_eqn(p0[0], p0[1],
+                             p0[2], freqs_smoothed))
 
-        PSDTheory_fit = PSD_Fitting(Params_Fit[0], Params_Fit[1],
-                                    Params_Fit[2], freqs_smoothed)
+        PSDTheory_fit = 10*_np.log10(
+            _PSD_fitting_eqn(Params_Fit[0],
+                             Params_Fit[1],
+                             Params_Fit[2],
+                             freqs_smoothed))
 
         ax.plot(AngFreqs / (2 * _np.pi), Data.PSD,
                 color="darkblue", label="Raw PSD Data", alpha=0.5)
