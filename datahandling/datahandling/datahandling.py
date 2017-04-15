@@ -301,19 +301,19 @@ class DataObject():
         Returns
         -------
         A : uncertainties.ufloat
-                Fitting constant A
-                A = γ**2*Γ_0*(K_b*T_0)/(π*m)
-                where:
-                        γ = conversionFactor
-                        Γ_0 = Damping factor due to environment
-                        π = pi
+            Fitting constant A
+            A = γ**2*Γ_0*(K_b*T_0)/(π*m)
+            where:
+                γ = conversionFactor
+                Γ_0 = Damping factor due to environment
+                π = pi
         Ftrap : uncertainties.ufloat
-                The trapping frequency in the z axis (in angular frequency)
+            The trapping frequency in the z axis (in angular frequency)
         Gamma : uncertainties.ufloat
-                The damping factor Gamma = Γ = Γ_0 + δΓ
-                where:
-                        Γ_0 = Damping factor due to environment
-                        δΓ = extra damping due to feedback
+            The damping factor Gamma = Γ = Γ_0 + δΓ
+            where:
+                Γ_0 = Damping factor due to environment
+                δΓ = extra damping due to feedback or other effects
         """
         if MakeFig == True:
             Params, ParamsErr, fig, ax = fit_PSD(
@@ -575,12 +575,27 @@ def take_closest(myList, myNumber):
     else:
         return before
 
-def _PSD_fitting_eqn(A, Omega0, gamma, omega):
-    # Amp = amplitude
-    # Omega0 = trapping (Angular) frequency
-    # gamma = Big Gamma - damping (due to environment and feedback (if
-    # feedback is on))
-    return A / ((Omega0**2 - omega**2)**2 + (omega * gamma)**2)
+def _PSD_fitting_eqn(A, OmegaTrap, gamma, omega):
+    """
+    Parameters
+    ----------
+    A : float
+        Fitting constant A
+        A = γ**2*Γ_0*(K_b*T_0)/(π*m)
+        where:
+            γ = conversionFactor
+            Γ_0 = Damping factor due to environment
+            π = pi
+    OmegaTrap : float
+        The trapping frequency in the axis of interest 
+        (in angular frequency)
+    Gamma : float
+        The damping factor Gamma = Γ = Γ_0 + δΓ
+        where:
+            Γ_0 = Damping factor due to environment
+            δΓ = extra damping due to feedback or other effects
+    """
+    return A / ((OmegaTrap**2 - omega**2)**2 + (omega * gamma)**2)
 
 
 def fit_PSD(Data, bandwidth, NMovAve, TrapFreqGuess, AGuess=0.1e10, GammaGuess=400, MakeFig=True, ShowFig=True):
