@@ -16,6 +16,7 @@ import fnmatch as _fnmatch
 from multiprocessing import Pool as _Pool
 from multiprocessing import cpu_count as _cpu_count
 from scipy.optimize import minimize as _minimize
+import warnings as _warnings
 
 def load_data(Filepath):
     """
@@ -373,6 +374,11 @@ class DataObject():
         lowerIndex = list(self.freqs).index(take_closest(self.freqs, lowerLimit))
         upperIndex = list(self.freqs).index(take_closest(self.freqs, upperLimit))
 
+        if lowerIndex == upperIndex:
+            _warnings.warn("range is too small, returning NaN", UserWarning)
+            val = _uncertainties.ufloat(_np.NaN, _np.NaN)
+            return val, val, val
+        
         MaxPSD = max(self.PSD[lowerIndex:upperIndex])
 
         CentralFreq = self.freqs[list(self.PSD).index(MaxPSD)]
@@ -387,12 +393,16 @@ class DataObject():
         try:
             LeftSideOfPeak = self.freqs[list(self.PSD).index(take_closest(self.PSD[lowerIndex:centralIndex], HalfMax))]
         except IndexError:
-            raise ValueError("range is too small")            
+            _warnings.warn("range is too small, returning NaN", UserWarning)
+            val = _uncertainties.ufloat(_np.NaN, _np.NaN)
+            return val, val, val
 
         try:
             RightSideOfPeak = self.freqs[list(self.PSD).index(take_closest(self.PSD[centralIndex:upperIndex], HalfMax))]
         except IndexError:
-            raise ValueError("range is too small")            
+            _warnings.warn("range is too small, returning NaN", UserWarning)
+            val = _uncertainties.ufloat(_np.NaN, _np.NaN)
+            return val, val, val 
 
         FWHM = RightSideOfPeak - LeftSideOfPeak
 
@@ -435,11 +445,9 @@ class DataObject():
         """  
         MinTotalSumSquaredError = 1e10
         for Width in _np.arange(MaxWidth, MinWidth-WidthIntervals, -WidthIntervals):
-            try:
-                self.get_fit_from_peak(CentralFreq-Width/2, CentralFreq+Width/2, Silent=True, ShowFig=False)
-            except ValueError:
-                raise ValueError("Need to increase MinWidth in order to measure FWHM")
-            TotalSumSquaredError = (self.A.std_dev/self.A.n)**2 + (self.Gamma.std_dev/self.Gamma.n)**2 + (self.Ftrap.std_dev/self.Ftrap.n)**2
+            
+            Ftrap, A, Gamma = self.get_fit_from_peak(CentralFreq-Width/2, CentralFreq+Width/2, Silent=True, ShowFig=False)
+            TotalSumSquaredError = (A.std_dev/A.n)**2 + (Gamma.std_dev/Gamma.n)**2 + (Ftrap.std_dev/Ftrap.n)**2
             #print("totalError: {}".format(TotalSumSquaredError))
             if TotalSumSquaredError < MinTotalSumSquaredError:
                 MinTotalSumSquaredError = TotalSumSquaredError
