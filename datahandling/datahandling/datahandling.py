@@ -580,7 +580,7 @@ def _PSD_fitting_eqn(A, Omega0, gamma, omega):
     # Omega0 = trapping (Angular) frequency
     # gamma = Big Gamma - damping (due to environment and feedback (if
     # feedback is on))
-    return 10 * _np.log10(A / ((Omega0**2 - omega**2)**2 + (omega * gamma)**2))
+    return A / ((Omega0**2 - omega**2)**2 + (omega * gamma)**2)
 
 
 def fit_PSD(Data, bandwidth, NMovAve, TrapFreqGuess, AGuess=0.1e10, GammaGuess=400, MakeFig=True, ShowFig=True):
