@@ -452,14 +452,18 @@ class DataObject():
         """  
         MinTotalAveOfDeviation = _np.infty
         for Width in _np.arange(MaxWidth, MinWidth-WidthIntervals, -WidthIntervals):
-            
-            Ftrap, A, Gamma, AveOfDeviation = self.get_fit_from_peak(CentralFreq-Width/2, CentralFreq+Width/2, Silent=True, ShowFig=False)
-            #TotalSumSquaredError = (A.std_dev/A.n)**2 + (Gamma.std_dev/Gamma.n)**2 + (Ftrap.std_dev/Ftrap.n)**2
-            #print("totalError: {}".format(TotalSumSquaredError))            
-            #if TotalSumSquaredError < MinTotalSumSquaredError:
-            print("{} < {} = {}".format(AveOfDeviation, MinTotalAveOfDeviation, AveOfDeviation < MinTotalAveOfDeviation))
-            if AveOfDeviation < MinTotalAveOfDeviation:
-                MinTotalAveOfDeviation = AveOfDeviation
+            try:
+                Ftrap, A, Gamma = self.get_fit_from_peak(CentralFreq-Width/2, CentralFreq+Width/2, Silent=True, ShowFig=False)
+            except RuntimeError:
+                _warnings.warn("Couldn't find good fit with width {}".format(Width), RuntimeWarning)
+                val = _uncertainties.ufloat(_np.NaN, _np.NaN)
+                Ftrap = val
+                A = val
+                Gamma = val
+            TotalSumSquaredError = (A.std_dev/A.n)**2 + (Gamma.std_dev/Gamma.n)**2 + (Ftrap.std_dev/Ftrap.n)**2
+            #print("totalError: {}".format(TotalSumSquaredError))
+            if TotalSumSquaredError < MinTotalSumSquaredError:
+                MinTotalSumSquaredError = TotalSumSquaredError
                 BestWidth = Width
         print("found best")
         self.get_fit_from_peak(CentralFreq-BestWidth/2, CentralFreq+BestWidth/2, ShowFig=ShowFig)
