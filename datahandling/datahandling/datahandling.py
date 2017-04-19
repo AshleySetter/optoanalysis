@@ -1706,7 +1706,7 @@ def _approx_equal(a, b, tol):
     return abs(a - b) / a * 100 < tol
 
 
-def _IsThisACollision(ArgList):
+def _is_this_a_collision(ArgList):
     """
     Detects if a particular point is during collision after effect (i.e. a phase shift) or not.
 
@@ -1724,11 +1724,11 @@ def _IsThisACollision(ArgList):
 
     Returns
     -------
-    IsThisACollision : bool
+    is_this_a_collision : bool
         True if this is a collision event, false if not.
     """
     value, mean_fmd, tolerance = ArgList
-    if not _approx_equal(mean_fmd, value, 50):
+    if not _approx_equal(mean_fmd, value, tolerance):
         return True
     else:
         return False
@@ -1754,7 +1754,7 @@ def find_collisions(Signal, tolerance=50):
     fmd = fm_discriminator(Signal)
     mean_fmd = _np.mean(fmd)
 
-    Collisions = [_IsThisACollision(
+    Collisions = [_is_this_a_collision(
         [value, mean_fmd, tolerance]) for value in fmd]
 
     return Collisions
@@ -1778,7 +1778,7 @@ def count_collisions(Collisions):
     """
     CollisionCount = 0
     CollisionIndicies = []
-
+    lastval = True
     for i, val in enumerate(Collisions):
         if val == True and lastval == False:
             CollisionIndicies.append(i)
