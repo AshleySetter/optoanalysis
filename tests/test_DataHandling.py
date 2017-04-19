@@ -17,7 +17,7 @@ def test_load_data():
     assert max(data.freqs) == pytest.approx(data.SampleFreq/2, rel=0.00001) # max freq in PSD is approx equal to Nyquist frequency within 0.001%
     t, V = data.get_time_data()
     np.testing.assert_array_equal(t, data.time)
-    np.testing.assert_array_equal(V, data.Voltage)
+    np.testing.assert_array_equal(V, data.voltage)
     
     return None
 
