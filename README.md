@@ -1,5 +1,5 @@
 [![Build Status](https://travis-ci.org/AshleySetter/datahandling.png)](https://travis-ci.org/AshleySetter/datahandling)
-[![Coverage](https://codecov.io/gh/AshleySetter/datahandling.png)](https://codecov.io/gh/AshleySetter/datahandling)
+[![Coverage](https://codecov.io/gh/AshleySetter/datahandling.png?branch=master)](https://codecov.io/gh/AshleySetter/datahandling?branch=master)
 
 # DataHandling
 Matterwave group data handling library
