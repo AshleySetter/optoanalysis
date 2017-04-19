@@ -14,4 +14,4 @@ before_script: # configure a headless display to test plot generation
 script:
   - pytest -v --cov=datahandling --mpl # runs pytest in verbose mode, reports coverage of the datahandling library and with pytest-mpl so that the figures created are compared to the baselines in tests/baseline
 after_success:
-  codecov
+  codecov --token=<2647a763-1969-41ed-98ab-a3b1e25db0cb>
