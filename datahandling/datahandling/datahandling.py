@@ -407,10 +407,14 @@ class DataObject():
         FWHM = RightSideOfPeak - LeftSideOfPeak
 
         approx_Gamma = FWHM/4
-
-        self.get_fit((upperLimit-lowerLimit)/2, 1, CentralFreq, 
-                     A_Initial=approx_A, Gamma_Initial=approx_Gamma, Silent=Silent,
-                     MakeFig=ShowFig, ShowFig=ShowFig)
+        try:
+            self.get_fit((upperLimit-lowerLimit)/2, 1, CentralFreq, 
+                         A_Initial=approx_A, Gamma_Initial=approx_Gamma, Silent=Silent,
+                         MakeFig=ShowFig, ShowFig=ShowFig)
+        except TypeError: 
+            _warnings.warn("range is too small to fit, returning NaN", UserWarning)
+            val = _uncertainties.ufloat(_np.NaN, _np.NaN)
+            return val, val, val
         FTrap = self.Ftrap
         A = self.A
         Gamma = self.Gamma
