@@ -683,7 +683,7 @@ def fit_curvefit(p0, datax, datay, function, **kwargs):
     """
     pfit, pcov = \
         _curve_fit(function, datax, datay, p0=p0,
-                   sigma=yerr, epsfcn=0.0001, **kwargs)
+                   epsfcn=0.0001, **kwargs)
     error = []
     for i in range(len(pfit)):
         try:
