@@ -17,6 +17,7 @@ from multiprocessing import Pool as _Pool
 from multiprocessing import cpu_count as _cpu_count
 from scipy.optimize import minimize as _minimize
 import warnings as _warnings
+from scipy.signal import hilbert as _hilbert
 
 def load_data(Filepath):
     """
@@ -1240,7 +1241,7 @@ def IFFT_filter(Signal, SampleFreq, lowerFreq, upperFreq):
     print("starting ifft")
     FilteredSignal = 2 * scipy.fftpack.ifft(Signalfft)
     print("done")
-    return FilteredSignal
+    return _np.real(FilteredSignal)
 
 
 def IIR_filter_design(CentralFreq, bandwidth, transitionWidth, SampleFreq, GainStop=40, GainPass=0.01):
@@ -1609,12 +1610,40 @@ def calc_PSD(Signal, SampleFreq, NPerSegment='Default', window="hann"):
 
 
 def _GetRealImagArray(Array):
-    ImagArray = np.array([num.imag for num in Array])
-    RealArray = np.array([num.real for num in Array])
+    """
+    Returns the real and imaginary components of each element in an array and returns them in 2 resulting arrays.
+
+    Parameters
+    ----------
+    Array : ndarray
+        Input array
+
+    Returns
+    -------
+    RealArray : ndarray
+        The real components of the input array
+    ImagArray : ndarray
+        The imaginary components of the input array
+    """
+    ImagArray = _np.array([num.imag for num in Array])
+    RealArray = _np.array([num.real for num in Array])
     return RealArray, ImagArray
 
 def _GetComplexConjugateArray(Array):
-    ConjArray = np.array([num.conj() for num in Array])
+    """
+    Calculates the complex conjugate of each element in an array and returns the resulting array.
+    
+    Parameters
+    ----------
+    Array : ndarray
+        Input array
+
+    Returns
+    -------
+    ConjArray : ndarray
+        The complex conjugate of the input array.
+    """
+    ConjArray = _np.array([num.conj() for num in Array])
     return ConjArray
 
 def fm_discriminator(Signal):
@@ -1635,8 +1664,102 @@ def fm_discriminator(Signal):
     S_analytic_star = _GetComplexConjugateArray(S_analytic)
     S_analytic_hat = S_analytic[1:]*S_analytic_star[:-1]
     R, I = _GetRealImagArray(S_analytic_hat)
-    fmDiscriminator = np.arctan2(I, R)
+    fmDiscriminator = _np.arctan2(I, R)
     return fmDiscriminator
+
+
+def _approx_equal(a, b, tol):
+    """
+    Returns if b is approximately equal to be a within a certain percentage tolerance.
+
+    Parameters
+    ----------
+    a : float
+        first value
+    b : float
+        second value
+    tol : float
+        tolerance in percentage
+    """
+    return abs(a - b)/a*100 < tol
+
+def _IsThisACollision(ArgList):
+    """
+    Detects if a particular point is during collision after effect (i.e. a phase shift) or not.
+
+    Parameters
+    ----------
+    ArgList : array_like
+        Contains the following elements:
+            value : float
+                value of the FM discriminator
+            mean_fmd : float
+                the mean value of the FM discriminator
+            tolerance : float
+                The tolerance in percentage that it must be away from the mean value for it
+                to be counted as a collision event.
+
+    Returns
+    -------
+    IsThisACollision : bool
+        True if this is a collision event, false if not.
+    """
+    value, mean_fmd, tolerance = ArgList
+    if not _approx_equal(mean_fmd, value, 50):
+        return True
+    else:
+        return False
+
+def find_collisions(Signal, tolerance=50):
+    """
+    Finds collision events in the signal from the shift in phase of the signal.
+
+    Parameters
+    ----------
+    Signal : array_like
+        Array containing the values of the signal of interest containing a single frequency.
+    tolerance : float
+        Percentage tolerance, if the value of the FM Discriminator varies from the mean by this
+        percentage it is counted as being during a collision event (or the aftermath of an event).
+
+    Returns
+    -------
+    Collisions : ndarray
+        Array of booleans, true if during a collision event, false otherwise.
+    """
+    fmd = fm_discriminator(Signal)
+    mean_fmd = _np.mean(fmd)
+
+    Collisions = [_IsThisACollision([value, mean_fmd, tolerance]) for value in fmd]
+
+    return Collisions
+
+def count_collisions(Collisions):
+    """
+    Counts the number of unique collisions and gets the collision index.
+
+    Parameters
+    ----------
+    Collisions : array_like
+        Array of booleans, containing true if during a collision event, false otherwise.
+    
+    Returns
+    -------
+    CollisionCount : int
+        Number of unique collisions
+    CollisionIndicies : list
+        Indicies of collision occurance
+    """
+    CollisionCount = 0
+    CollisionIndicies = []
+
+    for i, val in enumerate(Collisions):
+        if val == True and lastval == False:
+            CollisionIndicies.append(i)
+            CollisionCount += 1
+        lastval = val
+    return CollisionCount, CollisionIndicies
+
 
 def parse_orgtable(lines):
     """Parse an org-table (input as a list of strings split by newline) into a Pandas data frame."""
