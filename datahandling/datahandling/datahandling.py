@@ -19,6 +19,7 @@ from scipy.optimize import minimize as _minimize
 import warnings as _warnings
 from scipy.signal import hilbert as _hilbert
 
+
 def load_data(Filepath):
     """
     Parameters
@@ -69,7 +70,7 @@ def multi_load_data(Channel, RunNos, RepeatNos, directoryPath='.'):
             files_CorrectRepeatNo.append(file_)
     cpu_count = _cpu_count()
     workerPool = _Pool(cpu_count)
-    #for filepath in files_CorrectRepeatNo:
+    # for filepath in files_CorrectRepeatNo:
     #    print(filepath)
     #    data.append(load_data(filepath))
     data = workerPool.map(load_data, files_CorrectRepeatNo)
@@ -231,7 +232,7 @@ class DataObject():
             if NPerSegment > 1e5:
                 NPerSegment = int(1e5)
         freqs, PSD = scipy.signal.welch(self.Voltage, self.SampleFreq,
-                                                  window=window, nperseg=NPerSegment)
+                                        window=window, nperseg=NPerSegment)
         PSD = PSD[freqs.argsort()]
         freqs.sort()
         self.PSD = PSD
@@ -290,10 +291,10 @@ class DataObject():
             The area under the PSD from lowerFreq to upperFreq
         """
         Freq_startAreaPSD = take_closest(self.freqs, lowerFreq)
-        index_startAreaPSD = int(_np.where(self.freqs==Freq_startAreaPSD)[0])
+        index_startAreaPSD = int(_np.where(self.freqs == Freq_startAreaPSD)[0])
         Freq_endAreaPSD = take_closest(self.freqs, upperFreq)
-        index_endAreaPSD = int(_np.where(self.freqs==Freq_endAreaPSD)[0])
-        AreaUnderPSD = sum(self.PSD[index_startAreaPSD : index_endAreaPSD])
+        index_endAreaPSD = int(_np.where(self.freqs == Freq_endAreaPSD)[0])
+        AreaUnderPSD = sum(self.PSD[index_startAreaPSD: index_endAreaPSD])
         return AreaUnderPSD
 
     def get_fit(self, WidthOfPeakToFit, NMovAveToFit, TrapFreq, A_Initial=0.1e10, Gamma_Initial=400, Silent=False, MakeFig=True, ShowFig=True):
@@ -376,27 +377,31 @@ class DataObject():
         Gamma : ufloat
             Gamma, the damping parameter
         """
-        lowerIndex = list(self.freqs).index(take_closest(self.freqs, lowerLimit))
-        upperIndex = list(self.freqs).index(take_closest(self.freqs, upperLimit))
+        lowerIndex = list(self.freqs).index(
+            take_closest(self.freqs, lowerLimit))
+        upperIndex = list(self.freqs).index(
+            take_closest(self.freqs, upperLimit))
 
         if lowerIndex == upperIndex:
             _warnings.warn("range is too small, returning NaN", UserWarning)
             val = _uncertainties.ufloat(_np.NaN, _np.NaN)
             return val, val, val
-        
+
         MaxPSD = max(self.PSD[lowerIndex:upperIndex])
 
         CentralFreq = self.freqs[list(self.PSD).index(MaxPSD)]
         centralIndex = list(self.freqs).index(CentralFreq)
 
-        approx_A = MaxPSD*1e16 # 1e16 was calibrated for a number of saves to be approximately the correct conversion factor between the height of the PSD and the A factor in the fitting
+        approx_A = MaxPSD * 1e16  # 1e16 was calibrated for a number of saves to be approximately the correct conversion factor between the height of the PSD and the A factor in the fitting
 
         MinPSD = min(self.PSD[lowerIndex:upperIndex])
 
-        HalfMax = MinPSD + (MaxPSD-MinPSD)/2 # need to get this on log scale
+        # need to get this on log scale
+        HalfMax = MinPSD + (MaxPSD - MinPSD) / 2
 
         try:
-            LeftSideOfPeakIndex = list(self.PSD).index(take_closest(self.PSD[lowerIndex:centralIndex], HalfMax))
+            LeftSideOfPeakIndex = list(self.PSD).index(
+                take_closest(self.PSD[lowerIndex:centralIndex], HalfMax))
             LeftSideOfPeak = self.freqs[LeftSideOfPeakIndex]
         except IndexError:
             _warnings.warn("range is too small, returning NaN", UserWarning)
@@ -404,7 +409,8 @@ class DataObject():
             return val, val, val, val
 
         try:
-            RightSideOfPeakIndex = list(self.PSD).index(take_closest(self.PSD[centralIndex:upperIndex], HalfMax))
+            RightSideOfPeakIndex = list(self.PSD).index(
+                take_closest(self.PSD[centralIndex:upperIndex], HalfMax))
             RightSideOfPeak = self.freqs[RightSideOfPeakIndex]
         except IndexError:
             _warnings.warn("range is too small, returning NaN", UserWarning)
@@ -413,22 +419,25 @@ class DataObject():
 
         FWHM = RightSideOfPeak - LeftSideOfPeak
 
-        approx_Gamma = FWHM/4
+        approx_Gamma = FWHM / 4
 
-        self.get_fit((upperLimit-lowerLimit)/2, 1, CentralFreq, 
+        self.get_fit((upperLimit - lowerLimit) / 2, 1, CentralFreq,
                      A_Initial=approx_A, Gamma_Initial=approx_Gamma, Silent=Silent,
                      MakeFig=ShowFig, ShowFig=ShowFig)
         FTrap = self.Ftrap
         A = self.A
         Gamma = self.Gamma
 
-        omegaArray = 2*_np.pi*self.freqs[LeftSideOfPeakIndex:RightSideOfPeakIndex]
+        omegaArray = 2 * _np.pi * \
+            self.freqs[LeftSideOfPeakIndex:RightSideOfPeakIndex]
         PSDArray = self.PSD[LeftSideOfPeakIndex:RightSideOfPeakIndex]
-        FittedValues = _PSD_fitting_eqn(A, 2*_np.pi*FTrap, Gamma, omegaArray)
-        AveOfDeviation = sum((PSDArray-FittedValues)/PSDArray)/len(PSDArray)
+        FittedValues = _PSD_fitting_eqn(
+            A, 2 * _np.pi * FTrap, Gamma, omegaArray)
+        AveOfDeviation = sum((PSDArray - FittedValues) /
+                             PSDArray) / len(PSDArray)
         return FTrap, A, Gamma, AveOfDeviation
 
-    def get_fit_auto(self, CentralFreq, MaxWidth=15000, MinWidth=500, WidthIntervals=500, ShowFig=True): 
+    def get_fit_auto(self, CentralFreq, MaxWidth=15000, MinWidth=500, WidthIntervals=500, ShowFig=True):
         """
         Tries a range of regions to search for peaks and runs the one with the least error
         and returns the parameters with the least errors.
@@ -454,24 +463,28 @@ class DataObject():
             A parameter
         Gamma : ufloat
             Gamma, the damping parameter
-        """  
+        """
         MinTotalAveOfDeviation = _np.infty
-        for Width in _np.arange(MaxWidth, MinWidth-WidthIntervals, -WidthIntervals):
+        for Width in _np.arange(MaxWidth, MinWidth - WidthIntervals, -WidthIntervals):
             try:
-                Ftrap, A, Gamma = self.get_fit_from_peak(CentralFreq-Width/2, CentralFreq+Width/2, Silent=True, ShowFig=False)
+                Ftrap, A, Gamma = self.get_fit_from_peak(
+                    CentralFreq - Width / 2, CentralFreq + Width / 2, Silent=True, ShowFig=False)
             except RuntimeError:
-                _warnings.warn("Couldn't find good fit with width {}".format(Width), RuntimeWarning)
+                _warnings.warn("Couldn't find good fit with width {}".format(
+                    Width), RuntimeWarning)
                 val = _uncertainties.ufloat(_np.NaN, _np.NaN)
                 Ftrap = val
                 A = val
                 Gamma = val
-            TotalSumSquaredError = (A.std_dev/A.n)**2 + (Gamma.std_dev/Gamma.n)**2 + (Ftrap.std_dev/Ftrap.n)**2
+            TotalSumSquaredError = (
+                A.std_dev / A.n)**2 + (Gamma.std_dev / Gamma.n)**2 + (Ftrap.std_dev / Ftrap.n)**2
             #print("totalError: {}".format(TotalSumSquaredError))
             if TotalSumSquaredError < MinTotalSumSquaredError:
                 MinTotalSumSquaredError = TotalSumSquaredError
                 BestWidth = Width
         print("found best")
-        self.get_fit_from_peak(CentralFreq-BestWidth/2, CentralFreq+BestWidth/2, ShowFig=ShowFig)
+        self.get_fit_from_peak(CentralFreq - BestWidth / 2,
+                               CentralFreq + BestWidth / 2, ShowFig=ShowFig)
         FTrap = self.Ftrap
         A = self.A
         Gamma = self.Gamma
@@ -491,8 +504,8 @@ class DataObject():
 
         [R, M, ConvFactor], [RErr, MErr, ConvFactorErr] = \
             extract_parameters(P_mbar, P_Error,
-                                           self.A.n, self.A.std_dev,
-                                           self.Gamma.n, self.Gamma.std_dev)
+                               self.A.n, self.A.std_dev,
+                               self.Gamma.n, self.Gamma.std_dev)
         self.Radius = _uncertainties.ufloat(R, RErr)
         self.Mass = _uncertainties.ufloat(M, MErr)
         self.ConvFactor = _uncertainties.ufloat(ConvFactor, ConvFactorErr)
@@ -593,6 +606,7 @@ def take_closest(myList, myNumber):
     else:
         return before
 
+
 def _PSD_fitting_eqn(A, OmegaTrap, gamma, omega):
     """
     Parameters
@@ -678,7 +692,8 @@ def fit_PSD(Data, bandwidth, NMovAve, TrapFreqGuess, AGuess=0.1e10, GammaGuess=4
     logPSD_smoothed = 10 * _np.log10(PSD_smoothed)
 
     def calc_theory_PSD_curve_fit(freqs, A, TrapFreq, BigGamma):
-        Theory_PSD = 10*_np.log10(_PSD_fitting_eqn(A, TrapFreq, BigGamma, freqs))
+        Theory_PSD = 10 * \
+            _np.log10(_PSD_fitting_eqn(A, TrapFreq, BigGamma, freqs))
         if A < 0 or TrapFreq < 0 or BigGamma < 0:
             return 1e9
         else:
@@ -696,11 +711,11 @@ def fit_PSD(Data, bandwidth, NMovAve, TrapFreqGuess, AGuess=0.1e10, GammaGuess=4
         fig = _plt.figure()
         ax = fig.add_subplot(111)
 
-        PSDTheory_fit_initial = 10*_np.log10(
+        PSDTheory_fit_initial = 10 * _np.log10(
             _PSD_fitting_eqn(p0[0], p0[1],
                              p0[2], freqs_smoothed))
 
-        PSDTheory_fit = 10*_np.log10(
+        PSDTheory_fit = 10 * _np.log10(
             _PSD_fitting_eqn(Params_Fit[0],
                              Params_Fit[1],
                              Params_Fit[2],
@@ -708,19 +723,21 @@ def fit_PSD(Data, bandwidth, NMovAve, TrapFreqGuess, AGuess=0.1e10, GammaGuess=4
 
         ax.plot(AngFreqs / (2 * _np.pi), Data.PSD,
                 color="darkblue", label="Raw PSD Data", alpha=0.5)
-        ax.plot(freqs_smoothed / (2 * _np.pi), 10**(logPSD_smoothed/10),
+        ax.plot(freqs_smoothed / (2 * _np.pi), 10**(logPSD_smoothed / 10),
                 color='blue', label="smoothed", linewidth=1.5)
-        ax.plot(freqs_smoothed / (2 * _np.pi), 10**(PSDTheory_fit_initial/10),
+        ax.plot(freqs_smoothed / (2 * _np.pi), 10**(PSDTheory_fit_initial / 10),
                 '--', alpha=0.7, color="purple", label="initial vals")
-        ax.plot(freqs_smoothed / (2 * _np.pi), 10**(PSDTheory_fit/10),
+        ax.plot(freqs_smoothed / (2 * _np.pi), 10**(PSDTheory_fit / 10),
                 color="red", label="fitted vals")
         ax.set_xlim([(ftrap - 5 * Angbandwidth) / (2 * _np.pi),
                      (ftrap + 5 * Angbandwidth) / (2 * _np.pi)])
         ax.plot([(ftrap - Angbandwidth) / (2 * _np.pi), (ftrap - Angbandwidth) / (2 * _np.pi)],
-                [min(10**(logPSD_smoothed/10)), max(10**(logPSD_smoothed/10))], '--',
+                [min(10**(logPSD_smoothed / 10)),
+                 max(10**(logPSD_smoothed / 10))], '--',
                 color="grey")
         ax.plot([(ftrap + Angbandwidth) / (2 * _np.pi), (ftrap + Angbandwidth) / (2 * _np.pi)],
-                [min(10**(logPSD_smoothed/10)), max(10**(logPSD_smoothed/10))], '--',
+                [min(10**(logPSD_smoothed / 10)),
+                 max(10**(logPSD_smoothed / 10))], '--',
                 color="grey")
         ax.semilogy()
         ax.legend(loc="best")
@@ -731,7 +748,6 @@ def fit_PSD(Data, bandwidth, NMovAve, TrapFreqGuess, AGuess=0.1e10, GammaGuess=4
         return Params_Fit, Params_Fit_Err, fig, ax
     else:
         return Params_Fit, Params_Fit_Err
-            
 
 
 def extract_parameters(Pressure, PressureErr, A, AErr, Gamma0, Gamma0Err):
@@ -841,11 +857,11 @@ def get_ZXY_freqs(Data, zfreq, xfreq, yfreq, bandwidth=5000):
 
 
 def get_ZXY_data(Data, zf, xf, yf, FractionOfSampleFreq,
-               zwidth=10000, xwidth=5000, ywidth=5000,
-               ztransition=10000, xtransition=5000, ytransition=5000,
-               filterImplementation="filtfilt",
-               timeStart="Default", timeEnd="Default",
-               ShowFig=True):
+                 zwidth=10000, xwidth=5000, ywidth=5000,
+                 ztransition=10000, xtransition=5000, ytransition=5000,
+                 filterImplementation="filtfilt",
+                 timeStart="Default", timeEnd="Default",
+                 ShowFig=True):
     """
     Given a Data object and the frequencies of the z, x and y peaks (and some
     optional parameters for the created filters) this function extracts the
@@ -978,9 +994,9 @@ def get_ZXY_data(Data, zf, xf, yf, FractionOfSampleFreq,
 
 
 def get_ZXY_data_IFFT(Data, zf, xf, yf,
-                    zwidth=10000, xwidth=5000, ywidth=5000,
-                    timeStart="Default", timeEnd="Default",
-                    ShowFig=True):
+                      zwidth=10000, xwidth=5000, ywidth=5000,
+                      timeStart="Default", timeEnd="Default",
+                      ShowFig=True):
     """
     Given a Data object and the frequencies of the z, x and y peaks (and some
     optional parameters for the created filters) this function extracts the
@@ -1039,13 +1055,13 @@ def get_ZXY_data_IFFT(Data, zf, xf, yf,
     input_signal = Data.Voltage[StartIndex: EndIndex]
 
     zdata = IFFT_filter(input_signal, SAMPLEFREQ, zf -
-                       zwidth / 2, zf + zwidth / 2)
+                        zwidth / 2, zf + zwidth / 2)
 
     xdata = IFFT_filter(input_signal, SAMPLEFREQ, xf -
-                       zwidth / 2, xf + zwidth / 2)
+                        zwidth / 2, xf + zwidth / 2)
 
     ydata = IFFT_filter(input_signal, SAMPLEFREQ, yf -
-                       zwidth / 2, yf + zwidth / 2)
+                        zwidth / 2, yf + zwidth / 2)
 
     if ShowFig == True:
         NPerSegment = len(Data.time)
@@ -1458,8 +1474,8 @@ def multi_plot_PSD(DataArray, xlim=[0, 500e3], LabelArray=[], ShowFig=True):
     ax.legend(loc="best")
     ax.set_ylabel("PSD ($v^2/Hz$)")
 
-    _plt.title('filedir=%s'%(DataArray[0].filedir))
-    
+    _plt.title('filedir=%s' % (DataArray[0].filedir))
+
     if ShowFig == True:
         _plt.show()
     return fig, ax
@@ -1515,6 +1531,7 @@ def multi_plot_time(DataArray, SubSampleN=1, xlim="default", ylim="default", Lab
         _plt.show()
     return fig, ax
 
+
 def multi_subplots_time(DataArray, SubSampleN=1, xlim="default", ylim="default", LabelArray=[], ShowFig=True):
     """
     plot the pulse spectral density.
@@ -1546,7 +1563,6 @@ def multi_subplots_time(DataArray, SubSampleN=1, xlim="default", ylim="default",
     """
     NumDataSets = len(DataArray)
 
-    
     if LabelArray == []:
         LabelArray = ["DataSet {}".format(i)
                       for i in _np.arange(0, len(DataArray), 1)]
@@ -1555,11 +1571,11 @@ def multi_subplots_time(DataArray, SubSampleN=1, xlim="default", ylim="default",
 
     for i, data in enumerate(DataArray):
         axs[i].plot(data.time[::SubSampleN], data.Voltage[::SubSampleN],
-                alpha=0.8, label=LabelArray[i])
+                    alpha=0.8, label=LabelArray[i])
         axs[i].set_xlabel("time (s)")
         axs[i].grid(which="major")
         axs[i].legend(loc="best")
-        axs[i].set_ylabel("Voltage (V)")        
+        axs[i].set_ylabel("Voltage (V)")
         if xlim != "default":
             axs[i].set_xlim(xlim)
         if ylim != "default":
@@ -1572,7 +1588,7 @@ def multi_subplots_time(DataArray, SubSampleN=1, xlim="default", ylim="default",
 def calc_PSD(Signal, SampleFreq, NPerSegment='Default', window="hann"):
     """
     Extracts the pulse spectral density (PSD) from the data.
-    
+
     Parameters
     ----------
     Signal : array-like
@@ -1629,10 +1645,11 @@ def _GetRealImagArray(Array):
     RealArray = _np.array([num.real for num in Array])
     return RealArray, ImagArray
 
+
 def _GetComplexConjugateArray(Array):
     """
     Calculates the complex conjugate of each element in an array and returns the resulting array.
-    
+
     Parameters
     ----------
     Array : ndarray
@@ -1645,6 +1662,7 @@ def _GetComplexConjugateArray(Array):
     """
     ConjArray = _np.array([num.conj() for num in Array])
     return ConjArray
+
 
 def fm_discriminator(Signal):
     """
@@ -1662,7 +1680,7 @@ def fm_discriminator(Signal):
     """
     S_analytic = _hilbert(Signal)
     S_analytic_star = _GetComplexConjugateArray(S_analytic)
-    S_analytic_hat = S_analytic[1:]*S_analytic_star[:-1]
+    S_analytic_hat = S_analytic[1:] * S_analytic_star[:-1]
     R, I = _GetRealImagArray(S_analytic_hat)
     fmDiscriminator = _np.arctan2(I, R)
     return fmDiscriminator
@@ -1681,7 +1699,8 @@ def _approx_equal(a, b, tol):
     tol : float
         tolerance in percentage
     """
-    return abs(a - b)/a*100 < tol
+    return abs(a - b) / a * 100 < tol
+
 
 def _IsThisACollision(ArgList):
     """
@@ -1710,6 +1729,7 @@ def _IsThisACollision(ArgList):
     else:
         return False
 
+
 def find_collisions(Signal, tolerance=50):
     """
     Finds collision events in the signal from the shift in phase of the signal.
@@ -1730,9 +1750,11 @@ def find_collisions(Signal, tolerance=50):
     fmd = fm_discriminator(Signal)
     mean_fmd = _np.mean(fmd)
 
-    Collisions = [_IsThisACollision([value, mean_fmd, tolerance]) for value in fmd]
+    Collisions = [_IsThisACollision(
+        [value, mean_fmd, tolerance]) for value in fmd]
 
     return Collisions
+
 
 def count_collisions(Collisions):
     """
@@ -1742,7 +1764,7 @@ def count_collisions(Collisions):
     ----------
     Collisions : array_like
         Array of booleans, containing true if during a collision event, false otherwise.
-    
+
     Returns
     -------
     CollisionCount : int
@@ -1774,6 +1796,7 @@ def parse_orgtable(lines):
     dataframe = _pd.DataFrame(data=data, columns=columns)
     dataframe.set_index("RunNo")
     return dataframe
+
 
 class PressureData():
     def __init__(self, filename):
