@@ -2,6 +2,8 @@ language: python
 python:
   - "3.5"
   - "3.6"
+before_install:
+  pip install codecov
 # command to install dependancies
 install: "pip install -e datahandling" # installs datahandling and all requirements
 before_script: # configure a headless display to test plot generation
@@ -11,3 +13,5 @@ before_script: # configure a headless display to test plot generation
 # command to run tests
 script:
   - pytest -v --cov=datahandling --mpl # runs pytest in verbose mode, reports coverage of the datahandling library and with pytest-mpl so that the figures created are compared to the baselines in tests/baseline
+after_success:
+  codecov
