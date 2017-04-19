@@ -392,7 +392,7 @@ class DataObject():
         if MakeFig == True:
             return self.A, self.Ftrap, self.Gamma, fig, ax
         else:
-            return self.A, self.Ftrap, self.Gamma
+            return self.A, self.Ftrap, self.Gamma, None, None
 
     def get_fit_from_peak(self, lowerLimit, upperLimit, NumPointsSmoothing=1, Silent=False, ShowFig=True):
         """
@@ -411,9 +411,9 @@ class DataObject():
         NumPointsSmoothing : float
             The number of points of moving-average smoothing it applies before fitting the 
             peak.
-        Silent : bool
+        Silent : bool, optional
             Whether it prints the values fitted or is silent.
-        ShowFig : bool
+        ShowFig : bool, optional
             Whether it makes and shows the figure object or not.
 
         Returns
@@ -497,13 +497,13 @@ class DataObject():
         ----------
         CentralFreq : float
             The central frequency to use for the fittings.
-        MaxWidth : float
+        MaxWidth : float, optional
             The maximum bandwidth to use for the fitting of the peaks.
-        MinWidth : float
+        MinWidth : float, optional
             The minimum bandwidth to use for the fitting of the peaks.
-        WidthIntervals : float
+        WidthIntervals : float, optional
             The intervals to use in going between the MaxWidth and MinWidth.
-        ShowFig : bool
+        ShowFig : bool, optional
             Whether to plot and show the final (best) fitting or not.
 
         Returns
@@ -550,7 +550,6 @@ class DataObject():
         P_Error : float
             The error in the pressure value (as a decimal e.g. 15% = 0.15)
 
-
         """
 
         [R, M, ConvFactor], [RErr, MErr, ConvFactorErr] = \
@@ -563,15 +562,38 @@ class DataObject():
 
         return self.Radius, self.Mass, self.ConvFactor
 
-    def extract_ZXY_motion(self, ApproxZXYFreqs, uncertaintyInFreqs, ZXYPeakWidths, subSampleFraction):
+    def extract_ZXY_motion(self, ApproxZXYFreqs, uncertaintyInFreqs, ZXYPeakWidths, subSampleFraction=1):
         """
-        Extracts the x, y and z signals (in volts) from the
+        Extracts the x, y and z signals (in volts) from the voltage signal. Does this by finding the highest peaks in the signal about the approximate frequencies, using the uncertaintyinfreqs parameter as the width it searches. It then uses the ZXYPeakWidths to construct bandpass IIR filters for each frequency and filtering them. If too high a sample frequency has been used to collect the data scipy may not be able to construct a filter good enough, in this case increasing the subSampleFraction may be nessesary.
+        
+        Parameters
+        ----------
+        ApproxZXYFreqs : array_like
+            A sequency containing 3 elements, the approximate 
+            z, x and y frequency respectively.
+        uncertaintyInFreqs : array_like
+            A sequency containing 3 elements, the uncertainty in the
+            z, x and y frequency respectively.
+        ZXYPeakWidths : array_like
+            A sequency containing 3 elements, the widths of the
+            z, x and y frequency peaks respectively.
+        subSampleFraction : int, optional
+            How much to sub-sample the data by before filtering,
+            effectively reducing the sample frequency by this 
+            fraction.
 
-        """
+        Returns
+        -------
+        self.zVolts : ndarray
+            The z signal in volts extracted by bandpass IIR filtering
+        self.xVolts : ndarray
+            The x signal in volts extracted by bandpass IIR filtering
+        self.yVolts : ndarray
+            The y signal in volts extracted by bandpass IIR filtering        """
         [zf, xf, yf] = ApproxZXYFreqs
         zf, xf, yf = get_ZXY_freqs(
             self, zf, xf, yf, bandwidth=uncertaintyInFreqs)
-        print(zf, xf, yf)
+        #print(zf, xf, yf)
         [zwidth, xwidth, ywidth] = ZXYPeakWidths
         self.zVolts, self.xVolts, self.yVolts = get_ZXY_data(
             self, zf, xf, yf, subSampleFraction, zwidth, xwidth, ywidth)
@@ -612,13 +634,53 @@ class DataObject():
 
 
 def calc_temp(Data_ref, Data):
-    #T = 300*(Data.A/Data.Gamma)/(Data_ref.A/Data_ref.Gamma)
+    """
+    Calculates the temperature of a data set relative to a reference.
+    The reference is assumed to be at 300K.
+
+    Parameters
+    ----------
+    Data_ref : DataObject
+        Reference data set, assumed to be 300K
+    Data : DataObject
+        Data object to have the temperature calculated for
+
+    Returns
+    -------
+    T : uncertainties.ufloat
+        The temperature of the data set
+    """
     T = 300 * ((Data.A * Data_ref.Gamma) / (Data_ref.A * Data.Gamma))
+    Data.T = T
     return T
 
 
-def fit_curvefit(p0, datax, datay, function, yerr=None, **kwargs):
+def fit_curvefit(p0, datax, datay, function, **kwargs):
+    """
+    Fits the data to a function using scipy.optimise.curve_fit
 
+    Parameters
+    ----------
+    p0 : array_like
+        initial parameters to use for fitting
+    datax : array_like
+        x data to use for fitting
+    datay : array_like
+        y data to use for fitting
+    function : function
+        funcion to be fit to the data
+    kwargs 
+        keyword arguments to be passed to scipy.optimise.curve_fit
+
+    Returns
+    -------
+    pfit_curvefit : array
+        Optimal values for the parameters so that the sum of
+        the squared residuals of f(xdata, *popt) - ydata is minimized
+    perr_curvefit : array
+        One standard deviation errors in the optimal values for
+        the parameters
+    """
     pfit, pcov = \
         _curve_fit(function, datax, datay, p0=p0,
                    sigma=yerr, epsfcn=0.0001, **kwargs)
@@ -627,14 +689,29 @@ def fit_curvefit(p0, datax, datay, function, yerr=None, **kwargs):
         try:
             error.append(_np.absolute(pcov[i][i])**0.5)
         except:
-            error.append(0.00)
+            error.append(_np.NaN)
     pfit_curvefit = pfit
     perr_curvefit = _np.array(error)
     return pfit_curvefit, perr_curvefit
 
 
-def moving_average(a, n=3):
-    ret = _np.cumsum(a, dtype=float)
+def moving_average(array, n=3):
+    """
+    Calculates the moving average of an array.
+
+    Parameters
+    ----------
+    array : array
+        The array to have the moving average taken of
+    n : int
+        The number of points of moving average to take
+    
+    Returns
+    -------
+    MovingAverageArray : array
+        The n-point moving average of the input array
+    """
+    ret = _np.cumsum(array, dtype=float)
     ret[n:] = ret[n:] - ret[:-n]
     return ret[n - 1:] / n
 
@@ -642,8 +719,19 @@ def moving_average(a, n=3):
 def take_closest(myList, myNumber):
     """
     Assumes myList is sorted. Returns closest value to myNumber.
-
     If two numbers are equally close, return the smallest number.
+
+    Parameters
+    ----------
+    myList : array
+        The list in which to find the closest value to myNumber
+    myNumber : float
+        The number to find the closest to in MyList
+
+    Returns
+    -------
+    closestValue : float
+        The number closest to myNumber in myList
     """
     pos = _bisect_left(myList, myNumber)
     if pos == 0:
@@ -660,6 +748,10 @@ def take_closest(myList, myNumber):
 
 def _PSD_fitting_eqn(A, OmegaTrap, gamma, omega):
     """
+    The value of the fitting equation:
+    A / ((OmegaTrap**2 - omega**2)**2 + (omega * gamma)**2)
+    to be fit to the PSD
+
     Parameters
     ----------
     A : float
@@ -677,6 +769,14 @@ def _PSD_fitting_eqn(A, OmegaTrap, gamma, omega):
         where:
             Γ_0 = Damping factor due to environment
             δΓ = extra damping due to feedback or other effects
+    omega : float
+        The angular frequency to calculate the value of the 
+        fitting equation at 
+
+    Returns
+    -------
+    Value : float
+        The value of the fitting equation
     """
     return A / ((OmegaTrap**2 - omega**2)**2 + (omega * gamma)**2)
 
@@ -688,13 +788,26 @@ def fit_PSD(Data, bandwidth, NMovAve, TrapFreqGuess, AGuess=0.1e10, GammaGuess=4
 
     Parameters
     ----------
-    Data - data object to be fitted
-    bandwidth - bandwidth around trapping frequency peak to
-                fit the theory PSD to
-    NMovAve - amount of moving averages to take before the fitting
-
-    ShowFig - (defaults to True) if set to True this function plots the
-        PSD of the data, smoothed data and theory peak from fitting.
+    Data : DataObject
+        data object to be fitted
+    bandwidth : float
+         bandwidth around trapping frequency peak to
+         fit the theory PSD to
+    NMovAve : integer
+         amount of moving averages to take before the fitting
+    TrapFreqGuess : float
+        The approximate trapping frequency to use initially
+        as the centre of the peak
+    AGuess : float, optional
+        The initial value of the A parameter to use in fitting
+    GammaGuess : float, optional
+        The initial value of the Gamma parameter to use in fitting
+    MakeFig : bool, optional
+        Whether to construct and return the figure object showing
+        the fitting. defaults to True
+    ShowFig : bool, optional
+        Whether to show the figure object when it has been created.
+        defaults to True
 
     Returns
     -------
@@ -702,7 +815,14 @@ def fit_PSD(Data, bandwidth, NMovAve, TrapFreqGuess, AGuess=0.1e10, GammaGuess=4
         [A, TrappingFrequency, Gamma]
     ParamsFitErr - Error in fitted parameters:
         [AErr, TrappingFrequencyErr, GammaErr]
-
+    fig : matplotlib.figure.Figure object
+        figure object containing the plot
+    ax : matplotlib.axes.Axes object
+        axes with the data plotted of the:
+            - initial data
+            - smoothed data
+            - initial fit
+            - final fit
     """
     AngFreqs = 2 * _np.pi * Data.freqs
     Angbandwidth = 2 * _np.pi * bandwidth
@@ -798,7 +918,7 @@ def fit_PSD(Data, bandwidth, NMovAve, TrapFreqGuess, AGuess=0.1e10, GammaGuess=4
             _plt.show()
         return Params_Fit, Params_Fit_Err, fig, ax
     else:
-        return Params_Fit, Params_Fit_Err
+        return Params_Fit, Params_Fit_Err, None, None
 
 
 def extract_parameters(Pressure, PressureErr, A, AErr, Gamma0, Gamma0Err):
@@ -822,24 +942,26 @@ def extract_parameters(Pressure, PressureErr, A, AErr, Gamma0, Gamma0Err):
     PressureErr : float
         Error in the Pressure as a decimal (e.g. 15% error is 0.15) 
     A : float
-                Fitting constant A
-                A = γ**2*Γ_0*(K_b*T_0)/(π*m)
-                where:
-                        γ = conversionFactor
-                        Γ_0 = Damping factor due to environment
-                        π = pi
+        Fitting constant A
+        A = γ**2*Γ_0*(K_b*T_0)/(π*m)
+        where:
+            γ = conversionFactor
+            Γ_0 = Damping factor due to environment
+            π = pi
     AErr : float
-                Error in Fitting constant A
+        Error in Fitting constant A
     Gamma0 : float
-                The enviromental damping factor Gamma_0 = Γ_0
+        The enviromental damping factor Gamma_0 = Γ_0
     Gamma0Err : float
         The error in the enviromental damping factor Gamma_0 = Γ_0
 
     Returns:
     Params : list
         [radius, mass, conversionFactor]
+        The extracted parameters
     ParamsError : list
         [radiusError, massError, conversionFactorError]
+        The error in the extracted parameters
     """
     Pressure = 100 * Pressure  # conversion to Pascals
 
@@ -882,13 +1004,13 @@ def get_ZXY_freqs(Data, zfreq, xfreq, yfreq, bandwidth=5000):
         An approximate frequency for the z peak
     yfreq : float
         An approximate frequency for the z peak
-    bandwidth : float
-        The bandwidth around the approximate peak to look for the actual peak.
+    bandwidth : float, optional
+        The bandwidth around the approximate peak to look for the actual peak. The default value is 5000
 
-        Returns:
+    Returns
+    -------
     trapfreqs : list
         List containing the trap frequencies in the following order (z, x, y)
-
     """
     trapfreqs = []
     for freq in [zfreq, xfreq, yfreq]:
@@ -907,7 +1029,7 @@ def get_ZXY_freqs(Data, zfreq, xfreq, yfreq, bandwidth=5000):
     return trapfreqs
 
 
-def get_ZXY_data(Data, zf, xf, yf, FractionOfSampleFreq,
+def get_ZXY_data(Data, zf, xf, yf, FractionOfSampleFreq=1,
                  zwidth=10000, xwidth=5000, ywidth=5000,
                  ztransition=10000, xtransition=5000, ytransition=5000,
                  filterImplementation="filtfilt",
@@ -930,7 +1052,7 @@ def get_ZXY_data(Data, zf, xf, yf, FractionOfSampleFreq,
         The frequency of the x peak in the PSD
     yf : float
         The frequency of the y peak in the PSD
-    FractionOfSampleFreq : integer
+    FractionOfSampleFreq : integer, optional
         The fraction of the sample frequency to sub-sample the data by.
         This sometimes needs to be done because a filter with the appropriate
         frequency response may not be generated using the sample rate at which
@@ -938,32 +1060,32 @@ def get_ZXY_data(Data, zf, xf, yf, FractionOfSampleFreq,
         produced by this function will be sampled at a lower rate but a higher
         number means a higher chance that the filter produced will have a nice
         frequency response.
-    zwidth : float
+    zwidth : float, optional
         The width of the pass-band of the IIR filter to be generated to
         filter Z.
-    xwidth : float
+    xwidth : float, optional
         The width of the pass-band of the IIR filter to be generated to
         filter X.
-    ywidth : float
+    ywidth : float, optional
         The width of the pass-band of the IIR filter to be generated to
         filter Y.
-    ztransition : float
+    ztransition : float, optional
         The width of the transition-band of the IIR filter to be generated to
         filter Z.
-    xtransition : float
+    xtransition : float, optional
         The width of the transition-band of the IIR filter to be generated to
         filter X.
-    ytransition : float
+    ytransition : float, optional
         The width of the transition-band of the IIR filter to be generated to
         filter Y.
-    filterImplementation : string
+    filterImplementation : string, optional
         filtfilt or lfilter - use scipy.filtfilt or lfilter
         default: filtfilt
-    timeStart : float
+    timeStart : float, optional
         Starting time for filtering
-    timeEnd : float
+    timeEnd : float, optional
         Ending time for filtering
-    ShowFig : bool
+    ShowFig : bool, optional
         If True - plot unfiltered and filtered PSD for z, x and y.
         If False - don't plot anything
 
@@ -1065,20 +1187,20 @@ def get_ZXY_data_IFFT(Data, zf, xf, yf,
         The frequency of the x peak in the PSD
     yf : float
         The frequency of the y peak in the PSD
-    zwidth : float
+    zwidth : float, optional
         The width of the pass-band of the IIR filter to be generated to
         filter Z.
-    xwidth : float
+    xwidth : float, optional
         The width of the pass-band of the IIR filter to be generated to
         filter X.
-    ywidth : float
+    ywidth : float, optional
         The width of the pass-band of the IIR filter to be generated to
         filter Y.
-    timeStart : float
+    timeStart : float, optional
         Starting time for filtering
-    timeEnd : float
+    timeEnd : float, optional
         Ending time for filtering
-    ShowFig : bool
+    ShowFig : bool, optional
         If True - plot unfiltered and filtered PSD for z, x and y.
         If False - don't plot anything
 
@@ -1161,10 +1283,10 @@ def animate(zdata, xdata, ydata,
         Array containing the time data in seconds.
     BoxSize : float
         The size of the box in which to animate the particle - in nm
-    timeSteps : int
+    timeSteps : int, optional
         Number of time steps to animate
-    filename : string
-        filename to create the mp4 under ({filename}.mp4)
+    filename : string, optional
+        filename to create the mp4 under (<filename>.mp4)
 
     """
     timePerFrame = 0.203
@@ -1325,9 +1447,9 @@ def IIR_filter_design(CentralFreq, bandwidth, transitionWidth, SampleFreq, GainS
         The width of the transition band between the pass-band and stop-band
     SampleFreq : float
         The sample frequency (rate) of the data to be filtered
-    GainStop : float
+    GainStop : float, optional
         The dB of attenuation within the stopband (i.e. outside the passband)
-    GainPass : float
+    GainPass : float, optional
         The dB attenuation inside the passband (ideally close to 0 for a bandpass filter)
 
     Returns
@@ -1354,58 +1476,58 @@ def IIR_filter_design(CentralFreq, bandwidth, transitionWidth, SampleFreq, GainS
     return b, a
 
 
-def IIR_filter_design_New(Order, btype, CriticalFreqs, SampleFreq, StopbandAttenuation=40, ftype='cheby2'):
-    """
-    Function to calculate the coefficients of an IIR filter.
-
-    Parameters
-    ----------
-    CentralFreq : float
-        Central frequency of the IIR filter to be designed
-    bandwidth : float
-        The width of the passband to be created about the central frequency
-    transitionWidth : float
-        The width of the transition band between the pass-band and stop-band
-    SampleFreq : float
-        The sample frequency (rate) of the data to be filtered
-    GainStop : float
-        The dB of attenuation within the stopband (i.e. outside the passband)
-    GainPass : float
-        The dB attenuation inside the passband (ideally close to 0 for a bandpass filter)
-
-    Returns
-    -------
-    b : ndarray
-        coefficients multiplying the current and past inputs (feedforward coefficients)
-    a : ndarray
-        coefficients multiplying the past outputs (feedback coefficients)
-    """
-    NyquistFreq = SampleFreq / 2
-    if len(CriticalFreqs) > 1:
-        if (CriticalFreqs[1] > NyquistFreq):
-            raise ValueError(
-                "Need a higher Sample Frequency for this Frequency range")
-
-        BandStartNormed = CriticalFreqs[0] / NyquistFreq
-        BandStopNormed = CriticalFreqs[1] / NyquistFreq
-
-        bandpass = [BandStartNormed, BandStopNormed]
-
-        b, a = scipy.signal.iirfilter(Order, bandpass, rs=StopbandAttenuation,
-                                      btype=btype, analog=False, ftype=ftype)
-    else:
-        CriticalFreq = CriticalFreqs[0]
-
-        if (CriticalFreq > NyquistFreq):
-            raise ValueError(
-                "Need a higher Sample Frequency for this Critical Frequency")
-
-        CriticalFreqNormed = CriticalFreq / NyquistFreq
-
-        b, a = scipy.signal.iirfilter(Order, CriticalFreqNormed, rs=StopbandAttenuation,
-                                      btype=btype, analog=False, ftype=ftype)
-
-    return b, a
+#def IIR_filter_design_New(Order, btype, CriticalFreqs, SampleFreq, StopbandAttenuation=40, ftype='cheby2'):
+#    """
+#    Function to calculate the coefficients of an IIR filter.
+#
+#    Parameters
+#    ----------
+#    CentralFreq : float
+#        Central frequency of the IIR filter to be designed
+#    bandwidth : float
+#        The width of the passband to be created about the central frequency
+#    transitionWidth : float
+#        The width of the transition band between the pass-band and stop-band
+#    SampleFreq : float
+#        The sample frequency (rate) of the data to be filtered
+#    GainStop : float
+#        The dB of attenuation within the stopband (i.e. outside the passband)
+#    GainPass : float
+#        The dB attenuation inside the passband (ideally close to 0 for a bandpass filter)
+#
+#    Returns
+#    -------
+#    b : ndarray
+#        coefficients multiplying the current and past inputs (feedforward coefficients)
+#    a : ndarray
+#        coefficients multiplying the past outputs (feedback coefficients)
+#    """
+#    NyquistFreq = SampleFreq / 2
+#    if len(CriticalFreqs) > 1:
+#        if (CriticalFreqs[1] > NyquistFreq):
+#            raise ValueError(
+#                "Need a higher Sample Frequency for this Frequency range")
+#
+#        BandStartNormed = CriticalFreqs[0] / NyquistFreq
+#        BandStopNormed = CriticalFreqs[1] / NyquistFreq
+#
+#        bandpass = [BandStartNormed, BandStopNormed]
+#
+#        b, a = scipy.signal.iirfilter(Order, bandpass, rs=StopbandAttenuation,
+#                                      btype=btype, analog=False, ftype=ftype)
+#    else:
+#        CriticalFreq = CriticalFreqs[0]
+#
+#        if (CriticalFreq > NyquistFreq):
+#            raise ValueError(
+#                "Need a higher Sample Frequency for this Critical Frequency")
+#
+#        CriticalFreqNormed = CriticalFreq / NyquistFreq
+#
+#        b, a = scipy.signal.iirfilter(Order, CriticalFreqNormed, rs=StopbandAttenuation,
+#                                      btype=btype, analog=False, ftype=ftype)
+#
+#    return b, a
 
 
 def get_freq_response(a, b, ShowFig=True, SampleFreq=(2 * _np.pi), NumOfFreqs=500, whole=False):
@@ -1421,23 +1543,23 @@ def get_freq_response(a, b, ShowFig=True, SampleFreq=(2 * _np.pi), NumOfFreqs=50
 
     a : array_like
         Coefficients multiplying the y values (outputs of the filter)
-    ShowFig : bool
+    ShowFig : bool, optional
         Verbosity of function (i.e. whether to plot frequency and phase
         response or whether to just return the values.)
         Options (Default is 1):
         False - Do not plot anything, just return values
         True - Plot Frequency and Phase response and return values
-    SampleFreq : float
+    SampleFreq : float, optional
         Sample frequency (in Hz) to simulate (used to convert frequency range
         to normalised frequency range)
-    NumOfFreqs : int
+    NumOfFreqs : int, optional
         Number of frequencies to use to simulate the frequency and phase
         response of the filter. Default is 500.
-    Whole : int (0 or 1)
+    Whole : bool, optional
         Sets whether to plot the whole response (0 to sample freq)
-        or just to plot 0 to Nyquist (SampleFreq/2):
-        0 - plot 0 to Nyquist (SampleFreq/2)
-        1 - plot the whole response (0 to sample freq)
+        or just to plot 0 to Nyquist (SampleFreq/2): 
+        False - (default) plot 0 to Nyquist (SampleFreq/2)
+        True - plot the whole response (0 to sample freq)
 
     Returns
     -------
@@ -1488,13 +1610,14 @@ def get_freq_response(a, b, ShowFig=True, SampleFreq=(2 * _np.pi), NumOfFreqs=50
 
 def multi_plot_PSD(DataArray, xlim=[0, 500e3], LabelArray=[], ShowFig=True):
     """
-    plot the pulse spectral density.
+    plot the pulse spectral density for multiple data sets on the same
+    axes.
 
     Parameters
     ----------
     DataArray - array-like
         array of DataObject instances for which to plot the PSDs
-    xlim - array-like
+    xlim - array-like, optional
         2 element array specifying the lower and upper x limit for which to
         plot the Power Spectral Density
     LabelArray - array-like, optional
@@ -1506,10 +1629,10 @@ def multi_plot_PSD(DataArray, xlim=[0, 500e3], LabelArray=[], ShowFig=True):
 
     Returns
     -------
-    fig : plt.figure
+    fig : matplotlib.figure.Figure object
         The figure object created
-    ax : fig.add_subplot(111)
-        The subplot object created
+    ax : matplotlib.axes.Axes object
+        The axes object created
     """
     if LabelArray == []:
         LabelArray = ["DataSet {}".format(i)
@@ -1534,17 +1657,17 @@ def multi_plot_PSD(DataArray, xlim=[0, 500e3], LabelArray=[], ShowFig=True):
 
 def multi_plot_time(DataArray, SubSampleN=1, xlim="default", ylim="default", LabelArray=[], ShowFig=True):
     """
-    plot the pulse spectral density.
+    plot the time trace for multiple data sets on the same axes.
 
     Parameters
     ----------
     DataArray : array-like
         array of DataObject instances for which to plot the PSDs
-    SubSampleN : int
+    SubSampleN : int, optional
         Number of intervals between points to remove (to sub-sample data so
         that you effectively have lower sample rate to make plotting easier
         and quicker.
-    xlim : array-like
+    xlim : array-like, optional
         2 element array specifying the lower and upper x limit for which to
         plot the time signal
     LabelArray : array-like, optional
@@ -1556,10 +1679,10 @@ def multi_plot_time(DataArray, SubSampleN=1, xlim="default", ylim="default", Lab
 
     Returns
     -------
-    fig : plt.figure
+    fig : matplotlib.figure.Figure object
         The figure object created
-    ax : fig.add_subplot(111)
-        The subplot object created
+    ax : matplotlib.axes.Axes object
+        The axes object created
     """
     if LabelArray == []:
         LabelArray = ["DataSet {}".format(i)
@@ -1585,17 +1708,17 @@ def multi_plot_time(DataArray, SubSampleN=1, xlim="default", ylim="default", Lab
 
 def multi_subplots_time(DataArray, SubSampleN=1, xlim="default", ylim="default", LabelArray=[], ShowFig=True):
     """
-    plot the pulse spectral density.
+    plot the time trace on multiple axes
 
     Parameters
     ----------
     DataArray : array-like
         array of DataObject instances for which to plot the PSDs
-    SubSampleN : int
+    SubSampleN : int, optional
         Number of intervals between points to remove (to sub-sample data so
         that you effectively have lower sample rate to make plotting easier
         and quicker.
-    xlim : array-like
+    xlim : array-like, optional
         2 element array specifying the lower and upper x limit for which to
         plot the time signal
     LabelArray : array-like, optional
@@ -1607,10 +1730,10 @@ def multi_subplots_time(DataArray, SubSampleN=1, xlim="default", ylim="default",
 
     Returns
     -------
-    fig : plt.figure
+    fig : matplotlib.figure.Figure object
         The figure object created
-    ax : fig.add_subplot(111)
-        The subplot object created
+    axs : list of matplotlib.axes.Axes objects
+        The list of axes object created
     """
     NumDataSets = len(DataArray)
 
@@ -1835,7 +1958,20 @@ def count_collisions(Collisions):
 
 
 def parse_orgtable(lines):
-    """Parse an org-table (input as a list of strings split by newline) into a Pandas data frame."""
+    """
+    Parse an org-table (input as a list of strings split by newline)
+    into a Pandas data frame.
+
+    Parameters
+    ----------
+    lines : string
+        an org-table input as a list of strings split by newline
+    
+    Returns
+    -------
+    dataframe : pandas.DataFrame
+        A data frame containing the org-table's data
+    """
     def parseline(l):
         w = l.split('|')[1:-1]
         return [wi.strip() for wi in w]
@@ -1850,12 +1986,42 @@ def parse_orgtable(lines):
 
 
 class PressureData():
+    """
+    Class for reading in pressure data from org-mode tables.
+
+    The table must containing columns the following headings 
+    formatted as in the example below:
+
+    | RunNo | Pressure (mbar) |
+    |   1   |     1.35E-2        |
+
+    In this case the run number would be 1 and the pressure would
+    be 1.35E-2 mbar (0.00135 mbar).
+    """
     def __init__(self, filename):
+        """
+        Opens the org-mode table file, reads the file in as a string,
+        and runs parse_orgtable in order to read the pressure.
+        """
         with open(filename, 'r') as file:
             fileContents = file.readlines()
         self.PressureData = parse_orgtable(fileContents)
 
     def get_pressure(self, RunNo):
+        """
+        Retreives the pressure value (in mbar) associated 
+        with a particular run number.
+
+        Parameters
+        ----------
+        RunNo : int
+            The run number for which to retreive the pressure value
+        
+        Returns
+        -------
+        Pressure : float
+            The pressure (in mbar) for this run number
+        """
         Pressure = float(self.PressureData[self.PressureData.RunNo == '{}'.format(
             RunNo)]['Pressure (mbar)'])
         return Pressure
