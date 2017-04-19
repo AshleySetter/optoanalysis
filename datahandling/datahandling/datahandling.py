@@ -42,14 +42,22 @@ def multi_load_data(Channel, RunNos, RepeatNos, directoryPath='.'):
     """
     Lets you load multiple datasets at once.
 
+    Parameters
+    ----------
     Channel : int
         The channel you want to load
     RunNos : sequence
         Sequence of run numbers you want to load
     RepeatNos : sequence
         Sequence of repeat numbers you want to load
+    directoryPath : string, optional
+        The path to the directory housing the data
+        The default is the current directory
 
-
+    Returns
+    -------
+    Data : list
+        A list containing the DataObjects that were loaded. 
     """
     files = glob('{}/*'.format(directoryPath))
     files_CorrectChannel = []
@@ -93,7 +101,7 @@ class DataObject():
                 Contains various information about the data as it was collected.
         time : ndarray
                 Contains the time data in seconds
-        Voltage : ndarray
+        voltage : ndarray
                 Contains the voltage data in Volts
         SampleFreq : sample frequency used to sample the data (when it was
                 taken by the oscilloscope)
@@ -132,8 +140,9 @@ class DataObject():
         Initialisation - assigns values to the following attributes:
         - filepath
         - filename
+        - filedir
         - time
-        - Voltage
+        - voltage
         - freqs
         - PSD
         """
@@ -153,16 +162,16 @@ class DataObject():
         time : ndarray
                         array containing the value of time (in seconds) at which the
                         voltage is sampled
-        Voltage : ndarray
+        voltage : ndarray
                         array containing the sampled voltages
         """
         f = open(self.filepath, 'rb')
         raw = f.read()
         f.close()
-        self.waveDescription, self.time, self.Voltage, _ = \
+        self.waveDescription, self.time, self.voltage, _ = \
             datahandling.LeCroy.InterpretWaveform(raw)
         self.SampleFreq = (1 / self.waveDescription["HORIZ_INTERVAL"])
-        return self.time, self.Voltage
+        return self.time, self.voltage
 
     def plot_time_data(self, timeStart="Default", timeEnd="Default", ShowFig=True):
         """
@@ -170,6 +179,12 @@ class DataObject():
 
         Parameters
         ----------
+        timeStart : float, optional
+            The time to start plotting from.
+            By default it uses the first time point
+        timeEnd : float, optional
+            The time to finish plotting at.
+            By default it uses the last time point
         ShowFig : bool, optional
             If True runs plt.show() before returning figure
             if False it just returns the figure object.
@@ -193,9 +208,9 @@ class DataObject():
         fig = _plt.figure(figsize=[10, 6])
         ax = fig.add_subplot(111)
         ax.plot(self.time[StartIndex:EndIndex],
-                self.Voltage[StartIndex:EndIndex])
+                self.voltage[StartIndex:EndIndex])
         ax.set_xlabel("time (s)")
-        ax.set_ylabel("Voltage (V)")
+        ax.set_ylabel("voltage (V)")
         ax.set_xlim([timeStart, timeEnd])
         if ShowFig == True:
             _plt.show()
@@ -231,7 +246,7 @@ class DataObject():
             NPerSegment = len(self.time)
             if NPerSegment > 1e5:
                 NPerSegment = int(1e5)
-        freqs, PSD = scipy.signal.welch(self.Voltage, self.SampleFreq,
+        freqs, PSD = scipy.signal.welch(self.voltage, self.SampleFreq,
                                         window=window, nperseg=NPerSegment)
         PSD = PSD[freqs.argsort()]
         freqs.sort()
@@ -297,12 +312,37 @@ class DataObject():
         AreaUnderPSD = sum(self.PSD[index_startAreaPSD: index_endAreaPSD])
         return AreaUnderPSD
 
-    def get_fit(self, WidthOfPeakToFit, NMovAveToFit, TrapFreq, A_Initial=0.1e10, Gamma_Initial=400, Silent=False, MakeFig=True, ShowFig=True):
+    def get_fit(self, TrapFreq, WidthOfPeakToFit, A_Initial=0.1e10, Gamma_Initial=400, NMovAveToFit=1, Silent=False, MakeFig=True, ShowFig=True):
         """
-        Function that fits peak to the PSD.
+        Function that fits to a peak to the PSD to extract the 
+        frequency, A factor and Gamma (damping) factor.
 
         Parameters
         ----------
+        TrapFreq : float
+            The approximate trapping frequency to use initially
+            as the centre of the peak
+        WidthOfPeakToFit : float
+            The width of the peak to be fitted to. This limits the
+            region that the fitting function can see in order to
+            stop it from fitting to the wrong peak
+        A_Initial : float, optional
+            The initial value of the A parameter to use in fitting
+        Gamma_Initial : float, optional
+            The initial value of the Gamma parameter to use in fitting
+        NMovAveToFit : int, optional
+            The number of point of moving average filter to perform
+            before fitting in order to smooth out the peak.
+            defaults to 1.
+        Silent : bool, optional
+            Whether to print any output when running this function
+            defaults to False
+        MakeFig : bool, optional
+            Whether to construct and return the figure object showing
+            the fitting. defaults to True
+        ShowFig : bool, optional
+            Whether to show the figure object when it has been created.
+            defaults to True
 
         Returns
         -------
@@ -320,6 +360,14 @@ class DataObject():
             where:
                 Γ_0 = Damping factor due to environment
                 δΓ = extra damping due to feedback or other effects
+        fig : matplotlib.figure.Figure object
+            figure object containing the plot
+        ax : matplotlib.axes.Axes object
+            axes with the data plotted of the:
+                - initial data
+                - smoothed data
+                - initial fit
+                - final fit
         """
         if MakeFig == True:
             Params, ParamsErr, fig, ax = fit_PSD(
@@ -421,9 +469,8 @@ class DataObject():
 
         approx_Gamma = FWHM/4
         try:
-            self.get_fit((upperLimit-lowerLimit)/2, 1, CentralFreq, 
-                         A_Initial=approx_A, Gamma_Initial=approx_Gamma, Silent=Silent,
-                         MakeFig=ShowFig, ShowFig=ShowFig)
+            self.get_fit(CentralFreq, (upperLimit-lowerLimit)/2, 
+                         A_Initial=approx_A, Gamma_Initial=approx_Gamma, Silent=Silent, MakeFig=ShowFig, ShowFig=ShowFig)
         except TypeError: 
             _warnings.warn("range is too small to fit, returning NaN", UserWarning)
             val = _uncertainties.ufloat(_np.NaN, _np.NaN)
@@ -949,7 +996,7 @@ def get_ZXY_data(Data, zf, xf, yf, FractionOfSampleFreq,
         raise ValueError("filterImplementation must be one of [filtfilt, lfilter] you entered: {}".format(
             filterImplementation))
 
-    input_signal = Data.Voltage[StartIndex: EndIndex][0::FractionOfSampleFreq]
+    input_signal = Data.voltage[StartIndex: EndIndex][0::FractionOfSampleFreq]
 
     bZ, aZ = IIRFilterDesign(zf, zwidth, ztransition, SAMPLEFREQ, GainStop=100)
 
@@ -1056,7 +1103,7 @@ def get_ZXY_data_IFFT(Data, zf, xf, yf,
 
     SAMPLEFREQ = Data.SampleFreq
 
-    input_signal = Data.Voltage[StartIndex: EndIndex]
+    input_signal = Data.voltage[StartIndex: EndIndex]
 
     zdata = IFFT_filter(input_signal, SAMPLEFREQ, zf -
                         zwidth / 2, zf + zwidth / 2)
@@ -1521,7 +1568,7 @@ def multi_plot_time(DataArray, SubSampleN=1, xlim="default", ylim="default", Lab
     ax = fig.add_subplot(111)
 
     for i, data in enumerate(DataArray):
-        ax.plot(data.time[::SubSampleN], data.Voltage[::SubSampleN],
+        ax.plot(data.time[::SubSampleN], data.voltage[::SubSampleN],
                 alpha=0.8, label=LabelArray[i])
     ax.set_xlabel("time (s)")
     if xlim != "default":
@@ -1530,7 +1577,7 @@ def multi_plot_time(DataArray, SubSampleN=1, xlim="default", ylim="default", Lab
         ax.set_ylim(ylim)
     ax.grid(which="major")
     ax.legend(loc="best")
-    ax.set_ylabel("Voltage (V)")
+    ax.set_ylabel("voltage (V)")
     if ShowFig == True:
         _plt.show()
     return fig, ax
@@ -1574,12 +1621,12 @@ def multi_subplots_time(DataArray, SubSampleN=1, xlim="default", ylim="default",
     fig, axs = _plt.subplots(NumDataSets, 1)
 
     for i, data in enumerate(DataArray):
-        axs[i].plot(data.time[::SubSampleN], data.Voltage[::SubSampleN],
+        axs[i].plot(data.time[::SubSampleN], data.voltage[::SubSampleN],
                     alpha=0.8, label=LabelArray[i])
         axs[i].set_xlabel("time (s)")
         axs[i].grid(which="major")
         axs[i].legend(loc="best")
-        axs[i].set_ylabel("Voltage (V)")
+        axs[i].set_ylabel("voltage (V)")
         if xlim != "default":
             axs[i].set_xlim(xlim)
         if ylim != "default":

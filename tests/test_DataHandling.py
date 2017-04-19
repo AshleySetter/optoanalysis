@@ -36,7 +36,7 @@ def test_get_fit():
     """
     Tests that DataObject.get_fit works and therefore tests fitPSD, fit_curvefit and PSD_Fitting as these are dependancies. It tests that the output values of the fitting are correct (both the values and thier errors) and that the plot looks the same as the baseline, within a certain tolerance.
     """
-    A, F, Gamma, fig, ax = GlobalData.get_fit(10000, 1, 75000, ShowFig=False)
+    A, F, Gamma, fig, ax = GlobalData.get_fit(75000, 10000, ShowFig=False)
     assert A.n == pytest.approx(584418711252, rel=0.0001)
     assert F.n == pytest.approx(466604, rel=0.0001)
     assert Gamma.n == pytest.approx(3951.716, rel=0.0001)
