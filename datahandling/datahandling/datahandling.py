@@ -229,8 +229,12 @@ class DataObject():
             NPerSegment = len(self.time)
             if NPerSegment > 1e5:
                 NPerSegment = int(1e5)
-        self.freqs, self.PSD = scipy.signal.welch(self.Voltage, self.SampleFreq,
+        freqs, PSD = scipy.signal.welch(self.Voltage, self.SampleFreq,
                                                   window=window, nperseg=NPerSegment)
+        PSD = PSD[freqs.argsort()]
+        freqs.sort()
+        self.PSD = PSD
+        self.freqs = freqs
         return self.freqs, self.PSD
 
     def plot_PSD(self, xlim="Default", ShowFig=True):
@@ -1599,6 +1603,8 @@ def calc_PSD(Signal, SampleFreq, NPerSegment='Default', window="hann"):
             NPerSegment = int(1e5)
     freqs, PSD = scipy.signal.welch(Signal, SampleFreq,
                                     window=window, nperseg=NPerSegment)
+    PSD = PSD[freqs.argsort()]
+    freqs.sort()
     return freqs, PSD
 
 
