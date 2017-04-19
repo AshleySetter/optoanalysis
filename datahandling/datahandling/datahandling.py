@@ -1564,6 +1564,74 @@ def multi_subplots_time(DataArray, SubSampleN=1, xlim="default", ylim="default",
     return fig, axs
 
 
+def calc_PSD(Signal, SampleFreq, NPerSegment='Default', window="hann"):
+    """
+    Extracts the pulse spectral density (PSD) from the data.
+    
+    Parameters
+    ----------
+    Signal : array-like
+        Array containing the signal to have the PSD calculated for
+    SampleFreq : float
+        Sample frequency of the signal array
+    NPerSegment : int, optional
+        Length of each segment used in scipy.welch
+        default = the Number of time points
+    window : str or tuple or array_like, optional
+        Desired window to use. See get_window for a list of windows
+        and required parameters. If window is array_like it will be
+        used directly as the window and its length will be used for
+        nperseg.
+        default = "hann"
+
+    Returns
+    -------
+    freqs : ndarray
+            Array containing the frequencies at which the PSD has been
+            calculated
+    PSD : ndarray
+            Array containing the value of the PSD at the corresponding
+            frequency value in V**2/Hz
+    """
+    if NPerSegment == "Default":
+        NPerSegment = len(Signal)
+        if NPerSegment > 1e5:
+            NPerSegment = int(1e5)
+    freqs, PSD = scipy.signal.welch(Signal, SampleFreq,
+                                    window=window, nperseg=NPerSegment)
+    return freqs, PSD
+
+
+def _GetRealImagArray(Array):
+    ImagArray = np.array([num.imag for num in Array])
+    RealArray = np.array([num.real for num in Array])
+    return RealArray, ImagArray
+
+def _GetComplexConjugateArray(Array):
+    ConjArray = np.array([num.conj() for num in Array])
+    return ConjArray
+
+def fm_discriminator(Signal):
+    """
+    Calculates the digital FM discriminator from a real-valued time signal.
+
+    Parameters
+    ----------
+    Signal : array-like
+        A real-valued time signal
+
+    Returns
+    -------
+    fmDiscriminator : array-like
+        The digital FM discriminator of the argument signal
+    """
+    S_analytic = _hilbert(Signal)
+    S_analytic_star = _GetComplexConjugateArray(S_analytic)
+    S_analytic_hat = S_analytic[1:]*S_analytic_star[:-1]
+    R, I = _GetRealImagArray(S_analytic_hat)
+    fmDiscriminator = np.arctan2(I, R)
+    return fmDiscriminator
+
 def parse_orgtable(lines):
     """Parse an org-table (input as a list of strings split by newline) into a Pandas data frame."""
     def parseline(l):
@@ -1577,7 +1645,6 @@ def parse_orgtable(lines):
     dataframe = _pd.DataFrame(data=data, columns=columns)
     dataframe.set_index("RunNo")
     return dataframe
-
 
 class PressureData():
     def __init__(self, filename):
