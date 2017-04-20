@@ -5,7 +5,7 @@ with open('requirements.txt') as f:
     requirements = f.read().splitlines()
 
 mypackage_root_dir = os.path.dirname(__file__)
-version_file = open(os.path.join(mypackage_root_dir, 'datahandling/VERSION.py'))
+version_file = open(os.path.join(mypackage_root_dir, 'datahandling/VERSION'))
 version = version_file.read().strip()
 
 setup(name='datahandling',
