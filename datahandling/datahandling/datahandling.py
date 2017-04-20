@@ -91,43 +91,27 @@ class DataObject():
 
     Attributes
     ----------
-        filepath : string
-                filepath to the file containing the data used to initialise
-                this particular instance of the DataObject class
-        filename : string
-                filename of the file containing the data used to initialise
-                this particular instance of the DataObject class
-        waveDescription : dictionary
-                Contains various information about the data as it was collected.
-        time : ndarray
-                Contains the time data in seconds
-        voltage : ndarray
-                Contains the voltage data in Volts
-        SampleFreq : sample frequency used to sample the data (when it was
-                taken by the oscilloscope)
-        freqs : ndarray
-                Contains the frequencies corresponding to the PSD (Pulse Spectral
-                Density)
-        PSD : ndarray
-                Contains the values for the PSD (Pulse Spectral Density) as calculated
-                at each frequency contained in freqs
+    filepath : string
+            filepath to the file containing the data used to initialise
+            this particular instance of the DataObject class
+    filename : string
+            filename of the file containing the data used to initialise
+            this particular instance of the DataObject class
+    waveDescription : dictionary
+            Contains various information about the data as it was collected.
+    time : ndarray
+            Contains the time data in seconds
+    voltage : ndarray
+            Contains the voltage data in Volts
+    SampleFreq : sample frequency used to sample the data (when it was
+            taken by the oscilloscope)
+    freqs : ndarray
+            Contains the frequencies corresponding to the PSD (Pulse Spectral
+            Density)
+    PSD : ndarray
+            Contains the values for the PSD (Pulse Spectral Density) as calculated
+            at each frequency contained in freqs
 
-        The following attributes are only assigned after get_fit has been called.
-
-        A : uncertainties.ufloat
-                Fitting constant A
-                A = γ**2*Γ_0*(K_b*T_0)/(π*m)
-                where:
-                        γ = conversionFactor
-                        Γ_0 = Damping factor due to environment
-                        π = pi
-        Ftrap : uncertainties.ufloat
-                Trapping frequency as determined from the fitting function
-        Gamma : uncertainties.ufloat
-                The damping factor Gamma = Γ = Γ_0 + δΓ
-                where:
-                        Γ_0 = Damping factor due to environment
-                        δΓ = extra damping due to feedback
     """
 
     def __init__(self, filepath):
@@ -373,7 +357,7 @@ class DataObject():
             Params, ParamsErr, fig, ax = fit_PSD(
                 self, WidthOfPeakToFit, NMovAveToFit, TrapFreq, A_Initial, Gamma_Initial, MakeFig=MakeFig, ShowFig=ShowFig)
         else:
-            Params, ParamsErr = fit_PSD(
+            Params, ParamsErr, _ , _ = fit_PSD(
                 self, WidthOfPeakToFit, NMovAveToFit, TrapFreq, A_Initial, Gamma_Initial, MakeFig=MakeFig, ShowFig=ShowFig)
 
         if Silent == False:
@@ -454,7 +438,7 @@ class DataObject():
         except IndexError:
             _warnings.warn("range is too small, returning NaN", UserWarning)
             val = _uncertainties.ufloat(_np.NaN, _np.NaN)
-            return val, val, val, val
+            return val, val, val
 
         try:
             RightSideOfPeakIndex = list(self.PSD).index(
@@ -463,7 +447,7 @@ class DataObject():
         except IndexError:
             _warnings.warn("range is too small, returning NaN", UserWarning)
             val = _uncertainties.ufloat(_np.NaN, _np.NaN)
-            return val, val, val, val
+            return val, val, val
 
         FWHM = RightSideOfPeak - LeftSideOfPeak
 
@@ -482,11 +466,8 @@ class DataObject():
         omegaArray = 2 * _np.pi * \
             self.freqs[LeftSideOfPeakIndex:RightSideOfPeakIndex]
         PSDArray = self.PSD[LeftSideOfPeakIndex:RightSideOfPeakIndex]
-        FittedValues = _PSD_fitting_eqn(
-            A, 2 * _np.pi * FTrap, Gamma, omegaArray)
-        AveOfDeviation = sum((PSDArray - FittedValues) /
-                             PSDArray) / len(PSDArray)
-        return FTrap, A, Gamma, AveOfDeviation
+
+        return FTrap, A, Gamma
 
     def get_fit_auto(self, CentralFreq, MaxWidth=15000, MinWidth=500, WidthIntervals=500, ShowFig=True):
         """
@@ -515,7 +496,7 @@ class DataObject():
         Gamma : ufloat
             Gamma, the damping parameter
         """
-        MinTotalAveOfDeviation = _np.infty
+        MinTotalSumSquaredError = _np.infty
         for Width in _np.arange(MaxWidth, MinWidth - WidthIntervals, -WidthIntervals):
             try:
                 Ftrap, A, Gamma = self.get_fit_from_peak(
@@ -545,11 +526,21 @@ class DataObject():
         """
         Extracts the Radius  mass and Conversion factor for a particle.
 
+        Parameters
+        ----------
         P_mbar : float 
             The pressure in mbar when the data was taken.
         P_Error : float
             The error in the pressure value (as a decimal e.g. 15% = 0.15)
-
+        
+        Returns
+        -------
+        Radius : uncertainties.ufloat
+            The radius of the particle in m
+        Mass : uncertainties.ufloat
+            The mass of the particle in kg
+        ConvFactor : uncertainties.ufloat
+            The conversion factor between volts/m
         """
 
         [R, M, ConvFactor], [RErr, MErr, ConvFactorErr] = \
