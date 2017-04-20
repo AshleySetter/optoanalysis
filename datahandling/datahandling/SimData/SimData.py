@@ -1,5 +1,5 @@
-from DataHandling import DataObject
-from DataHandling import takeClosest
+from datahandling import DataObject
+from datahandling import take_closest
 import numpy as _np
 import matplotlib.pyplot as _plt
 
@@ -13,7 +13,7 @@ class SimData(DataObject):
                 The sample frequency used in generating the data.
         time : ndarray
                 Contains the time data in seconds
-        Voltage : ndarray
+        voltage : ndarray
                 Contains the voltage data in Volts - with noise and clean signals
                 all added together
         SampleFreq : sample frequency used to sample the data (when it was
@@ -50,11 +50,11 @@ class SimData(DataObject):
         self.NoiseStdDev = NoiseStdDev
         self.TimeTuple = (TimeTuple[0], TimeTuple[1])
         self.MeanFreeTime = MeanFreeTime
-        self.GenerateSimulatedData()
-        self.getPSD()
+        self.generate_simulated_data()
+        self.get_PSD()
         return None
 
-    def getTimeData(self):
+    def get_time_data(self):
         """ 
         Returns the time and voltage data.
 
@@ -62,19 +62,19 @@ class SimData(DataObject):
         -------
         time : ndarray
                 Contains the time data in seconds
-        Voltage : ndarray
+        voltage : ndarray
                 Contains the voltage data in Volts - with noise and clean signals
                 all added together
         """
-        return self.time, self.Voltage
+        return self.time, self.voltage
 
-    def GenerateSimulatedData(self):
+    def generate_simulated_data(self):
         if self.MeanFreeTime == None:
-            self.GenerateSimulatedDataNoPhaseNoise()
+            self.generate_simulated_data_no_phase_noise()
         else:
-            self.GenerateSimulatedDataWithPhaseNoise()
+            self.generate_simulated_data_with_phase_noise()
     
-    def GenerateSimulatedDataNoPhaseNoise(self):
+    def generate_simulated_data_no_phase_noise(self):
         """
         Generates the simulated data (several sine waves with noise).
         """
@@ -85,12 +85,12 @@ class SimData(DataObject):
             w = 2*_np.pi*Freq
             self.TrueSignals[Freq] = _np.sin(w*self.time)
         self.Noise = _np.random.normal(0, self.NoiseStdDev, len(self.time))
-        self.Voltage = _np.copy(self.Noise)
+        self.voltage = _np.copy(self.Noise)
         for signal in [self.TrueSignals[key] for key in self.TrueSignals]:
-            self.Voltage += signal
+            self.voltage += signal
         return None
 
-    def GenerateSimulatedDataWithPhaseNoise(self):
+    def generate_simulated_data_with_phase_noise(self):
         """
         Generates the simulated data (several sine waves with noise)
         with phase noise.
@@ -113,13 +113,13 @@ class SimData(DataObject):
                 TSinceLastPhaseChange += Ts
             self.TrueSignals[Freq] = _np.array(TrueSignal)
         self.Noise = _np.random.normal(0, self.NoiseStdDev, len(self.time))
-        self.Voltage = _np.copy(self.Noise)
+        self.voltage = _np.copy(self.Noise)
         for signal in [self.TrueSignals[key] for key in self.TrueSignals]:
-            self.Voltage += signal
+            self.voltage += signal
         return None
 
     
-    def SimMultiPlot(self, timeLimits="Default", ShowFig=True):
+    def sim_multi_plot(self, timeLimits="Default", ShowFig=True):
         """
         Plots the full signal, noise signal, and each true signal in 1 figure
         inside of subplots.
@@ -132,7 +132,7 @@ class SimData(DataObject):
         NumPlots = len(self.TrueSignals) + 2
         axList = []
         ax = fig.add_subplot('{}1{}'.format(NumPlots, 0))
-        ax.plot(self.time[lowerIndex:upperIndex], self.Voltage[lowerIndex:upperIndex])
+        ax.plot(self.time[lowerIndex:upperIndex], self.voltage[lowerIndex:upperIndex])
         ax.set_title("Total Data")
         axList.append(ax)        
         ax = fig.add_subplot('{}1{}'.format(NumPlots, 1))

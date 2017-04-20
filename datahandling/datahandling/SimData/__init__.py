@@ -1,6 +1,6 @@
 """
-DataHandling.SimData
-===================
+datahandling.SimData
+====================
 
 Functions for generating simulated data.
 
