@@ -1,0 +1,1757 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>datahandling package &#8212; datahandling 3.0.1 documentation</title>
+    
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '3.0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body role="document">
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="datahandling-package">
+<h1>datahandling package<a class="headerlink" href="#datahandling-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="subpackages">
+<h2>Subpackages<a class="headerlink" href="#subpackages" title="Permalink to this headline">¶</a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="datahandling.LeCroy.html">datahandling.LeCroy package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="datahandling.LeCroy.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="datahandling.LeCroy.html#module-datahandling.LeCroy.LeCroy">datahandling.LeCroy.LeCroy module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="datahandling.LeCroy.html#module-datahandling.LeCroy">Module contents</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="datahandling.LeCroy.html#datahandling-lecroy">datahandling.LeCroy</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="datahandling.SimData.html">datahandling.SimData package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="datahandling.SimData.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="datahandling.SimData.html#datahandling-simdata-simdata-module">datahandling.SimData.SimData module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="datahandling.SimData.html#module-contents">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-datahandling.datahandling">
+<span id="datahandling-datahandling-module"></span><h2>datahandling.datahandling module<a class="headerlink" href="#module-datahandling.datahandling" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="datahandling.datahandling.DataObject">
+<em class="property">class </em><code class="descclassname">datahandling.datahandling.</code><code class="descname">DataObject</code><span class="sig-paren">(</span><em>filepath</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/datahandling/datahandling.html#DataObject"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datahandling.datahandling.DataObject" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/2/library/functions.html#object" title="(in Python v2.7)"><code class="xref py py-class docutils literal"><span class="pre">object</span></code></a></p>
+<p>Creates an object containing data and all it&#8217;s properties.</p>
+<p class="rubric">Attributes</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="11%" />
+<col width="89%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td>filepath</td>
+<td>(string) filepath to the file containing the data used to initialise this particular instance of the DataObject class</td>
+</tr>
+<tr class="row-even"><td>filename</td>
+<td>(string) filename of the file containing the data used to initialise this particular instance of the DataObject class</td>
+</tr>
+<tr class="row-odd"><td>waveDescription</td>
+<td>(dictionary) Contains various information about the data as it was collected.</td>
+</tr>
+<tr class="row-even"><td>time</td>
+<td>(ndarray) Contains the time data in seconds</td>
+</tr>
+<tr class="row-odd"><td>voltage</td>
+<td>(ndarray) Contains the voltage data in Volts</td>
+</tr>
+<tr class="row-even"><td>SampleFreq</td>
+<td>(sample frequency used to sample the data (when it was) taken by the oscilloscope)</td>
+</tr>
+<tr class="row-odd"><td>freqs</td>
+<td>(ndarray) Contains the frequencies corresponding to the PSD (Pulse Spectral Density)</td>
+</tr>
+<tr class="row-even"><td>PSD</td>
+<td>(ndarray) Contains the values for the PSD (Pulse Spectral Density) as calculated at each frequency contained in freqs</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Methods</p>
+<dl class="method">
+<dt id="datahandling.datahandling.DataObject.calc_area_under_PSD">
+<code class="descname">calc_area_under_PSD</code><span class="sig-paren">(</span><em>lowerFreq</em>, <em>upperFreq</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/datahandling/datahandling.html#DataObject.calc_area_under_PSD"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datahandling.datahandling.DataObject.calc_area_under_PSD" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sums the area under the PSD from lowerFreq to upperFreq.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>lowerFreq</strong> : float</p>
+<blockquote>
+<div><p>The lower limit of frequency to sum from</p>
+</div></blockquote>
+<p><strong>upperFreq</strong> : float</p>
+<blockquote>
+<div><p>The upper limit of frequency to sum to</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>AreaUnderPSD</strong> : float</p>
+<blockquote class="last">
+<div><p>The area under the PSD from lowerFreq to upperFreq</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="datahandling.datahandling.DataObject.extract_ZXY_motion">
+<code class="descname">extract_ZXY_motion</code><span class="sig-paren">(</span><em>ApproxZXYFreqs</em>, <em>uncertaintyInFreqs</em>, <em>ZXYPeakWidths</em>, <em>subSampleFraction=1</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/datahandling/datahandling.html#DataObject.extract_ZXY_motion"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datahandling.datahandling.DataObject.extract_ZXY_motion" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extracts the x, y and z signals (in volts) from the voltage signal. Does this by finding the highest peaks in the signal about the approximate frequencies, using the uncertaintyinfreqs parameter as the width it searches. It then uses the ZXYPeakWidths to construct bandpass IIR filters for each frequency and filtering them. If too high a sample frequency has been used to collect the data scipy may not be able to construct a filter good enough, in this case increasing the subSampleFraction may be nessesary.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>ApproxZXYFreqs</strong> : array_like</p>
+<blockquote>
+<div><p>A sequency containing 3 elements, the approximate 
+z, x and y frequency respectively.</p>
+</div></blockquote>
+<p><strong>uncertaintyInFreqs</strong> : array_like</p>
+<blockquote>
+<div><p>A sequency containing 3 elements, the uncertainty in the
+z, x and y frequency respectively.</p>
+</div></blockquote>
+<p><strong>ZXYPeakWidths</strong> : array_like</p>
+<blockquote>
+<div><p>A sequency containing 3 elements, the widths of the
+z, x and y frequency peaks respectively.</p>
+</div></blockquote>
+<p><strong>subSampleFraction</strong> : int, optional</p>
+<blockquote>
+<div><p>How much to sub-sample the data by before filtering,
+effectively reducing the sample frequency by this 
+fraction.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>self.zVolts</strong> : ndarray</p>
+<blockquote>
+<div><p>The z signal in volts extracted by bandpass IIR filtering</p>
+</div></blockquote>
+<p><strong>self.xVolts</strong> : ndarray</p>
+<blockquote>
+<div><p>The x signal in volts extracted by bandpass IIR filtering</p>
+</div></blockquote>
+<p><strong>self.yVolts</strong> : ndarray</p>
+<blockquote class="last">
+<div><p>The y signal in volts extracted by bandpass IIR filtering</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="datahandling.datahandling.DataObject.extract_parameters">
+<code class="descname">extract_parameters</code><span class="sig-paren">(</span><em>P_mbar</em>, <em>P_Error</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/datahandling/datahandling.html#DataObject.extract_parameters"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datahandling.datahandling.DataObject.extract_parameters" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extracts the Radius  mass and Conversion factor for a particle.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>P_mbar</strong> : float</p>
+<blockquote>
+<div><p>The pressure in mbar when the data was taken.</p>
+</div></blockquote>
+<p><strong>P_Error</strong> : float</p>
+<blockquote>
+<div><p>The error in the pressure value (as a decimal e.g. 15% = 0.15)</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>Radius</strong> : uncertainties.ufloat</p>
+<blockquote>
+<div><p>The radius of the particle in m</p>
+</div></blockquote>
+<p><strong>Mass</strong> : uncertainties.ufloat</p>
+<blockquote>
+<div><p>The mass of the particle in kg</p>
+</div></blockquote>
+<p><strong>ConvFactor</strong> : uncertainties.ufloat</p>
+<blockquote class="last">
+<div><p>The conversion factor between volts/m</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="datahandling.datahandling.DataObject.get_PSD">
+<code class="descname">get_PSD</code><span class="sig-paren">(</span><em>NPerSegment='Default'</em>, <em>window='hann'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/datahandling/datahandling.html#DataObject.get_PSD"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datahandling.datahandling.DataObject.get_PSD" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extracts the pulse spectral density (PSD) from the data.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>NPerSegment</strong> : int, optional</p>
+<blockquote>
+<div><p>Length of each segment used in scipy.welch
+default = the Number of time points</p>
+</div></blockquote>
+<p><strong>window</strong> : str or tuple or array_like, optional</p>
+<blockquote>
+<div><p>Desired window to use. See get_window for a list of windows
+and required parameters. If window is array_like it will be
+used directly as the window and its length will be used for
+nperseg.
+default = &#8220;hann&#8221;</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>freqs</strong> : ndarray</p>
+<blockquote>
+<div><p>Array containing the frequencies at which the PSD has been
+calculated</p>
+</div></blockquote>
+<p><strong>PSD</strong> : ndarray</p>
+<blockquote class="last">
+<div><p>Array containing the value of the PSD at the corresponding
+frequency value in V**2/Hz</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="datahandling.datahandling.DataObject.get_fit">
+<code class="descname">get_fit</code><span class="sig-paren">(</span><em>TrapFreq</em>, <em>WidthOfPeakToFit</em>, <em>A_Initial=1000000000.0</em>, <em>Gamma_Initial=400</em>, <em>NMovAveToFit=1</em>, <em>Silent=False</em>, <em>MakeFig=True</em>, <em>ShowFig=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/datahandling/datahandling.html#DataObject.get_fit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datahandling.datahandling.DataObject.get_fit" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function that fits to a peak to the PSD to extract the 
+frequency, A factor and Gamma (damping) factor.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>TrapFreq</strong> : float</p>
+<blockquote>
+<div><p>The approximate trapping frequency to use initially
+as the centre of the peak</p>
+</div></blockquote>
+<p><strong>WidthOfPeakToFit</strong> : float</p>
+<blockquote>
+<div><p>The width of the peak to be fitted to. This limits the
+region that the fitting function can see in order to
+stop it from fitting to the wrong peak</p>
+</div></blockquote>
+<p><strong>A_Initial</strong> : float, optional</p>
+<blockquote>
+<div><p>The initial value of the A parameter to use in fitting</p>
+</div></blockquote>
+<p><strong>Gamma_Initial</strong> : float, optional</p>
+<blockquote>
+<div><p>The initial value of the Gamma parameter to use in fitting</p>
+</div></blockquote>
+<p><strong>NMovAveToFit</strong> : int, optional</p>
+<blockquote>
+<div><p>The number of point of moving average filter to perform
+before fitting in order to smooth out the peak.
+defaults to 1.</p>
+</div></blockquote>
+<p><strong>Silent</strong> : bool, optional</p>
+<blockquote>
+<div><p>Whether to print any output when running this function
+defaults to False</p>
+</div></blockquote>
+<p><strong>MakeFig</strong> : bool, optional</p>
+<blockquote>
+<div><p>Whether to construct and return the figure object showing
+the fitting. defaults to True</p>
+</div></blockquote>
+<p><strong>ShowFig</strong> : bool, optional</p>
+<blockquote>
+<div><p>Whether to show the figure object when it has been created.
+defaults to True</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>A</strong> : uncertainties.ufloat</p>
+<blockquote>
+<div><p>Fitting constant A
+A = γ**2*Γ_0*(K_b*T_0)/(π*m)
+where:</p>
+<blockquote>
+<div><p>γ = conversionFactor
+Γ_0 = Damping factor due to environment
+π = pi</p>
+</div></blockquote>
+</div></blockquote>
+<p><strong>Ftrap</strong> : uncertainties.ufloat</p>
+<blockquote>
+<div><p>The trapping frequency in the z axis (in angular frequency)</p>
+</div></blockquote>
+<p><strong>Gamma</strong> : uncertainties.ufloat</p>
+<blockquote>
+<div><p>The damping factor Gamma = Γ = Γ_0 + δΓ
+where:</p>
+<blockquote>
+<div><p>Γ_0 = Damping factor due to environment
+δΓ = extra damping due to feedback or other effects</p>
+</div></blockquote>
+</div></blockquote>
+<p><strong>fig</strong> : matplotlib.figure.Figure object</p>
+<blockquote>
+<div><p>figure object containing the plot</p>
+</div></blockquote>
+<p><strong>ax</strong> : matplotlib.axes.Axes object</p>
+<blockquote class="last">
+<div><dl class="docutils">
+<dt>axes with the data plotted of the:</dt>
+<dd><ul class="first last simple">
+<li>initial data</li>
+<li>smoothed data</li>
+<li>initial fit</li>
+<li>final fit</li>
+</ul>
+</dd>
+</dl>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="datahandling.datahandling.DataObject.get_fit_auto">
+<code class="descname">get_fit_auto</code><span class="sig-paren">(</span><em>CentralFreq</em>, <em>MaxWidth=15000</em>, <em>MinWidth=500</em>, <em>WidthIntervals=500</em>, <em>ShowFig=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/datahandling/datahandling.html#DataObject.get_fit_auto"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datahandling.datahandling.DataObject.get_fit_auto" title="Permalink to this definition">¶</a></dt>
+<dd><p>Tries a range of regions to search for peaks and runs the one with the least error
+and returns the parameters with the least errors.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>CentralFreq</strong> : float</p>
+<blockquote>
+<div><p>The central frequency to use for the fittings.</p>
+</div></blockquote>
+<p><strong>MaxWidth</strong> : float, optional</p>
+<blockquote>
+<div><p>The maximum bandwidth to use for the fitting of the peaks.</p>
+</div></blockquote>
+<p><strong>MinWidth</strong> : float, optional</p>
+<blockquote>
+<div><p>The minimum bandwidth to use for the fitting of the peaks.</p>
+</div></blockquote>
+<p><strong>WidthIntervals</strong> : float, optional</p>
+<blockquote>
+<div><p>The intervals to use in going between the MaxWidth and MinWidth.</p>
+</div></blockquote>
+<p><strong>ShowFig</strong> : bool, optional</p>
+<blockquote>
+<div><p>Whether to plot and show the final (best) fitting or not.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>Ftraps</strong> : ufloat</p>
+<blockquote>
+<div><p>Trapping frequency</p>
+</div></blockquote>
+<p><strong>A</strong> : ufloat</p>
+<blockquote>
+<div><p>A parameter</p>
+</div></blockquote>
+<p><strong>Gamma</strong> : ufloat</p>
+<blockquote class="last">
+<div><p>Gamma, the damping parameter</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="datahandling.datahandling.DataObject.get_fit_from_peak">
+<code class="descname">get_fit_from_peak</code><span class="sig-paren">(</span><em>lowerLimit</em>, <em>upperLimit</em>, <em>NumPointsSmoothing=1</em>, <em>Silent=False</em>, <em>ShowFig=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/datahandling/datahandling.html#DataObject.get_fit_from_peak"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datahandling.datahandling.DataObject.get_fit_from_peak" title="Permalink to this definition">¶</a></dt>
+<dd><p>Finds an approximate values for the peaks central frequency, height, 
+and FWHM by looking for the heighest peak in the frequncy range defined 
+by the imput arguments. It then uses the central frequncy as the trapping 
+frequency, peak height to an approximate A value and the FWHM to an approximate
+Gamma (damping) value.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>lowerLimit</strong> : float</p>
+<blockquote>
+<div><p>The lower frequency limit of the range in which it looks for a peak</p>
+</div></blockquote>
+<p><strong>upperLimit</strong> : float</p>
+<blockquote>
+<div><p>The higher frequency limit of the range in which it looks for a peak</p>
+</div></blockquote>
+<p><strong>NumPointsSmoothing</strong> : float</p>
+<blockquote>
+<div><p>The number of points of moving-average smoothing it applies before fitting the 
+peak.</p>
+</div></blockquote>
+<p><strong>Silent</strong> : bool, optional</p>
+<blockquote>
+<div><p>Whether it prints the values fitted or is silent.</p>
+</div></blockquote>
+<p><strong>ShowFig</strong> : bool, optional</p>
+<blockquote>
+<div><p>Whether it makes and shows the figure object or not.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>Ftraps</strong> : ufloat</p>
+<blockquote>
+<div><p>Trapping frequency</p>
+</div></blockquote>
+<p><strong>A</strong> : ufloat</p>
+<blockquote>
+<div><p>A parameter</p>
+</div></blockquote>
+<p><strong>Gamma</strong> : ufloat</p>
+<blockquote class="last">
+<div><p>Gamma, the damping parameter</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="datahandling.datahandling.DataObject.get_time_data">
+<code class="descname">get_time_data</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/datahandling/datahandling.html#DataObject.get_time_data"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datahandling.datahandling.DataObject.get_time_data" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gets the time and voltage data and the wave description.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>time</strong> : ndarray</p>
+<blockquote>
+<div><p>array containing the value of time (in seconds) at which the
+voltage is sampled</p>
+</div></blockquote>
+<p><strong>voltage</strong> : ndarray</p>
+<blockquote class="last">
+<div><p>array containing the sampled voltages</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="datahandling.datahandling.DataObject.plot_PSD">
+<code class="descname">plot_PSD</code><span class="sig-paren">(</span><em>xlim='Default'</em>, <em>ShowFig=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/datahandling/datahandling.html#DataObject.plot_PSD"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datahandling.datahandling.DataObject.plot_PSD" title="Permalink to this definition">¶</a></dt>
+<dd><p>plot the pulse spectral density.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>xlim</strong> : array_like, optional</p>
+<blockquote>
+<div><p>The x limits of the plotted PSD [LowerLimit, UpperLimit]
+Default value is [0, SampleFreq/2]</p>
+</div></blockquote>
+<p><strong>ShowFig</strong> : bool, optional</p>
+<blockquote>
+<div><p>If True runs plt.show() before returning figure
+if False it just returns the figure object.
+(the default is True, it shows the figure)</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>fig</strong> : plt.figure</p>
+<blockquote class="last">
+<div><blockquote>
+<div><p>The figure object created</p>
+</div></blockquote>
+<dl class="docutils">
+<dt>ax <span class="classifier-delimiter">:</span> <span class="classifier">fig.add_subplot(111)</span></dt>
+<dd><p class="first last">The subplot object created</p>
+</dd>
+</dl>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="datahandling.datahandling.DataObject.plot_phase_space">
+<code class="descname">plot_phase_space</code><span class="sig-paren">(</span><em>zf</em>, <em>xf=80000</em>, <em>yf=120000</em>, <em>FractionOfSampleFreq=4</em>, <em>zwidth=10000</em>, <em>xwidth=5000</em>, <em>ywidth=5000</em>, <em>ShowFig=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/datahandling/datahandling.html#DataObject.plot_phase_space"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datahandling.datahandling.DataObject.plot_phase_space" title="Permalink to this definition">¶</a></dt>
+<dd><p>author: Markus Rademacher</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="datahandling.datahandling.DataObject.plot_time_data">
+<code class="descname">plot_time_data</code><span class="sig-paren">(</span><em>timeStart='Default'</em>, <em>timeEnd='Default'</em>, <em>ShowFig=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/datahandling/datahandling.html#DataObject.plot_time_data"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datahandling.datahandling.DataObject.plot_time_data" title="Permalink to this definition">¶</a></dt>
+<dd><p>plot time data against voltage data.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>timeStart</strong> : float, optional</p>
+<blockquote>
+<div><p>The time to start plotting from.
+By default it uses the first time point</p>
+</div></blockquote>
+<p><strong>timeEnd</strong> : float, optional</p>
+<blockquote>
+<div><p>The time to finish plotting at.
+By default it uses the last time point</p>
+</div></blockquote>
+<p><strong>ShowFig</strong> : bool, optional</p>
+<blockquote>
+<div><p>If True runs plt.show() before returning figure
+if False it just returns the figure object.
+(the default is True, it shows the figure)</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>fig</strong> : plt.figure</p>
+<blockquote>
+<div><p>The figure object created</p>
+</div></blockquote>
+<p><strong>ax</strong> : fig.add_subplot(111)</p>
+<blockquote class="last">
+<div><p>The subplot object created</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="datahandling.datahandling.IFFT_filter">
+<code class="descclassname">datahandling.datahandling.</code><code class="descname">IFFT_filter</code><span class="sig-paren">(</span><em>Signal</em>, <em>SampleFreq</em>, <em>lowerFreq</em>, <em>upperFreq</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/datahandling/datahandling.html#IFFT_filter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datahandling.datahandling.IFFT_filter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Filters data using fft -&gt; zeroing out fft bins -&gt; ifft</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>Signal</strong> : ndarray</p>
+<blockquote>
+<div><p>Signal to be filtered</p>
+</div></blockquote>
+<p><strong>SampleFreq</strong> : float</p>
+<blockquote>
+<div><p>Sample frequency of signal</p>
+</div></blockquote>
+<p><strong>lowerFreq</strong> : float</p>
+<blockquote>
+<div><p>Lower frequency of bandpass to allow through filter</p>
+</div></blockquote>
+<p><strong>upperFreq</strong> : float</p>
+<blockquote>
+<div><p>Upper frequency of bandpass to allow through filter</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>FilteredData</strong> : ndarray</p>
+<blockquote class="last">
+<div><p>Array containing the filtered data</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="datahandling.datahandling.IIR_filter_design">
+<code class="descclassname">datahandling.datahandling.</code><code class="descname">IIR_filter_design</code><span class="sig-paren">(</span><em>CentralFreq</em>, <em>bandwidth</em>, <em>transitionWidth</em>, <em>SampleFreq</em>, <em>GainStop=40</em>, <em>GainPass=0.01</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/datahandling/datahandling.html#IIR_filter_design"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datahandling.datahandling.IIR_filter_design" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to calculate the coefficients of an IIR filter.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>CentralFreq</strong> : float</p>
+<blockquote>
+<div><p>Central frequency of the IIR filter to be designed</p>
+</div></blockquote>
+<p><strong>bandwidth</strong> : float</p>
+<blockquote>
+<div><p>The width of the passband to be created about the central frequency</p>
+</div></blockquote>
+<p><strong>transitionWidth</strong> : float</p>
+<blockquote>
+<div><p>The width of the transition band between the pass-band and stop-band</p>
+</div></blockquote>
+<p><strong>SampleFreq</strong> : float</p>
+<blockquote>
+<div><p>The sample frequency (rate) of the data to be filtered</p>
+</div></blockquote>
+<p><strong>GainStop</strong> : float, optional</p>
+<blockquote>
+<div><p>The dB of attenuation within the stopband (i.e. outside the passband)</p>
+</div></blockquote>
+<p><strong>GainPass</strong> : float, optional</p>
+<blockquote>
+<div><p>The dB attenuation inside the passband (ideally close to 0 for a bandpass filter)</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>b</strong> : ndarray</p>
+<blockquote>
+<div><p>coefficients multiplying the current and past inputs (feedforward coefficients)</p>
+</div></blockquote>
+<p><strong>a</strong> : ndarray</p>
+<blockquote class="last">
+<div><p>coefficients multiplying the past outputs (feedback coefficients)</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="class">
+<dt id="datahandling.datahandling.PressureData">
+<em class="property">class </em><code class="descclassname">datahandling.datahandling.</code><code class="descname">PressureData</code><span class="sig-paren">(</span><em>filename</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/datahandling/datahandling.html#PressureData"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datahandling.datahandling.PressureData" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/2/library/functions.html#object" title="(in Python v2.7)"><code class="xref py py-class docutils literal"><span class="pre">object</span></code></a></p>
+<p>Class for reading in pressure data from org-mode tables.</p>
+<p>The table must containing columns the following headings 
+formatted as in the example below:</p>
+<div class="line-block">
+<div class="line">RunNo | Pressure (mbar) |</div>
+<div class="line-block">
+<div class="line">1   |     1.35E-2        |</div>
+</div>
+</div>
+<p>In this case the run number would be 1 and the pressure would
+be 1.35E-2 mbar (0.00135 mbar).</p>
+<p class="rubric">Methods</p>
+<dl class="method">
+<dt id="datahandling.datahandling.PressureData.get_pressure">
+<code class="descname">get_pressure</code><span class="sig-paren">(</span><em>RunNo</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/datahandling/datahandling.html#PressureData.get_pressure"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datahandling.datahandling.PressureData.get_pressure" title="Permalink to this definition">¶</a></dt>
+<dd><p>Retreives the pressure value (in mbar) associated 
+with a particular run number.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>RunNo</strong> : int</p>
+<blockquote>
+<div><p>The run number for which to retreive the pressure value</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>Pressure</strong> : float</p>
+<blockquote class="last">
+<div><p>The pressure (in mbar) for this run number</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="datahandling.datahandling.animate">
+<code class="descclassname">datahandling.datahandling.</code><code class="descname">animate</code><span class="sig-paren">(</span><em>zdata</em>, <em>xdata</em>, <em>ydata</em>, <em>conversionFactor</em>, <em>timedata</em>, <em>BoxSize</em>, <em>timeSteps=100</em>, <em>filename='particle'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/datahandling/datahandling.html#animate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datahandling.datahandling.animate" title="Permalink to this definition">¶</a></dt>
+<dd><p>Animates the particle&#8217;s motion given the z, x and y signal (in Volts)
+and the conversion factor (to convert between V and nm).</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>zdata</strong> : ndarray</p>
+<blockquote>
+<div><p>Array containing the z signal in volts with time.</p>
+</div></blockquote>
+<p><strong>xdata</strong> : ndarray</p>
+<blockquote>
+<div><p>Array containing the x signal in volts with time.</p>
+</div></blockquote>
+<p><strong>ydata</strong> : ndarray</p>
+<blockquote>
+<div><p>Array containing the y signal in volts with time.</p>
+</div></blockquote>
+<p><strong>conversionFactor</strong> : float</p>
+<blockquote>
+<div><p>conversion factor (in units of Volts/Metre)</p>
+</div></blockquote>
+<p><strong>timedata</strong> : ndarray</p>
+<blockquote>
+<div><p>Array containing the time data in seconds.</p>
+</div></blockquote>
+<p><strong>BoxSize</strong> : float</p>
+<blockquote>
+<div><p>The size of the box in which to animate the particle - in nm</p>
+</div></blockquote>
+<p><strong>timeSteps</strong> : int, optional</p>
+<blockquote>
+<div><p>Number of time steps to animate</p>
+</div></blockquote>
+<p><strong>filename</strong> : string, optional</p>
+<blockquote class="last">
+<div><p>filename to create the mp4 under (&lt;filename&gt;.mp4)</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="datahandling.datahandling.calc_PSD">
+<code class="descclassname">datahandling.datahandling.</code><code class="descname">calc_PSD</code><span class="sig-paren">(</span><em>Signal</em>, <em>SampleFreq</em>, <em>NPerSegment='Default'</em>, <em>window='hann'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/datahandling/datahandling.html#calc_PSD"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datahandling.datahandling.calc_PSD" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extracts the pulse spectral density (PSD) from the data.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>Signal</strong> : array-like</p>
+<blockquote>
+<div><p>Array containing the signal to have the PSD calculated for</p>
+</div></blockquote>
+<p><strong>SampleFreq</strong> : float</p>
+<blockquote>
+<div><p>Sample frequency of the signal array</p>
+</div></blockquote>
+<p><strong>NPerSegment</strong> : int, optional</p>
+<blockquote>
+<div><p>Length of each segment used in scipy.welch
+default = the Number of time points</p>
+</div></blockquote>
+<p><strong>window</strong> : str or tuple or array_like, optional</p>
+<blockquote>
+<div><p>Desired window to use. See get_window for a list of windows
+and required parameters. If window is array_like it will be
+used directly as the window and its length will be used for
+nperseg.
+default = &#8220;hann&#8221;</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>freqs</strong> : ndarray</p>
+<blockquote>
+<div><p>Array containing the frequencies at which the PSD has been
+calculated</p>
+</div></blockquote>
+<p><strong>PSD</strong> : ndarray</p>
+<blockquote class="last">
+<div><p>Array containing the value of the PSD at the corresponding
+frequency value in V**2/Hz</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="datahandling.datahandling.calc_temp">
+<code class="descclassname">datahandling.datahandling.</code><code class="descname">calc_temp</code><span class="sig-paren">(</span><em>Data_ref</em>, <em>Data</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/datahandling/datahandling.html#calc_temp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datahandling.datahandling.calc_temp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates the temperature of a data set relative to a reference.
+The reference is assumed to be at 300K.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>Data_ref</strong> : DataObject</p>
+<blockquote>
+<div><p>Reference data set, assumed to be 300K</p>
+</div></blockquote>
+<p><strong>Data</strong> : DataObject</p>
+<blockquote>
+<div><p>Data object to have the temperature calculated for</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>T</strong> : uncertainties.ufloat</p>
+<blockquote class="last">
+<div><p>The temperature of the data set</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="datahandling.datahandling.count_collisions">
+<code class="descclassname">datahandling.datahandling.</code><code class="descname">count_collisions</code><span class="sig-paren">(</span><em>Collisions</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/datahandling/datahandling.html#count_collisions"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datahandling.datahandling.count_collisions" title="Permalink to this definition">¶</a></dt>
+<dd><p>Counts the number of unique collisions and gets the collision index.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>Collisions</strong> : array_like</p>
+<blockquote>
+<div><p>Array of booleans, containing true if during a collision event, false otherwise.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>CollisionCount</strong> : int</p>
+<blockquote>
+<div><p>Number of unique collisions</p>
+</div></blockquote>
+<p><strong>CollisionIndicies</strong> : list</p>
+<blockquote class="last">
+<div><p>Indicies of collision occurance</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="datahandling.datahandling.extract_parameters">
+<code class="descclassname">datahandling.datahandling.</code><code class="descname">extract_parameters</code><span class="sig-paren">(</span><em>Pressure</em>, <em>PressureErr</em>, <em>A</em>, <em>AErr</em>, <em>Gamma0</em>, <em>Gamma0Err</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/datahandling/datahandling.html#extract_parameters"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datahandling.datahandling.extract_parameters" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates the radius, mass and conversion factor and thier uncertainties.
+For values to be correct data must have been taken with feedback off and
+at pressures of around 1mbar (this is because the equations assume
+harmonic motion and at lower pressures the uncooled particle experiences
+anharmonic motion (due to exploring furthur outside the middle of the trap).
+When cooled the value of Gamma (the damping) is a combination of the
+enviromental damping and feedback damping and so is not the correct value
+for use in this equation (as it requires the enviromental damping).
+Environmental damping can be predicted though as A=const*Gamma0. By
+fitting to 1mbar data one can find the value of the const and therefore
+Gamma0 = A/const</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>Pressure</strong> : float</p>
+<blockquote>
+<div><p>Pressure in mbar when the data was taken</p>
+</div></blockquote>
+<p><strong>PressureErr</strong> : float</p>
+<blockquote>
+<div><p>Error in the Pressure as a decimal (e.g. 15% error is 0.15)</p>
+</div></blockquote>
+<p><strong>A</strong> : float</p>
+<blockquote>
+<div><p>Fitting constant A
+A = γ**2*Γ_0*(K_b*T_0)/(π*m)
+where:</p>
+<blockquote>
+<div><p>γ = conversionFactor
+Γ_0 = Damping factor due to environment
+π = pi</p>
+</div></blockquote>
+</div></blockquote>
+<p><strong>AErr</strong> : float</p>
+<blockquote>
+<div><p>Error in Fitting constant A</p>
+</div></blockquote>
+<p><strong>Gamma0</strong> : float</p>
+<blockquote>
+<div><p>The enviromental damping factor Gamma_0 = Γ_0</p>
+</div></blockquote>
+<p><strong>Gamma0Err</strong> : float</p>
+<blockquote>
+<div><p>The error in the enviromental damping factor Gamma_0 = Γ_0</p>
+</div></blockquote>
+<p><strong>Returns:</strong></p>
+<p><strong>Params</strong> : list</p>
+<blockquote>
+<div><p>[radius, mass, conversionFactor]
+The extracted parameters</p>
+</div></blockquote>
+<p><strong>ParamsError</strong> : list</p>
+<blockquote class="last">
+<div><p>[radiusError, massError, conversionFactorError]
+The error in the extracted parameters</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="datahandling.datahandling.find_collisions">
+<code class="descclassname">datahandling.datahandling.</code><code class="descname">find_collisions</code><span class="sig-paren">(</span><em>Signal</em>, <em>tolerance=50</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/datahandling/datahandling.html#find_collisions"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datahandling.datahandling.find_collisions" title="Permalink to this definition">¶</a></dt>
+<dd><p>Finds collision events in the signal from the shift in phase of the signal.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>Signal</strong> : array_like</p>
+<blockquote>
+<div><p>Array containing the values of the signal of interest containing a single frequency.</p>
+</div></blockquote>
+<p><strong>tolerance</strong> : float</p>
+<blockquote>
+<div><p>Percentage tolerance, if the value of the FM Discriminator varies from the mean by this
+percentage it is counted as being during a collision event (or the aftermath of an event).</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>Collisions</strong> : ndarray</p>
+<blockquote class="last">
+<div><p>Array of booleans, true if during a collision event, false otherwise.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="datahandling.datahandling.fit_PSD">
+<code class="descclassname">datahandling.datahandling.</code><code class="descname">fit_PSD</code><span class="sig-paren">(</span><em>Data</em>, <em>bandwidth</em>, <em>NMovAve</em>, <em>TrapFreqGuess</em>, <em>AGuess=1000000000.0</em>, <em>GammaGuess=400</em>, <em>MakeFig=True</em>, <em>ShowFig=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/datahandling/datahandling.html#fit_PSD"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datahandling.datahandling.fit_PSD" title="Permalink to this definition">¶</a></dt>
+<dd><p>Fits theory PSD to Data. Assumes highest point of PSD is the
+trapping frequency.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>Data</strong> : DataObject</p>
+<blockquote>
+<div><p>data object to be fitted</p>
+</div></blockquote>
+<p><strong>bandwidth</strong> : float</p>
+<blockquote>
+<div><p>bandwidth around trapping frequency peak to
+fit the theory PSD to</p>
+</div></blockquote>
+<p><strong>NMovAve</strong> : integer</p>
+<blockquote>
+<div><p>amount of moving averages to take before the fitting</p>
+</div></blockquote>
+<p><strong>TrapFreqGuess</strong> : float</p>
+<blockquote>
+<div><p>The approximate trapping frequency to use initially
+as the centre of the peak</p>
+</div></blockquote>
+<p><strong>AGuess</strong> : float, optional</p>
+<blockquote>
+<div><p>The initial value of the A parameter to use in fitting</p>
+</div></blockquote>
+<p><strong>GammaGuess</strong> : float, optional</p>
+<blockquote>
+<div><p>The initial value of the Gamma parameter to use in fitting</p>
+</div></blockquote>
+<p><strong>MakeFig</strong> : bool, optional</p>
+<blockquote>
+<div><p>Whether to construct and return the figure object showing
+the fitting. defaults to True</p>
+</div></blockquote>
+<p><strong>ShowFig</strong> : bool, optional</p>
+<blockquote>
+<div><p>Whether to show the figure object when it has been created.
+defaults to True</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">ParamsFit - Fitted parameters:</p>
+<blockquote>
+<div><p>[A, TrappingFrequency, Gamma]</p>
+</div></blockquote>
+<p>ParamsFitErr - Error in fitted parameters:</p>
+<blockquote>
+<div><p>[AErr, TrappingFrequencyErr, GammaErr]</p>
+</div></blockquote>
+<p><strong>fig</strong> : matplotlib.figure.Figure object</p>
+<blockquote>
+<div><p>figure object containing the plot</p>
+</div></blockquote>
+<p><strong>ax</strong> : matplotlib.axes.Axes object</p>
+<blockquote class="last">
+<div><dl class="docutils">
+<dt>axes with the data plotted of the:</dt>
+<dd><ul class="first last simple">
+<li>initial data</li>
+<li>smoothed data</li>
+<li>initial fit</li>
+<li>final fit</li>
+</ul>
+</dd>
+</dl>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="datahandling.datahandling.fit_curvefit">
+<code class="descclassname">datahandling.datahandling.</code><code class="descname">fit_curvefit</code><span class="sig-paren">(</span><em>p0</em>, <em>datax</em>, <em>datay</em>, <em>function</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/datahandling/datahandling.html#fit_curvefit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datahandling.datahandling.fit_curvefit" title="Permalink to this definition">¶</a></dt>
+<dd><p>Fits the data to a function using scipy.optimise.curve_fit</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>p0</strong> : array_like</p>
+<blockquote>
+<div><p>initial parameters to use for fitting</p>
+</div></blockquote>
+<p><strong>datax</strong> : array_like</p>
+<blockquote>
+<div><p>x data to use for fitting</p>
+</div></blockquote>
+<p><strong>datay</strong> : array_like</p>
+<blockquote>
+<div><p>y data to use for fitting</p>
+</div></blockquote>
+<p><strong>function</strong> : function</p>
+<blockquote>
+<div><p>funcion to be fit to the data</p>
+</div></blockquote>
+<p><strong>kwargs</strong></p>
+<blockquote>
+<div><p>keyword arguments to be passed to scipy.optimise.curve_fit</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>pfit_curvefit</strong> : array</p>
+<blockquote>
+<div><p>Optimal values for the parameters so that the sum of
+the squared residuals of f(xdata, <a href="#id1"><span class="problematic" id="id2">*</span></a>popt) - ydata is minimized</p>
+</div></blockquote>
+<p><strong>perr_curvefit</strong> : array</p>
+<blockquote class="last">
+<div><p>One standard deviation errors in the optimal values for
+the parameters</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="datahandling.datahandling.fm_discriminator">
+<code class="descclassname">datahandling.datahandling.</code><code class="descname">fm_discriminator</code><span class="sig-paren">(</span><em>Signal</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/datahandling/datahandling.html#fm_discriminator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datahandling.datahandling.fm_discriminator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates the digital FM discriminator from a real-valued time signal.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>Signal</strong> : array-like</p>
+<blockquote>
+<div><p>A real-valued time signal</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>fmDiscriminator</strong> : array-like</p>
+<blockquote class="last">
+<div><p>The digital FM discriminator of the argument signal</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="datahandling.datahandling.get_ZXY_data">
+<code class="descclassname">datahandling.datahandling.</code><code class="descname">get_ZXY_data</code><span class="sig-paren">(</span><em>Data</em>, <em>zf</em>, <em>xf</em>, <em>yf</em>, <em>FractionOfSampleFreq=1</em>, <em>zwidth=10000</em>, <em>xwidth=5000</em>, <em>ywidth=5000</em>, <em>ztransition=10000</em>, <em>xtransition=5000</em>, <em>ytransition=5000</em>, <em>filterImplementation='filtfilt'</em>, <em>timeStart='Default'</em>, <em>timeEnd='Default'</em>, <em>ShowFig=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/datahandling/datahandling.html#get_ZXY_data"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datahandling.datahandling.get_ZXY_data" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given a Data object and the frequencies of the z, x and y peaks (and some
+optional parameters for the created filters) this function extracts the
+individual z, x and y signals (in volts) by creating IIR filters and filtering
+the Data.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>Data</strong> : DataObject</p>
+<blockquote>
+<div><p>DataObject containing the data for which you want to extract the
+z, x and y signals.</p>
+</div></blockquote>
+<p><strong>zf</strong> : float</p>
+<blockquote>
+<div><p>The frequency of the z peak in the PSD</p>
+</div></blockquote>
+<p><strong>xf</strong> : float</p>
+<blockquote>
+<div><p>The frequency of the x peak in the PSD</p>
+</div></blockquote>
+<p><strong>yf</strong> : float</p>
+<blockquote>
+<div><p>The frequency of the y peak in the PSD</p>
+</div></blockquote>
+<p><strong>FractionOfSampleFreq</strong> : integer, optional</p>
+<blockquote>
+<div><p>The fraction of the sample frequency to sub-sample the data by.
+This sometimes needs to be done because a filter with the appropriate
+frequency response may not be generated using the sample rate at which
+the data was taken. Increasing this number means the x, y and z signals
+produced by this function will be sampled at a lower rate but a higher
+number means a higher chance that the filter produced will have a nice
+frequency response.</p>
+</div></blockquote>
+<p><strong>zwidth</strong> : float, optional</p>
+<blockquote>
+<div><p>The width of the pass-band of the IIR filter to be generated to
+filter Z.</p>
+</div></blockquote>
+<p><strong>xwidth</strong> : float, optional</p>
+<blockquote>
+<div><p>The width of the pass-band of the IIR filter to be generated to
+filter X.</p>
+</div></blockquote>
+<p><strong>ywidth</strong> : float, optional</p>
+<blockquote>
+<div><p>The width of the pass-band of the IIR filter to be generated to
+filter Y.</p>
+</div></blockquote>
+<p><strong>ztransition</strong> : float, optional</p>
+<blockquote>
+<div><p>The width of the transition-band of the IIR filter to be generated to
+filter Z.</p>
+</div></blockquote>
+<p><strong>xtransition</strong> : float, optional</p>
+<blockquote>
+<div><p>The width of the transition-band of the IIR filter to be generated to
+filter X.</p>
+</div></blockquote>
+<p><strong>ytransition</strong> : float, optional</p>
+<blockquote>
+<div><p>The width of the transition-band of the IIR filter to be generated to
+filter Y.</p>
+</div></blockquote>
+<p><strong>filterImplementation</strong> : string, optional</p>
+<blockquote>
+<div><p>filtfilt or lfilter - use scipy.filtfilt or lfilter
+default: filtfilt</p>
+</div></blockquote>
+<p><strong>timeStart</strong> : float, optional</p>
+<blockquote>
+<div><p>Starting time for filtering</p>
+</div></blockquote>
+<p><strong>timeEnd</strong> : float, optional</p>
+<blockquote>
+<div><p>Ending time for filtering</p>
+</div></blockquote>
+<p><strong>ShowFig</strong> : bool, optional</p>
+<blockquote>
+<div><p>If True - plot unfiltered and filtered PSD for z, x and y.
+If False - don&#8217;t plot anything</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>zdata</strong> : ndarray</p>
+<blockquote>
+<div><p>Array containing the z signal in volts with time.</p>
+</div></blockquote>
+<p><strong>xdata</strong> : ndarray</p>
+<blockquote>
+<div><p>Array containing the x signal in volts with time.</p>
+</div></blockquote>
+<p><strong>ydata</strong> : ndarray</p>
+<blockquote>
+<div><p>Array containing the y signal in volts with time.</p>
+</div></blockquote>
+<p><strong>timedata</strong> : ndarray</p>
+<blockquote class="last">
+<div><p>Array containing the time data to go with the z, x, and y signal.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="datahandling.datahandling.get_ZXY_data_IFFT">
+<code class="descclassname">datahandling.datahandling.</code><code class="descname">get_ZXY_data_IFFT</code><span class="sig-paren">(</span><em>Data</em>, <em>zf</em>, <em>xf</em>, <em>yf</em>, <em>zwidth=10000</em>, <em>xwidth=5000</em>, <em>ywidth=5000</em>, <em>timeStart='Default'</em>, <em>timeEnd='Default'</em>, <em>ShowFig=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/datahandling/datahandling.html#get_ZXY_data_IFFT"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datahandling.datahandling.get_ZXY_data_IFFT" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given a Data object and the frequencies of the z, x and y peaks (and some
+optional parameters for the created filters) this function extracts the
+individual z, x and y signals (in volts) by creating IIR filters and filtering
+the Data.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>Data</strong> : DataObject</p>
+<blockquote>
+<div><p>DataObject containing the data for which you want to extract the
+z, x and y signals.</p>
+</div></blockquote>
+<p><strong>zf</strong> : float</p>
+<blockquote>
+<div><p>The frequency of the z peak in the PSD</p>
+</div></blockquote>
+<p><strong>xf</strong> : float</p>
+<blockquote>
+<div><p>The frequency of the x peak in the PSD</p>
+</div></blockquote>
+<p><strong>yf</strong> : float</p>
+<blockquote>
+<div><p>The frequency of the y peak in the PSD</p>
+</div></blockquote>
+<p><strong>zwidth</strong> : float, optional</p>
+<blockquote>
+<div><p>The width of the pass-band of the IIR filter to be generated to
+filter Z.</p>
+</div></blockquote>
+<p><strong>xwidth</strong> : float, optional</p>
+<blockquote>
+<div><p>The width of the pass-band of the IIR filter to be generated to
+filter X.</p>
+</div></blockquote>
+<p><strong>ywidth</strong> : float, optional</p>
+<blockquote>
+<div><p>The width of the pass-band of the IIR filter to be generated to
+filter Y.</p>
+</div></blockquote>
+<p><strong>timeStart</strong> : float, optional</p>
+<blockquote>
+<div><p>Starting time for filtering</p>
+</div></blockquote>
+<p><strong>timeEnd</strong> : float, optional</p>
+<blockquote>
+<div><p>Ending time for filtering</p>
+</div></blockquote>
+<p><strong>ShowFig</strong> : bool, optional</p>
+<blockquote>
+<div><p>If True - plot unfiltered and filtered PSD for z, x and y.
+If False - don&#8217;t plot anything</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>zdata</strong> : ndarray</p>
+<blockquote>
+<div><p>Array containing the z signal in volts with time.</p>
+</div></blockquote>
+<p><strong>xdata</strong> : ndarray</p>
+<blockquote>
+<div><p>Array containing the x signal in volts with time.</p>
+</div></blockquote>
+<p><strong>ydata</strong> : ndarray</p>
+<blockquote>
+<div><p>Array containing the y signal in volts with time.</p>
+</div></blockquote>
+<p><strong>timedata</strong> : ndarray</p>
+<blockquote class="last">
+<div><p>Array containing the time data to go with the z, x, and y signal.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="datahandling.datahandling.get_ZXY_freqs">
+<code class="descclassname">datahandling.datahandling.</code><code class="descname">get_ZXY_freqs</code><span class="sig-paren">(</span><em>Data</em>, <em>zfreq</em>, <em>xfreq</em>, <em>yfreq</em>, <em>bandwidth=5000</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/datahandling/datahandling.html#get_ZXY_freqs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datahandling.datahandling.get_ZXY_freqs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Determines the exact z, x and y peak frequencies from approximate
+frequencies by finding the highest peak in the PSD &#8220;close to&#8221; the
+approximate peak frequency. By &#8220;close to&#8221; I mean within the range:
+approxFreq - bandwidth/2 to approxFreq + bandwidth/2</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>Data</strong> : DataObject</p>
+<blockquote>
+<div><p>DataObject containing the data for which you want to determine the
+z, x and y frequencies.</p>
+</div></blockquote>
+<p><strong>zfreq</strong> : float</p>
+<blockquote>
+<div><p>An approximate frequency for the z peak</p>
+</div></blockquote>
+<p><strong>xfreq</strong> : float</p>
+<blockquote>
+<div><p>An approximate frequency for the z peak</p>
+</div></blockquote>
+<p><strong>yfreq</strong> : float</p>
+<blockquote>
+<div><p>An approximate frequency for the z peak</p>
+</div></blockquote>
+<p><strong>bandwidth</strong> : float, optional</p>
+<blockquote>
+<div><p>The bandwidth around the approximate peak to look for the actual peak. The default value is 5000</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>trapfreqs</strong> : list</p>
+<blockquote class="last">
+<div><p>List containing the trap frequencies in the following order (z, x, y)</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="datahandling.datahandling.get_freq_response">
+<code class="descclassname">datahandling.datahandling.</code><code class="descname">get_freq_response</code><span class="sig-paren">(</span><em>a</em>, <em>b</em>, <em>ShowFig=True</em>, <em>SampleFreq=6.283185307179586</em>, <em>NumOfFreqs=500</em>, <em>whole=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/datahandling/datahandling.html#get_freq_response"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datahandling.datahandling.get_freq_response" title="Permalink to this definition">¶</a></dt>
+<dd><p>This function takes an array of coefficients and finds the frequency
+response of the filter using scipy.signal.freqz.
+ShowFig sets if the response should be plotted</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>b</strong> : array_like</p>
+<blockquote>
+<div><p>Coefficients multiplying the x values (inputs of the filter)</p>
+</div></blockquote>
+<p><strong>a</strong> : array_like</p>
+<blockquote>
+<div><p>Coefficients multiplying the y values (outputs of the filter)</p>
+</div></blockquote>
+<p><strong>ShowFig</strong> : bool, optional</p>
+<blockquote>
+<div><p>Verbosity of function (i.e. whether to plot frequency and phase
+response or whether to just return the values.)
+Options (Default is 1):
+False - Do not plot anything, just return values
+True - Plot Frequency and Phase response and return values</p>
+</div></blockquote>
+<p><strong>SampleFreq</strong> : float, optional</p>
+<blockquote>
+<div><p>Sample frequency (in Hz) to simulate (used to convert frequency range
+to normalised frequency range)</p>
+</div></blockquote>
+<p><strong>NumOfFreqs</strong> : int, optional</p>
+<blockquote>
+<div><p>Number of frequencies to use to simulate the frequency and phase
+response of the filter. Default is 500.</p>
+</div></blockquote>
+<p><strong>Whole</strong> : bool, optional</p>
+<blockquote>
+<div><p>Sets whether to plot the whole response (0 to sample freq)
+or just to plot 0 to Nyquist (SampleFreq/2): 
+False - (default) plot 0 to Nyquist (SampleFreq/2)
+True - plot the whole response (0 to sample freq)</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>freqList</strong> : ndarray</p>
+<blockquote>
+<div><p>Array containing the frequencies at which the gain is calculated</p>
+</div></blockquote>
+<p><strong>GainArray</strong> : ndarray</p>
+<blockquote>
+<div><p>Array containing the gain in dB of the filter when simulated
+(20*log_10(A_out/A_in))</p>
+</div></blockquote>
+<p><strong>PhaseDiffArray</strong> : ndarray</p>
+<blockquote class="last">
+<div><p>Array containing the phase response of the filter - phase
+difference between the input signal and output signal at
+different frequencies</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="datahandling.datahandling.load_data">
+<code class="descclassname">datahandling.datahandling.</code><code class="descname">load_data</code><span class="sig-paren">(</span><em>Filepath</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/datahandling/datahandling.html#load_data"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datahandling.datahandling.load_data" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>Filepath</strong> : string</p>
+<blockquote>
+<div><p>filepath to the file containing the data used to initialise
+and create an instance of the DataObject class</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>Data</strong> : DataObject</p>
+<blockquote class="last">
+<div><p>An instance of the DataObject class contaning the data
+that you requested to be loaded.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="datahandling.datahandling.moving_average">
+<code class="descclassname">datahandling.datahandling.</code><code class="descname">moving_average</code><span class="sig-paren">(</span><em>array</em>, <em>n=3</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/datahandling/datahandling.html#moving_average"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datahandling.datahandling.moving_average" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates the moving average of an array.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>array</strong> : array</p>
+<blockquote>
+<div><p>The array to have the moving average taken of</p>
+</div></blockquote>
+<p><strong>n</strong> : int</p>
+<blockquote>
+<div><p>The number of points of moving average to take</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>MovingAverageArray</strong> : array</p>
+<blockquote class="last">
+<div><p>The n-point moving average of the input array</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="datahandling.datahandling.multi_load_data">
+<code class="descclassname">datahandling.datahandling.</code><code class="descname">multi_load_data</code><span class="sig-paren">(</span><em>Channel</em>, <em>RunNos</em>, <em>RepeatNos</em>, <em>directoryPath='.'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/datahandling/datahandling.html#multi_load_data"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datahandling.datahandling.multi_load_data" title="Permalink to this definition">¶</a></dt>
+<dd><p>Lets you load multiple datasets at once.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>Channel</strong> : int</p>
+<blockquote>
+<div><p>The channel you want to load</p>
+</div></blockquote>
+<p><strong>RunNos</strong> : sequence</p>
+<blockquote>
+<div><p>Sequence of run numbers you want to load</p>
+</div></blockquote>
+<p><strong>RepeatNos</strong> : sequence</p>
+<blockquote>
+<div><p>Sequence of repeat numbers you want to load</p>
+</div></blockquote>
+<p><strong>directoryPath</strong> : string, optional</p>
+<blockquote>
+<div><p>The path to the directory housing the data
+The default is the current directory</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>Data</strong> : list</p>
+<blockquote class="last">
+<div><p>A list containing the DataObjects that were loaded.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="datahandling.datahandling.multi_plot_PSD">
+<code class="descclassname">datahandling.datahandling.</code><code class="descname">multi_plot_PSD</code><span class="sig-paren">(</span><em>DataArray, xlim=[0, 500000.0], LabelArray=[], ShowFig=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/datahandling/datahandling.html#multi_plot_PSD"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datahandling.datahandling.multi_plot_PSD" title="Permalink to this definition">¶</a></dt>
+<dd><p>plot the pulse spectral density for multiple data sets on the same
+axes.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>DataArray - array-like</strong></p>
+<blockquote>
+<div><p>array of DataObject instances for which to plot the PSDs</p>
+</div></blockquote>
+<p><strong>xlim - array-like, optional</strong></p>
+<blockquote>
+<div><p>2 element array specifying the lower and upper x limit for which to
+plot the Power Spectral Density</p>
+</div></blockquote>
+<p><strong>LabelArray - array-like, optional</strong></p>
+<blockquote>
+<div><p>array of labels for each data-set to be plotted</p>
+</div></blockquote>
+<p><strong>ShowFig</strong> : bool, optional</p>
+<blockquote>
+<div><p>If True runs plt.show() before returning figure
+if False it just returns the figure object.
+(the default is True, it shows the figure)</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>fig</strong> : matplotlib.figure.Figure object</p>
+<blockquote>
+<div><p>The figure object created</p>
+</div></blockquote>
+<p><strong>ax</strong> : matplotlib.axes.Axes object</p>
+<blockquote class="last">
+<div><p>The axes object created</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="datahandling.datahandling.multi_plot_time">
+<code class="descclassname">datahandling.datahandling.</code><code class="descname">multi_plot_time</code><span class="sig-paren">(</span><em>DataArray</em>, <em>SubSampleN=1</em>, <em>xlim='default'</em>, <em>ylim='default'</em>, <em>LabelArray=[]</em>, <em>ShowFig=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/datahandling/datahandling.html#multi_plot_time"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datahandling.datahandling.multi_plot_time" title="Permalink to this definition">¶</a></dt>
+<dd><p>plot the time trace for multiple data sets on the same axes.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>DataArray</strong> : array-like</p>
+<blockquote>
+<div><p>array of DataObject instances for which to plot the PSDs</p>
+</div></blockquote>
+<p><strong>SubSampleN</strong> : int, optional</p>
+<blockquote>
+<div><p>Number of intervals between points to remove (to sub-sample data so
+that you effectively have lower sample rate to make plotting easier
+and quicker.</p>
+</div></blockquote>
+<p><strong>xlim</strong> : array-like, optional</p>
+<blockquote>
+<div><p>2 element array specifying the lower and upper x limit for which to
+plot the time signal</p>
+</div></blockquote>
+<p><strong>LabelArray</strong> : array-like, optional</p>
+<blockquote>
+<div><p>array of labels for each data-set to be plotted</p>
+</div></blockquote>
+<p><strong>ShowFig</strong> : bool, optional</p>
+<blockquote>
+<div><p>If True runs plt.show() before returning figure
+if False it just returns the figure object.
+(the default is True, it shows the figure)</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>fig</strong> : matplotlib.figure.Figure object</p>
+<blockquote>
+<div><p>The figure object created</p>
+</div></blockquote>
+<p><strong>ax</strong> : matplotlib.axes.Axes object</p>
+<blockquote class="last">
+<div><p>The axes object created</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="datahandling.datahandling.multi_subplots_time">
+<code class="descclassname">datahandling.datahandling.</code><code class="descname">multi_subplots_time</code><span class="sig-paren">(</span><em>DataArray</em>, <em>SubSampleN=1</em>, <em>xlim='default'</em>, <em>ylim='default'</em>, <em>LabelArray=[]</em>, <em>ShowFig=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/datahandling/datahandling.html#multi_subplots_time"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datahandling.datahandling.multi_subplots_time" title="Permalink to this definition">¶</a></dt>
+<dd><p>plot the time trace on multiple axes</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>DataArray</strong> : array-like</p>
+<blockquote>
+<div><p>array of DataObject instances for which to plot the PSDs</p>
+</div></blockquote>
+<p><strong>SubSampleN</strong> : int, optional</p>
+<blockquote>
+<div><p>Number of intervals between points to remove (to sub-sample data so
+that you effectively have lower sample rate to make plotting easier
+and quicker.</p>
+</div></blockquote>
+<p><strong>xlim</strong> : array-like, optional</p>
+<blockquote>
+<div><p>2 element array specifying the lower and upper x limit for which to
+plot the time signal</p>
+</div></blockquote>
+<p><strong>LabelArray</strong> : array-like, optional</p>
+<blockquote>
+<div><p>array of labels for each data-set to be plotted</p>
+</div></blockquote>
+<p><strong>ShowFig</strong> : bool, optional</p>
+<blockquote>
+<div><p>If True runs plt.show() before returning figure
+if False it just returns the figure object.
+(the default is True, it shows the figure)</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>fig</strong> : matplotlib.figure.Figure object</p>
+<blockquote>
+<div><p>The figure object created</p>
+</div></blockquote>
+<p><strong>axs</strong> : list of matplotlib.axes.Axes objects</p>
+<blockquote class="last">
+<div><p>The list of axes object created</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="datahandling.datahandling.parse_orgtable">
+<code class="descclassname">datahandling.datahandling.</code><code class="descname">parse_orgtable</code><span class="sig-paren">(</span><em>lines</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/datahandling/datahandling.html#parse_orgtable"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datahandling.datahandling.parse_orgtable" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parse an org-table (input as a list of strings split by newline)
+into a Pandas data frame.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>lines</strong> : string</p>
+<blockquote>
+<div><p>an org-table input as a list of strings split by newline</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>dataframe</strong> : pandas.DataFrame</p>
+<blockquote class="last">
+<div><p>A data frame containing the org-table&#8217;s data</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="datahandling.datahandling.take_closest">
+<code class="descclassname">datahandling.datahandling.</code><code class="descname">take_closest</code><span class="sig-paren">(</span><em>myList</em>, <em>myNumber</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/datahandling/datahandling.html#take_closest"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datahandling.datahandling.take_closest" title="Permalink to this definition">¶</a></dt>
+<dd><p>Assumes myList is sorted. Returns closest value to myNumber.
+If two numbers are equally close, return the smallest number.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>myList</strong> : array</p>
+<blockquote>
+<div><p>The list in which to find the closest value to myNumber</p>
+</div></blockquote>
+<p><strong>myNumber</strong> : float</p>
+<blockquote>
+<div><p>The number to find the closest to in MyList</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>closestValue</strong> : float</p>
+<blockquote class="last">
+<div><p>The number closest to myNumber in myList</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="module-datahandling">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-datahandling" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="datahandling">
+<h3>datahandling<a class="headerlink" href="#datahandling" title="Permalink to this headline">¶</a></h3>
+<dl class="docutils">
+<dt>Package of functions for the Matter-Wave Interferometry</dt>
+<dd>group for handling experimental data.</dd>
+</dl>
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">datahandling package</a><ul>
+<li><a class="reference internal" href="#subpackages">Subpackages</a></li>
+<li><a class="reference internal" href="#submodules">Submodules</a></li>
+<li><a class="reference internal" href="#module-datahandling.datahandling">datahandling.datahandling module</a></li>
+<li><a class="reference internal" href="#module-datahandling">Module contents</a><ul>
+<li><a class="reference internal" href="#datahandling">datahandling</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+  </ul></li>
+</ul>
+</div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/datahandling.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Ashley Setter.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.5.5</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+      |
+      <a href="_sources/datahandling.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>
