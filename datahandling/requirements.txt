@@ -10,4 +10,5 @@ seaborn
 pytest
 pytest-cov
 pytest-mpl
+numpydoc
 #
