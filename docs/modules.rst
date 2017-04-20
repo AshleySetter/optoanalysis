@@ -5,4 +5,3 @@ datahandling
    :maxdepth: 4
 
    datahandling
-   setup

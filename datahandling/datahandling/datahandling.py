@@ -20,71 +20,6 @@ import warnings as _warnings
 from scipy.signal import hilbert as _hilbert
 
 
-def load_data(Filepath):
-    """
-    Parameters
-    ----------
-        Filepath : string
-            filepath to the file containing the data used to initialise
-            and create an instance of the DataObject class
-
-    Returns
-    -------
-        Data : DataObject
-            An instance of the DataObject class contaning the data
-            that you requested to be loaded.
-    """
-    print("Loading data from {}".format(Filepath))
-    return DataObject(Filepath)
-
-
-def multi_load_data(Channel, RunNos, RepeatNos, directoryPath='.'):
-    """
-    Lets you load multiple datasets at once.
-
-    Parameters
-    ----------
-    Channel : int
-        The channel you want to load
-    RunNos : sequence
-        Sequence of run numbers you want to load
-    RepeatNos : sequence
-        Sequence of repeat numbers you want to load
-    directoryPath : string, optional
-        The path to the directory housing the data
-        The default is the current directory
-
-    Returns
-    -------
-    Data : list
-        A list containing the DataObjects that were loaded. 
-    """
-    files = glob('{}/*'.format(directoryPath))
-    files_CorrectChannel = []
-    for file_ in files:
-        if 'CH{}'.format(Channel) in file_:
-            files_CorrectChannel.append(file_)
-    files_CorrectRunNo = []
-    for RunNo in RunNos:
-        files_match = _fnmatch.filter(
-            files_CorrectChannel, '*RUN*0{}_*'.format(RunNo))
-        for file_ in files_match:
-            files_CorrectRunNo.append(file_)
-    files_CorrectRepeatNo = []
-    for RepeatNo in RepeatNos:
-        files_match = _fnmatch.filter(
-            files_CorrectRunNo, '*REPEAT*0{}.*'.format(RepeatNo))
-        for file_ in files_match:
-            files_CorrectRepeatNo.append(file_)
-    cpu_count = _cpu_count()
-    workerPool = _Pool(cpu_count)
-    # for filepath in files_CorrectRepeatNo:
-    #    print(filepath)
-    #    data.append(load_data(filepath))
-    data = workerPool.map(load_data, files_CorrectRepeatNo)
-    return data
-
-
 class DataObject():
     """
     Creates an object containing data and all it's properties.
@@ -622,7 +557,110 @@ class DataObject():
             _plt.show()
 
         return VarZ, VarZV, JP1, self.Mass
+class PressureData():
+    """
+    Class for reading in pressure data from org-mode tables.
 
+    The table must containing columns the following headings 
+    formatted as in the example below:
+
+    | RunNo | Pressure (mbar) |
+    |   1   |     1.35E-2        |
+
+    In this case the run number would be 1 and the pressure would
+    be 1.35E-2 mbar (0.00135 mbar).
+    """
+    def __init__(self, filename):
+        """
+        Opens the org-mode table file, reads the file in as a string,
+        and runs parse_orgtable in order to read the pressure.
+        """
+        with open(filename, 'r') as file:
+            fileContents = file.readlines()
+        self.PressureData = parse_orgtable(fileContents)
+
+    def get_pressure(self, RunNo):
+        """
+        Retreives the pressure value (in mbar) associated 
+        with a particular run number.
+
+        Parameters
+        ----------
+        RunNo : int
+            The run number for which to retreive the pressure value
+        
+        Returns
+        -------
+        Pressure : float
+            The pressure (in mbar) for this run number
+        """
+        Pressure = float(self.PressureData[self.PressureData.RunNo == '{}'.format(
+            RunNo)]['Pressure (mbar)'])
+        return Pressure
+    
+def load_data(Filepath):
+    """
+    Parameters
+    ----------
+        Filepath : string
+            filepath to the file containing the data used to initialise
+            and create an instance of the DataObject class
+
+    Returns
+    -------
+        Data : DataObject
+            An instance of the DataObject class contaning the data
+            that you requested to be loaded.
+    """
+    print("Loading data from {}".format(Filepath))
+    return DataObject(Filepath)
+
+
+def multi_load_data(Channel, RunNos, RepeatNos, directoryPath='.'):
+    """
+    Lets you load multiple datasets at once.
+
+    Parameters
+    ----------
+    Channel : int
+        The channel you want to load
+    RunNos : sequence
+        Sequence of run numbers you want to load
+    RepeatNos : sequence
+        Sequence of repeat numbers you want to load
+    directoryPath : string, optional
+        The path to the directory housing the data
+        The default is the current directory
+
+    Returns
+    -------
+    Data : list
+        A list containing the DataObjects that were loaded. 
+    """
+    files = glob('{}/*'.format(directoryPath))
+    files_CorrectChannel = []
+    for file_ in files:
+        if 'CH{}'.format(Channel) in file_:
+            files_CorrectChannel.append(file_)
+    files_CorrectRunNo = []
+    for RunNo in RunNos:
+        files_match = _fnmatch.filter(
+            files_CorrectChannel, '*RUN*0{}_*'.format(RunNo))
+        for file_ in files_match:
+            files_CorrectRunNo.append(file_)
+    files_CorrectRepeatNo = []
+    for RepeatNo in RepeatNos:
+        files_match = _fnmatch.filter(
+            files_CorrectRunNo, '*REPEAT*0{}.*'.format(RepeatNo))
+        for file_ in files_match:
+            files_CorrectRepeatNo.append(file_)
+    cpu_count = _cpu_count()
+    workerPool = _Pool(cpu_count)
+    # for filepath in files_CorrectRepeatNo:
+    #    print(filepath)
+    #    data.append(load_data(filepath))
+    data = workerPool.map(load_data, files_CorrectRepeatNo)
+    return data
 
 def calc_temp(Data_ref, Data):
     """
@@ -1389,7 +1427,6 @@ def animate(zdata, xdata, ydata,
     anim.save('{}.mp4'.format(filename), writer=mywriter)
     return None
 
-
 def IFFT_filter(Signal, SampleFreq, lowerFreq, upperFreq):
     """
     Filters data using fft -> zeroing out fft bins -> ifft
@@ -1974,45 +2011,3 @@ def parse_orgtable(lines):
     dataframe = _pd.DataFrame(data=data, columns=columns)
     dataframe.set_index("RunNo")
     return dataframe
-
-
-class PressureData():
-    """
-    Class for reading in pressure data from org-mode tables.
-
-    The table must containing columns the following headings 
-    formatted as in the example below:
-
-    | RunNo | Pressure (mbar) |
-    |   1   |     1.35E-2        |
-
-    In this case the run number would be 1 and the pressure would
-    be 1.35E-2 mbar (0.00135 mbar).
-    """
-    def __init__(self, filename):
-        """
-        Opens the org-mode table file, reads the file in as a string,
-        and runs parse_orgtable in order to read the pressure.
-        """
-        with open(filename, 'r') as file:
-            fileContents = file.readlines()
-        self.PressureData = parse_orgtable(fileContents)
-
-    def get_pressure(self, RunNo):
-        """
-        Retreives the pressure value (in mbar) associated 
-        with a particular run number.
-
-        Parameters
-        ----------
-        RunNo : int
-            The run number for which to retreive the pressure value
-        
-        Returns
-        -------
-        Pressure : float
-            The pressure (in mbar) for this run number
-        """
-        Pressure = float(self.PressureData[self.PressureData.RunNo == '{}'.format(
-            RunNo)]['Pressure (mbar)'])
-        return Pressure

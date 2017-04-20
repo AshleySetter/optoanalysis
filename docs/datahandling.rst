@@ -7,7 +7,7 @@ Subpackages
 .. toctree::
 
     datahandling.LeCroy
-    datahandling.SimData
+..    datahandling.SimData
 
 Submodules
 ----------
