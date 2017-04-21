@@ -18,6 +18,8 @@ This is the documentation for the datahandling library produced primarily by `As
    :caption: Documentation:
 
    datahandling
+   datahandling.SimData
+   datahandling.LeCroy
 
 Indices and tables
 ==================
