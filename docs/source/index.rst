@@ -13,6 +13,11 @@ This is the documentation for the datahandling library produced primarily by `As
    :maxdepth: 2
    :caption: Contents:
 
+.. toctree::
+   :maxdepth: 1
+   :caption: Documentation:
+
+   datahandling
 
 Indices and tables
 ==================
