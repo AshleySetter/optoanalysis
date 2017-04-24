@@ -604,12 +604,14 @@ class ORGTableData():
     Class for reading in general data from org-mode tables.
 
 
-    The table must containing columns the following headings 
-    formatted as in the example below:
+    The table must be formatted as in the example below:
 
     | RunNo | ColumnName1 | ColumnName2 |
     |-------+-------------+-------------|
     |   3   |     14      |     15e3    |
+
+    In this case the run number would be 3 and the ColumnName2-value would
+    be 15e3 (15000.0).
 
     """
     def __init__(self, filename):
