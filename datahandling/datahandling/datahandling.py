@@ -566,9 +566,11 @@ class ORGTableData():
 
     The table must be formatted as in the example below:
 
+    ```
     | RunNo | ColumnName1 | ColumnName2 |
     |-------+-------------+-------------|
     |   3   |     14      |     15e3    |
+    ```
 
     In this case the run number would be 3 and the ColumnName2-value would
     be 15e3 (15000.0).
