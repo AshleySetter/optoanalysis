@@ -565,7 +565,8 @@ class PressureData():
     formatted as in the example below:
 
     | RunNo | Pressure (mbar) |
-    |   1   |     1.35E-2        |
+    |-------+-----------------|
+    |   1   |     1.35E-2     |
 
     In this case the run number would be 1 and the pressure would
     be 1.35E-2 mbar (0.00135 mbar).
@@ -597,6 +598,53 @@ class PressureData():
         Pressure = float(self.PressureData[self.PressureData.RunNo == '{}'.format(
             RunNo)]['Pressure (mbar)'])
         return Pressure
+
+class ORGTableData():
+    """
+    Class for reading in general data from org-mode tables.
+
+
+    The table must be formatted as in the example below:
+
+    | RunNo | ColumnName1 | ColumnName2 |
+    |-------+-------------+-------------|
+    |   3   |     14      |     15e3    |
+
+    In this case the run number would be 3 and the ColumnName2-value would
+    be 15e3 (15000.0).
+
+    """
+    def __init__(self, filename):
+        """
+        Opens the org-mode table file, reads the file in as a string,
+        and runs parse_orgtable in order to read the pressure.
+        """
+        with open(filename, 'r') as file:
+            fileContents = file.readlines()
+        self.ORGTableData = parse_orgtable(fileContents)
+
+    def get_value(self, ColumnName, RunNo):
+        """
+        Retreives the value of the collumn named ColumnName associated 
+        with a particular run number.
+
+        Parameters
+        ----------
+        ColumnName : string
+            The name of the desired org-mode table's collumn
+
+        RunNo : int
+            The run number for which to retreive the pressure value
+        
+        Returns
+        -------
+        Value : float
+            The value for the column's name and associated run number
+        """
+        Value = float(self.ORGTableData[self.ORGTableData.RunNo == '{}'.format(
+            RunNo)][ColumnName])
+        
+        return Value 
     
 def load_data(Filepath):
     """
