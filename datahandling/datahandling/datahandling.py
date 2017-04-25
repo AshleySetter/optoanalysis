@@ -557,48 +557,8 @@ class DataObject():
             _plt.show()
 
         return VarZ, VarZV, JP1, self.Mass
-class PressureData():
-    """
-    Class for reading in pressure data from org-mode tables.
 
-    The table must containing columns the following headings 
-    formatted as in the example below:
-
-    | RunNo | Pressure (mbar) |
-    |-------+-----------------|
-    |   1   |     1.35E-2     |
-
-    In this case the run number would be 1 and the pressure would
-    be 1.35E-2 mbar (0.00135 mbar).
-    """
-    def __init__(self, filename):
-        """
-        Opens the org-mode table file, reads the file in as a string,
-        and runs parse_orgtable in order to read the pressure.
-        """
-        with open(filename, 'r') as file:
-            fileContents = file.readlines()
-        self.PressureData = parse_orgtable(fileContents)
-
-    def get_pressure(self, RunNo):
-        """
-        Retreives the pressure value (in mbar) associated 
-        with a particular run number.
-
-        Parameters
-        ----------
-        RunNo : int
-            The run number for which to retreive the pressure value
-        
-        Returns
-        -------
-        Pressure : float
-            The pressure (in mbar) for this run number
-        """
-        Pressure = float(self.PressureData[self.PressureData.RunNo == '{}'.format(
-            RunNo)]['Pressure (mbar)'])
-        return Pressure
-
+    
 class ORGTableData():
     """
     Class for reading in general data from org-mode tables.
