@@ -1,12 +1,13 @@
 from distutils.core import setup
 import os
 
-with open('requirements.txt') as f:
-    requirements = f.read().splitlines()
-
 mypackage_root_dir = os.path.dirname(__file__)
-version_file = open(os.path.join(mypackage_root_dir, 'datahandling/VERSION'))
-version = version_file.read().strip()
+with open(os.path.join(mypackage_root_dir, 'requirements.txt')) as requirements_file:
+    requirements = requirements_file.read().splitlines()
+
+with open(os.path.join(mypackage_root_dir, 'datahandling/VERSION')) as version_file:
+    version = version_file.read().strip()
+
 
 setup(name='datahandling',
       version=version,
