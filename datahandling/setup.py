@@ -1,4 +1,4 @@
-from distutils.core import setup
+from setuptools import setup
 import os
 
 mypackage_root_dir = os.path.dirname(__file__)
