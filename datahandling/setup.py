@@ -1,19 +1,22 @@
-from distutils.core import setup
+from setuptools import setup
 import os
 
-with open('requirements.txt') as f:
-    requirements = f.read().splitlines()
-
 mypackage_root_dir = os.path.dirname(__file__)
-version_file = open(os.path.join(mypackage_root_dir, 'datahandling/VERSION'))
-version = version_file.read().strip()
+with open(os.path.join(mypackage_root_dir, 'requirements.txt')) as requirements_file:
+    requirements = requirements_file.read().splitlines()
+
+with open(os.path.join(mypackage_root_dir, 'datahandling/VERSION')) as version_file:
+    version = version_file.read().strip()
+
 
 setup(name='datahandling',
       version=version,
       description='Python package with functions for data analysis',
       author='Ashley Setter',
       author_email='A.Setter@soton.ac.uk',
-      url=None,
+      url="https://github.com/AshleySetter/datahandling",
+      download_url="https://github.com/AshleySetter/datahandling/archive/{}.tar.gz".format(version),
+      include_package_data=True,
       packages=['datahandling',
                 'datahandling.LeCroy',
                 'datahandling.SimData',
