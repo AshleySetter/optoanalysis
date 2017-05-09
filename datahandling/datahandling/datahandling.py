@@ -607,6 +607,7 @@ class ORGTableData():
             RunNo)][ColumnName])
         
         return Value 
+
     
 def load_data(Filepath):
     """
@@ -1647,7 +1648,7 @@ def get_freq_response(a, b, ShowFig=True, SampleFreq=(2 * _np.pi), NumOfFreqs=50
     return freqList, GainArray, PhaseDiffArray, fig1, ax1, fig2, ax2
 
 
-def multi_plot_PSD(DataArray, xlim=[0, 500e3], LabelArray=[], ColorArray=[], ShowFig=True):
+def multi_plot_PSD(DataArray, xlim=[0, 500e3], LabelArray=[], ColorArray=[], alphaArray=[], ShowFig=True):
     """
     plot the pulse spectral density for multiple data sets on the same
     axes.
@@ -1678,15 +1679,24 @@ def multi_plot_PSD(DataArray, xlim=[0, 500e3], LabelArray=[], ColorArray=[], Sho
     if LabelArray == []:
         LabelArray = ["DataSet {}".format(i)
                       for i in _np.arange(0, len(DataArray), 1)]
-        
+    if ColorArray == []:
+        ColorArray = _np.empty(len(DataArray))
+        ColorArray = list(ColorArray)
+        for i, ele in enumerate(ColorArray):
+            ColorArray[i] = None    
+
+    if alphaArray == []:
+        alphaArray = _np.empty(len(DataArray))
+        alphaArray = list(alphaArray)
+        for i, ele in enumerate(alphaArray):
+            alphaArray[i] = None    
+
+            
     fig = _plt.figure(figsize=[10, 6])
     ax = fig.add_subplot(111)
 
     for i, data in enumerate(DataArray):
-        if len(ColorArray) != 0:
-            ax.semilogy(data.freqs, data.PSD, alpha=0.8, label=LabelArray[i], color=ColorArray[i])
-        else:
-            ax.semilogy(data.freqs, data.PSD, alpha=0.8, label=LabelArray[i])
+        ax.semilogy(data.freqs, data.PSD, label=LabelArray[i], color=ColorArray[i], alpha=alphaArray[i])
             
     ax.set_xlabel("Frequency (Hz)")
     ax.set_xlim(xlim)
