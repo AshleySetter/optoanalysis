@@ -1,4 +1,5 @@
 import datahandling.LeCroy
+import datahandling.Saleae
 import matplotlib.pyplot as _plt
 import numpy as _np
 import scipy.signal
@@ -32,8 +33,6 @@ class DataObject():
     filename : string
             filename of the file containing the data used to initialise
             this particular instance of the DataObject class
-    waveDescription : dictionary
-            Contains various information about the data as it was collected.
     time : ndarray
             Contains the time data in seconds
     voltage : ndarray
@@ -49,7 +48,7 @@ class DataObject():
 
     """
 
-    def __init__(self, filepath):
+    def __init__(self, filepath, RelativeChannelNo=None):
         """
         Parameters
         ----------
@@ -68,11 +67,11 @@ class DataObject():
         self.filepath = filepath
         self.filename = filepath.split("/")[-1]
         self.filedir = self.filepath[0:-len(self.filename)]
-        self.get_time_data()
+        self.get_time_data(RelativeChannelNo)
         self.get_PSD()
         return None
 
-    def get_time_data(self):
+    def get_time_data(self, RelativeChannelNo=None):
         """
         Gets the time and voltage data and the wave description.
 
@@ -87,9 +86,16 @@ class DataObject():
         f = open(self.filepath, 'rb')
         raw = f.read()
         f.close()
-        self.waveDescription, self.time, self.voltage, _ = \
-            datahandling.LeCroy.InterpretWaveform(raw)
-        self.SampleFreq = (1 / self.waveDescription["HORIZ_INTERVAL"])
+        FileExtension = self.filepath.split('.')[-1]
+        if FileExtension == "raw" or FileExtension == "trc":
+            waveDescription, self.time, self.voltage, _ = \
+                                                               datahandling.LeCroy.InterpretWaveform(raw)
+            self.SampleFreq = (1 / waveDescription["HORIZ_INTERVAL"])
+        elif FileExtension == "bin":
+            if RelativeChannelNo == None:
+                raise ValueError("If loading a .bin file from the Saleae data logger you must enter a relative channel number to load")
+            self.time, self.voltage, SampleTime = datahandling.Saleae.interpret_waveform(raw, RelativeChannelNo)
+            self.SampleFreq = 1/SampleTime
         return self.time, self.voltage
 
     def plot_time_data(self, timeStart="Default", timeEnd="Default", ShowFig=True):
@@ -608,7 +614,7 @@ class ORGTableData():
         
         return Value 
     
-def load_data(Filepath):
+def load_data(Filepath, RelativeChannelNo=None):
     """
     Parameters
     ----------
@@ -623,7 +629,7 @@ def load_data(Filepath):
             that you requested to be loaded.
     """
     print("Loading data from {}".format(Filepath))
-    return DataObject(Filepath)
+    return DataObject(Filepath, RelativeChannelNo)
 
 
 def multi_load_data(Channel, RunNos, RepeatNos, directoryPath='.'):
