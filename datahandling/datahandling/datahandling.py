@@ -613,6 +613,7 @@ class ORGTableData():
             RunNo)][ColumnName])
         
         return Value 
+
     
 def load_data(Filepath, RelativeChannelNo=None):
     """
@@ -1622,37 +1623,38 @@ def get_freq_response(a, b, ShowFig=True, SampleFreq=(2 * _np.pi), NumOfFreqs=50
     himag = _np.array([hi.imag for hi in h])
     GainArray = 20 * _np.log10(_np.abs(h))
     PhaseDiffArray = _np.unwrap(_np.arctan2(_np.imag(h), _np.real(h)))
+
+    fig1 = _plt.figure()
+    ax1 = fig1.add_subplot(111)
+    ax1.plot(freqList, GainArray, '-', label="Specified Filter")
+    ax1.set_title("Frequency Response")
+    if SampleFreq == 2 * _np.pi:
+        ax1.set_xlabel(("$\Omega$ - Normalized frequency "
+                       "($\pi$=Nyquist Frequency)"))
+    else:
+        ax1.set_xlabel("frequency (Hz)")
+    ax1.set_ylabel("Gain (dB)")
+    ax1.set_xlim([0, SampleFreq / 2.0])
     if ShowFig == True:
-        fig1 = _plt.figure()
-        ax = fig1.add_subplot(111)
-        ax.plot(freqList, GainArray, '-', label="Specified Filter")
-        ax.set_title("Frequency Response")
-        if SampleFreq == 2 * _np.pi:
-            ax.set_xlabel(("$\Omega$ - Normalized frequency "
-                           "($\pi$=Nyquist Frequency)"))
-        else:
-            ax.set_xlabel("frequency (Hz)")
-        ax.set_ylabel("Gain (dB)")
-        ax.set_xlim([0, SampleFreq / 2.0])
         _plt.show()
-        fig2 = _plt.figure()
-        ax = fig2.add_subplot(111)
-        ax.plot(freqList, PhaseDiffArray, '-', label="Specified Filter")
-        ax.set_title("Phase Response")
-        if SampleFreq == 2 * _np.pi:
-            ax.set_xlabel(("$\Omega$ - Normalized frequency "
-                           "($\pi$=Nyquist Frequency)"))
-        else:
-            ax.set_xlabel("frequency (Hz)")
+    fig2 = _plt.figure()
+    ax2 = fig2.add_subplot(111)
+    ax2.plot(freqList, PhaseDiffArray, '-', label="Specified Filter")
+    ax2.set_title("Phase Response")
+    if SampleFreq == 2 * _np.pi:
+        ax2.set_xlabel(("$\Omega$ - Normalized frequency "
+                       "($\pi$=Nyquist Frequency)"))
+    else:
+        ax2.set_xlabel("frequency (Hz)")
 
-        ax.set_ylabel("Phase Difference")
-        ax.set_xlim([0, SampleFreq / 2.0])
+    ax2.set_ylabel("Phase Difference")
+    ax2.set_xlim([0, SampleFreq / 2.0])
+    if ShowFig == True:
         _plt.show()
+    return freqList, GainArray, PhaseDiffArray, fig1, ax1, fig2, ax2
 
-    return freqList, GainArray, PhaseDiffArray
 
-
-def multi_plot_PSD(DataArray, xlim=[0, 500e3], LabelArray=[], ShowFig=True):
+def multi_plot_PSD(DataArray, xlim=[0, 500e3], LabelArray=[], ColorArray=[], alphaArray=[], ShowFig=True):
     """
     plot the pulse spectral density for multiple data sets on the same
     axes.
@@ -1666,6 +1668,8 @@ def multi_plot_PSD(DataArray, xlim=[0, 500e3], LabelArray=[], ShowFig=True):
         plot the Power Spectral Density
     LabelArray - array-like, optional
         array of labels for each data-set to be plotted
+    ColorArray - array-like, optional
+        array of colors for each data-set to be plotted
     ShowFig : bool, optional
        If True runs plt.show() before returning figure
        if False it just returns the figure object.
@@ -1681,11 +1685,25 @@ def multi_plot_PSD(DataArray, xlim=[0, 500e3], LabelArray=[], ShowFig=True):
     if LabelArray == []:
         LabelArray = ["DataSet {}".format(i)
                       for i in _np.arange(0, len(DataArray), 1)]
+    if ColorArray == []:
+        ColorArray = _np.empty(len(DataArray))
+        ColorArray = list(ColorArray)
+        for i, ele in enumerate(ColorArray):
+            ColorArray[i] = None    
+
+    if alphaArray == []:
+        alphaArray = _np.empty(len(DataArray))
+        alphaArray = list(alphaArray)
+        for i, ele in enumerate(alphaArray):
+            alphaArray[i] = None    
+
+            
     fig = _plt.figure(figsize=[10, 6])
     ax = fig.add_subplot(111)
 
     for i, data in enumerate(DataArray):
-        ax.semilogy(data.freqs, data.PSD, alpha=0.8, label=LabelArray[i])
+        ax.semilogy(data.freqs, data.PSD, label=LabelArray[i], color=ColorArray[i], alpha=alphaArray[i])
+            
     ax.set_xlabel("Frequency (Hz)")
     ax.set_xlim(xlim)
     ax.grid(which="major")
