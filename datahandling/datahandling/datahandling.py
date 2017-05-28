@@ -2045,3 +2045,89 @@ def parse_orgtable(lines):
     dataframe = _pd.DataFrame(data=data, columns=columns)
     dataframe.set_index("RunNo")
     return dataframe
+
+def plot_3d_dist(Z, X, Y, N=1000, AxisOffset=0, LowLim="Default", HighLim="Default", ShowFig=True):
+    """
+    Plots Z, X and Y as a 3d scatter plot with heatmaps of each axis pair.
+
+    Parameters
+    ----------
+    Z : ndarray
+        Array of Z positions with time
+    X : ndarray
+        Array of X positions with time
+    Y : ndarray
+        Array of Y positions with time
+    N : optional, int
+        Number of time points to plot (Defaults to 1000)
+    AxisOffset : optional, double
+        Offset to add to each axis from the data - used to get a better view
+        of the heat maps (Defaults to 0)
+    LowLim : optional, double
+        Lower limit of x, y and z axis
+    HighLim : optional, double
+        Upper limit of x, y and z axis
+    ShowFig : optional, bool
+        Whether to show the produced figure before returning
+
+    Returns
+    -------
+    fig : plt.figure
+        The figure object created
+    ax : fig.add_subplot(111)
+        The subplot object created
+    """
+    y = Z[0:N]
+    x = X[0:N]
+    z = Y[0:N]
+
+    angle = -40
+    fig = _plt.figure(figsize=(8, 6))
+    ax = fig.add_subplot(111, projection='3d')
+    ax.scatter(x, y, z, alpha=0.3)
+
+    xlim = ax.get_xlim()
+    ylim = ax.get_ylim()
+    zlim = ax.get_zlim()
+    if LowLim != "Default":
+        lowLim = LowLim - AxisOffset
+    else:
+        lowLim = min([xlim[0], ylim[0], zlim[0]]) - AxisOffset
+    if HighLim != "Default":
+        highLim = HighLim + AxisOffset
+    else:
+        highLim = max([xlim[1], ylim[1], zlim[1]]) + AxisOffset
+    ax.set_xlim([lowLim, highLim])
+    ax.set_ylim([lowLim, highLim])
+    ax.set_zlim([lowLim, highLim])
+    ax.set_xlabel("x (nm)")
+    ax.set_ylabel("z (nm)")
+    ax.set_zlabel("y (nm)")
+    ax.view_init(30, angle)
+
+    h, yedges, zedges = _np.histogram2d(y, z, bins=50)
+    h = h.transpose()
+    normalized_map = _plt.cm.Blues(h/h.max())
+    yy, zz = _np.meshgrid(yedges, zedges)
+    xpos = lowLim # Plane of histogram
+    xflat = _np.full_like(yy, xpos) 
+    p = ax.plot_surface(xflat, yy, zz, facecolors=normalized_map, rstride=1, cstride=1, shade=False)
+
+    h, xedges, zedges = _np.histogram2d(x, z, bins=50)
+    h = h.transpose()
+    normalized_map = _plt.cm.Blues(h/h.max())
+    xx, zz = _np.meshgrid(xedges, zedges)
+    ypos = highLim # Plane of histogram
+    yflat = _np.full_like(xx, ypos) 
+    p = ax.plot_surface(xx, yflat, zz, facecolors=normalized_map, rstride=1, cstride=1, shade=False)
+
+    h, yedges, xedges = _np.histogram2d(y, x, bins=50)
+    h = h.transpose()
+    normalized_map = _plt.cm.Blues(h/h.max())
+    yy, xx = _np.meshgrid(yedges, xedges)
+    zpos = lowLim # Plane of histogram
+    zflat = _np.full_like(yy, zpos) 
+    p = ax.plot_surface(xx, yy, zflat, facecolors=normalized_map, rstride=1, cstride=1, shade=False)
+    if ShowFig == True:
+        _plt.show()
+    return fig, ax
