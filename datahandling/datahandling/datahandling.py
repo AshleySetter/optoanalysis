@@ -2142,9 +2142,9 @@ def plot_3d_dist(Z, X, Y, N=1000, AxisOffset=0, LowLim="Default", HighLim="Defau
     ax.set_xlim([lowLim, highLim])
     ax.set_ylim([lowLim, highLim])
     ax.set_zlim([lowLim, highLim])
-    ax.set_xlabel("x (nm)")
-    ax.set_ylabel("z (nm)")
-    ax.set_zlabel("y (nm)")
+    ax.set_xlabel("x")
+    ax.set_ylabel("z")
+    ax.set_zlabel("y")
     ax.view_init(30, angle)
 
     h, yedges, zedges = _np.histogram2d(y, z, bins=50)
