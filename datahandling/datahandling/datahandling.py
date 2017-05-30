@@ -1859,7 +1859,7 @@ def multi_subplots_time(DataArray, SubSampleN=1, units='s', xlim="default", ylim
     fig, axs = _plt.subplots(NumDataSets, 1)
 
     for i, data in enumerate(DataArray):
-        axs[i].plot(unit_conversion(data.time[::SubSampleN] unit_prefix), data.voltage[::SubSampleN],
+        axs[i].plot(unit_conversion(data.time[::SubSampleN], unit_prefix), data.voltage[::SubSampleN],
                     alpha=0.8, label=LabelArray[i])
         axs[i].set_xlabel("time (s)")
         axs[i].grid(which="major")
