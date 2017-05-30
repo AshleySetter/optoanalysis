@@ -182,7 +182,7 @@ class DataObject():
         self.freqs = freqs
         return self.freqs, self.PSD
 
-    def plot_PSD(self, xlim="Default", units="KHz", ShowFig=True):
+    def plot_PSD(self, xlim="Default", units="kHz", ShowFig=True):
         """
         plot the pulse spectral density.
 
