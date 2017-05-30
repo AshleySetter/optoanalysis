@@ -20,6 +20,7 @@ from scipy.optimize import minimize as _minimize
 import warnings as _warnings
 from scipy.signal import hilbert as _hilbert
 
+_sns.set_style("whitegrid")
 
 class DataObject():
     """
