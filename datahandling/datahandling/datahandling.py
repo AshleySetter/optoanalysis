@@ -1702,21 +1702,23 @@ def get_freq_response(a, b, ShowFig=True, SampleFreq=(2 * _np.pi), NumOfFreqs=50
     return freqList, GainArray, PhaseDiffArray, fig1, ax1, fig2, ax2
 
 
-def multi_plot_PSD(DataArray, xlim=[0, 500e3], LabelArray=[], ColorArray=[], alphaArray=[], ShowFig=True):
+def multi_plot_PSD(DataArray, xlim=[0, 500], units="KHz", LabelArray=[], ColorArray=[], alphaArray=[], ShowFig=True):
     """
     plot the pulse spectral density for multiple data sets on the same
     axes.
 
     Parameters
     ----------
-    DataArray - array-like
+    DataArray : array-like
         array of DataObject instances for which to plot the PSDs
-    xlim - array-like, optional
+    xlim : array-like, optional
         2 element array specifying the lower and upper x limit for which to
         plot the Power Spectral Density
-    LabelArray - array-like, optional
+    units : string
+        units to use for the x axis
+    LabelArray : array-like, optional
         array of labels for each data-set to be plotted
-    ColorArray - array-like, optional
+    ColorArray : array-like, optional
         array of colors for each data-set to be plotted
     ShowFig : bool, optional
        If True runs plt.show() before returning figure
@@ -1730,6 +1732,7 @@ def multi_plot_PSD(DataArray, xlim=[0, 500e3], LabelArray=[], ColorArray=[], alp
     ax : matplotlib.axes.Axes object
         The axes object created
     """
+    unit_prefix = units[:-2] # removed the last 2 chars
     if LabelArray == []:
         LabelArray = ["DataSet {}".format(i)
                       for i in _np.arange(0, len(DataArray), 1)]
@@ -1750,7 +1753,7 @@ def multi_plot_PSD(DataArray, xlim=[0, 500e3], LabelArray=[], ColorArray=[], alp
     ax = fig.add_subplot(111)
 
     for i, data in enumerate(DataArray):
-        ax.semilogy(data.freqs, data.PSD, label=LabelArray[i], color=ColorArray[i], alpha=alphaArray[i])
+        ax.semilogy(unit_conversion(data.freqs, unit_prefix), data.PSD, label=LabelArray[i], color=ColorArray[i], alpha=alphaArray[i])
             
     ax.set_xlabel("Frequency (Hz)")
     ax.set_xlim(xlim)
@@ -1765,7 +1768,7 @@ def multi_plot_PSD(DataArray, xlim=[0, 500e3], LabelArray=[], ColorArray=[], alp
     return fig, ax
 
 
-def multi_plot_time(DataArray, SubSampleN=1, xlim="default", ylim="default", LabelArray=[], ShowFig=True):
+def multi_plot_time(DataArray, SubSampleN=1, units='s', xlim="default", ylim="default", LabelArray=[], ShowFig=True):
     """
     plot the time trace for multiple data sets on the same axes.
 
@@ -1794,6 +1797,7 @@ def multi_plot_time(DataArray, SubSampleN=1, xlim="default", ylim="default", Lab
     ax : matplotlib.axes.Axes object
         The axes object created
     """
+    unit_prefix = units[:-1] # removed the last char
     if LabelArray == []:
         LabelArray = ["DataSet {}".format(i)
                       for i in _np.arange(0, len(DataArray), 1)]
@@ -1801,7 +1805,7 @@ def multi_plot_time(DataArray, SubSampleN=1, xlim="default", ylim="default", Lab
     ax = fig.add_subplot(111)
 
     for i, data in enumerate(DataArray):
-        ax.plot(data.time[::SubSampleN], data.voltage[::SubSampleN],
+        ax.plot(unit_conversion(data.time[::SubSampleN], unit_prefix), data.voltage[::SubSampleN],
                 alpha=0.8, label=LabelArray[i])
     ax.set_xlabel("time (s)")
     if xlim != "default":
@@ -1816,7 +1820,7 @@ def multi_plot_time(DataArray, SubSampleN=1, xlim="default", ylim="default", Lab
     return fig, ax
 
 
-def multi_subplots_time(DataArray, SubSampleN=1, xlim="default", ylim="default", LabelArray=[], ShowFig=True):
+def multi_subplots_time(DataArray, SubSampleN=1, units='s', xlim="default", ylim="default", LabelArray=[], ShowFig=True):
     """
     plot the time trace on multiple axes
 
@@ -1845,6 +1849,7 @@ def multi_subplots_time(DataArray, SubSampleN=1, xlim="default", ylim="default",
     axs : list of matplotlib.axes.Axes objects
         The list of axes object created
     """
+    unit_prefix = units[:-1] # removed the last char
     NumDataSets = len(DataArray)
 
     if LabelArray == []:
@@ -1854,7 +1859,7 @@ def multi_subplots_time(DataArray, SubSampleN=1, xlim="default", ylim="default",
     fig, axs = _plt.subplots(NumDataSets, 1)
 
     for i, data in enumerate(DataArray):
-        axs[i].plot(data.time[::SubSampleN], data.voltage[::SubSampleN],
+        axs[i].plot(unit_conversion(data.time[::SubSampleN] unit_prefix), data.voltage[::SubSampleN],
                     alpha=0.8, label=LabelArray[i])
         axs[i].set_xlabel("time (s)")
         axs[i].grid(which="major")
