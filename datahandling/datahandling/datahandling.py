@@ -192,7 +192,7 @@ class DataObject():
             The x limits of the plotted PSD [LowerLimit, UpperLimit]
             Default value is [0, SampleFreq/2]
         units : string, optional
-            Units of frequency to plot on the x axis - defaults to KHz
+            Units of frequency to plot on the x axis - defaults to kHz
         ShowFig : bool, optional
             If True runs plt.show() before returning figure
             if False it just returns the figure object.
@@ -1702,7 +1702,7 @@ def get_freq_response(a, b, ShowFig=True, SampleFreq=(2 * _np.pi), NumOfFreqs=50
     return freqList, GainArray, PhaseDiffArray, fig1, ax1, fig2, ax2
 
 
-def multi_plot_PSD(DataArray, xlim=[0, 500], units="KHz", LabelArray=[], ColorArray=[], alphaArray=[], ShowFig=True):
+def multi_plot_PSD(DataArray, xlim=[0, 500], units="kHz", LabelArray=[], ColorArray=[], alphaArray=[], ShowFig=True):
     """
     plot the pulse spectral density for multiple data sets on the same
     axes.
