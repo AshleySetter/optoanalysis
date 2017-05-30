@@ -1010,7 +1010,10 @@ def fit_PSD(Data, bandwidth, NMovAve, TrapFreqGuess, AGuess=0.1e10, GammaGuess=4
                  max(10**(logPSD_smoothed / 10))], '--',
                 color="grey")
         ax.semilogy()
-        ax.legend(loc="best")
+        legend = ax.legend(loc="best", frameon = 1)
+        frame = legend.get_frame()
+        frame.set_facecolor('white')
+        frame.set_edgecolor('white')
         ax.set_xlabel("Frequency (Hz)")
         ax.set_ylabel("$S_{xx}$ ($v^2/Hz$)")
         if ShowFig == True:
@@ -1763,7 +1766,10 @@ def multi_plot_PSD(DataArray, xlim=[0, 500], units="kHz", LabelArray=[], ColorAr
     ax.set_xlabel("Frequency (Hz)")
     ax.set_xlim(xlim)
     ax.grid(which="major")
-    ax.legend(loc="best")
+    legend = ax.legend(loc="best", frameon = 1)
+    frame = legend.get_frame()
+    frame.set_facecolor('white')
+    frame.set_edgecolor('white')
     ax.set_ylabel("PSD ($v^2/Hz$)")
 
     _plt.title('filedir=%s' % (DataArray[0].filedir))
@@ -1818,7 +1824,11 @@ def multi_plot_time(DataArray, SubSampleN=1, units='s', xlim="default", ylim="de
     if ylim != "default":
         ax.set_ylim(ylim)
     ax.grid(which="major")
-    ax.legend(loc="best")
+    legend = ax.legend(loc="best", frameon = 1)
+    frame = legend.get_frame()
+    frame.set_facecolor('white')
+    frame.set_edgecolor('white')
+
     ax.set_ylabel("voltage (V)")
     if ShowFig == True:
         _plt.show()
