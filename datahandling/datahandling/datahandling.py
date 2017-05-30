@@ -22,6 +22,10 @@ from scipy.signal import hilbert as _hilbert
 
 _sns.set_style("whitegrid")
 
+properties = {
+    'default_fig_size': [6.5, 4],
+    }
+
 class DataObject():
     """
     Creates an object containing data and all it's properties.
@@ -134,7 +138,7 @@ class DataObject():
         StartIndex = list(self.time).index(take_closest(self.time, timeStart))
         EndIndex = list(self.time).index(take_closest(self.time, timeEnd))
 
-        fig = _plt.figure(figsize=[10, 6])
+        fig = _plt.figure(figsize=properties['default_fig_size'])
         ax = fig.add_subplot(111)
         ax.plot(unit_conversion(self.time[StartIndex:EndIndex], unit_prefix),
                 self.voltage[StartIndex:EndIndex])
@@ -210,7 +214,7 @@ class DataObject():
         unit_prefix = units[:-2]
         if xlim == "Default":
             xlim = [0, self.SampleFreq / 2]
-        fig = _plt.figure(figsize=[10, 6])
+        fig = _plt.figure(figsize=properties['default_fig_size'])
         ax = fig.add_subplot(111)
         ax.semilogy(unit_conversion(self.freqs, unit_prefix), self.PSD, color="blue")
         ax.set_xlabel("Frequency ({})".format(units))
@@ -1750,7 +1754,7 @@ def multi_plot_PSD(DataArray, xlim=[0, 500], units="kHz", LabelArray=[], ColorAr
             alphaArray[i] = None    
 
             
-    fig = _plt.figure(figsize=[10, 6])
+    fig = _plt.figure(figsize=properties['default_fig_size'])
     ax = fig.add_subplot(111)
 
     for i, data in enumerate(DataArray):
@@ -1802,7 +1806,7 @@ def multi_plot_time(DataArray, SubSampleN=1, units='s', xlim="default", ylim="de
     if LabelArray == []:
         LabelArray = ["DataSet {}".format(i)
                       for i in _np.arange(0, len(DataArray), 1)]
-    fig = _plt.figure(figsize=[10, 6])
+    fig = _plt.figure(figsize=properties['default_fig_size'])
     ax = fig.add_subplot(111)
 
     for i, data in enumerate(DataArray):
