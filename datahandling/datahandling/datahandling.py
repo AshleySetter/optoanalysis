@@ -2242,6 +2242,6 @@ def unit_conversion(array, unit_prefix, current_prefix=""):
         Current_units = UnitDict[current_prefix]
     except KeyError:
         raise ValueError("You entered {} for the current_prefix, this is not a valid prefix".format(current_prefix))
-    conversion_multiplication = Desired_units/Current_units
+    conversion_multiplication = Current_units/Desired_units
     converted_array = array*conversion_multiplication
     return converted_array
