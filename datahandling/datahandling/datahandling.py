@@ -98,7 +98,7 @@ class DataObject():
             self.SampleFreq = 1/SampleTime
         return self.time, self.voltage
 
-    def plot_time_data(self, timeStart="Default", timeEnd="Default", ShowFig=True):
+    def plot_time_data(self, timeStart="Default", timeEnd="Default", units='s', ShowFig=True):
         """
         plot time data against voltage data.
 
@@ -110,6 +110,8 @@ class DataObject():
         timeEnd : float, optional
             The time to finish plotting at.
             By default it uses the last time point
+        units : string, optional
+            units of time to plot on the x axis - defaults to s
         ShowFig : bool, optional
             If True runs plt.show() before returning figure
             if False it just returns the figure object.
@@ -122,6 +124,7 @@ class DataObject():
         ax : fig.add_subplot(111)
             The subplot object created
         """
+        unit_prefix = units[:-1] # removed the last char
         if timeStart == "Default":
             timeStart = self.time[0]
         if timeEnd == "Default":
@@ -132,9 +135,9 @@ class DataObject():
 
         fig = _plt.figure(figsize=[10, 6])
         ax = fig.add_subplot(111)
-        ax.plot(self.time[StartIndex:EndIndex],
+        ax.plot(unit_conversion(self.time[StartIndex:EndIndex], unit_prefix),
                 self.voltage[StartIndex:EndIndex])
-        ax.set_xlabel("time (s)")
+        ax.set_xlabel("time ({})".format(units))
         ax.set_ylabel("voltage (V)")
         ax.set_xlim([timeStart, timeEnd])
         if ShowFig == True:
@@ -179,7 +182,7 @@ class DataObject():
         self.freqs = freqs
         return self.freqs, self.PSD
 
-    def plot_PSD(self, xlim="Default", ShowFig=True):
+    def plot_PSD(self, xlim="Default", units="KHz", ShowFig=True):
         """
         plot the pulse spectral density.
 
@@ -188,6 +191,8 @@ class DataObject():
         xlim : array_like, optional
             The x limits of the plotted PSD [LowerLimit, UpperLimit]
             Default value is [0, SampleFreq/2]
+        units : string, optional
+            Units of frequency to plot on the x axis - defaults to KHz
         ShowFig : bool, optional
             If True runs plt.show() before returning figure
             if False it just returns the figure object.
@@ -200,13 +205,14 @@ class DataObject():
                 ax : fig.add_subplot(111)
                         The subplot object created
         """
-#        self.get_PSD()
+        #        self.get_PSD()
+        unit_prefix = units[:-2]
         if xlim == "Default":
             xlim = [0, self.SampleFreq / 2]
         fig = _plt.figure(figsize=[10, 6])
         ax = fig.add_subplot(111)
-        ax.semilogy(self.freqs, self.PSD, color="blue")
-        ax.set_xlabel("Frequency (Hz)")
+        ax.semilogy(unit_conversion(self.freqs, unit_prefix), self.PSD, color="blue")
+        ax.set_xlabel("Frequency ({})".format(units))
         ax.set_xlim(xlim)
         ax.grid(which="major")
         ax.set_ylabel("$S_{xx}$ ($v^2/Hz$)")
@@ -2173,3 +2179,64 @@ def plot_3d_dist(Z, X, Y, N=1000, AxisOffset=0, LowLim="Default", HighLim="Defau
     if ShowFig == True:
         _plt.show()
     return fig, ax
+
+def unit_conversion(array, unit_prefix, current_prefix=""):
+    """
+    Converts an array or value to of a certain 
+    unit scale to another unit scale.
+
+    Accepted units are:
+    E - exa - 1e18
+    P - peta - 1e15
+    T - tera - 1e12
+    G - giga - 1e9
+    M - mega - 1e6
+    k - kilo - 1e3
+    m - milli - 1e-3
+    u - micro - 1e-6
+    n - nano - 1e-9
+    p - pico - 1e-12
+    f - femto - 1e-15
+    a - atto - 1e-18
+
+    Parameters
+    ----------
+    array : ndarray
+        Array to be converted
+    unit_prefix : string
+        desired unit (metric) prefix (e.g. nm would be n, ms would be m)
+    current_prefix : optional, string
+        current prefix of units of data (assumed to be in SI units
+        by default (e.g. m or s)
+
+    Returns
+    -------
+    converted_array : ndarray
+        Array multiplied such as to be in the units specified
+    """
+    UnitDict = {
+        'E': 1e18,
+        'P': 1e15,
+        'T': 1e12,
+        'G': 1e9,
+        'M': 1e6,
+        'k': 1e3,
+        '': 1,
+        'm': 1e-3,
+        'u': 1e-6,
+        'n': 1e-9,
+        'p': 1e-12,
+        'f': 1e-15,
+        'a': 1e-18,
+    }
+    try:
+        Desired_units = UnitDict[unit_prefix]
+    except KeyError:
+        raise ValueError("You entered {} for the unit_prefix, this is not a valid prefix".format(unit_prefix))
+    try:
+        Current_units = UnitDict[current_prefix]
+    except KeyError:
+        raise ValueError("You entered {} for the current_prefix, this is not a valid prefix".format(current_prefix))
+    conversion_multiplication = Desired_units/Current_units
+    converted_array = array*conversion_multiplication
+    return converted_array
