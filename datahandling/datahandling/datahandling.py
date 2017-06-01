@@ -1237,7 +1237,7 @@ def get_ZXY_data(Data, zf, xf, yf, FractionOfSampleFreq=1,
 
     input_signal = Data.voltage[StartIndex: EndIndex][0::FractionOfSampleFreq]
 
-    bZ, aZ = IIRFilterDesign(zf, zwidth, ztransition, SAMPLEFREQ, GainStop=100)
+    bZ, aZ = IIR_filter_design(zf, zwidth, ztransition, SAMPLEFREQ, GainStop=100)
 
     zdata = ApplyFilter(bZ, aZ, input_signal)
 
@@ -1245,7 +1245,7 @@ def get_ZXY_data(Data, zf, xf, yf, FractionOfSampleFreq=1,
         raise ValueError(
             "Value Error: FractionOfSampleFreq must be higher, a sufficiently small sample frequency should be used to produce a working IIR filter.")
 
-    bX, aX = IIRFilterDesign(xf, xwidth, xtransition, SAMPLEFREQ, GainStop=100)
+    bX, aX = IIR_filter_design(xf, xwidth, xtransition, SAMPLEFREQ, GainStop=100)
 
     xdata = ApplyFilter(bX, aX, input_signal)
 
@@ -1253,7 +1253,7 @@ def get_ZXY_data(Data, zf, xf, yf, FractionOfSampleFreq=1,
         raise ValueError(
             "Value Error: FractionOfSampleFreq must be higher, a sufficiently small sample frequency should be used to produce a working IIR filter.")
 
-    bY, aY = IIRFilterDesign(yf, ywidth, ytransition, SAMPLEFREQ, GainStop=100)
+    bY, aY = IIR_filter_design(yf, ywidth, ytransition, SAMPLEFREQ, GainStop=100)
 
     ydata = ApplyFilter(bY, aY, input_signal)
 
@@ -1275,7 +1275,7 @@ def get_ZXY_data(Data, zf, xf, yf, FractionOfSampleFreq=1,
         _plt.plot(f_x, PSD_x, label="x")
         _plt.plot(f_y, PSD_y, label="y")
         _plt.legend(loc="best")
-        _ply.semilogy
+        _plt.semilogy
         _plt.xlim([zf - zwidth - ztransition, yf + ywidth + ytransition])
         _plt.show()
 
