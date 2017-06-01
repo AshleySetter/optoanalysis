@@ -1552,6 +1552,31 @@ def IFFT_filter(Signal, SampleFreq, lowerFreq, upperFreq):
     print("done")
     return _np.real(FilteredSignal)
 
+def butterworth_filter(Signal, SampleFreq, lowerFreq, upperFreq):
+    """
+    Filters data using fft -> zeroing out fft bins -> ifft
+
+    Parameters
+    ----------
+    Signal : ndarray
+        Signal to be filtered
+    SampleFreq : float
+        Sample frequency of signal
+    lowerFreq : float
+        Lower frequency of bandpass to allow through filter
+    upperFreq : float
+       Upper frequency of bandpass to allow through filter
+
+    Returns
+    -------
+    FilteredData : ndarray
+        Array containing the filtered data
+    """
+    b, a = make_butterworth_b_a(lowerFreq, upperFreq, SampleFreq)    
+    FilteredSignal = scipy.signal.filtfilt(b, a, Signal)
+    return _np.real(FilteredSignal)
+
+
 def make_butterworth_b_a(lowcut, highcut, SampleFreq, order=5, btype='band'):
     """
     Generates the b and a coefficients for a butterworth IIR filter.
