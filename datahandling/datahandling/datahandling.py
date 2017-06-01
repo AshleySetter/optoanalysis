@@ -136,8 +136,8 @@ class DataObject():
         if timeEnd == "Default":
             timeEnd = self.time[-1]
 
-        StartIndex = np.where(self.time == take_closest(self.time, timeStart))[0][0]
-        EndIndex = np.where(self.time == take_closest(self.time, timeEnd))[0][0]
+        StartIndex = _np.where(self.time == take_closest(self.time, timeStart))[0][0]
+        EndIndex = _np.where(self.time == take_closest(self.time, timeEnd))[0][0]
 
         fig = _plt.figure(figsize=properties['default_fig_size'])
         ax = fig.add_subplot(111)
@@ -146,6 +146,7 @@ class DataObject():
         ax.set_xlabel("time ({})".format(units))
         ax.set_ylabel("voltage (V)")
         ax.set_xlim([timeStart, timeEnd])
+        fig.tight_layout()
         if ShowFig == True:
             _plt.show()
         return fig, ax
@@ -222,6 +223,7 @@ class DataObject():
         ax.set_xlim(xlim)
         ax.grid(which="major")
         ax.set_ylabel("$S_{xx}$ ($v^2/Hz$)")
+        fig.tight_layout()
         if ShowFig == True:
             _plt.show()
         return fig, ax
@@ -362,9 +364,9 @@ class DataObject():
         Gamma : ufloat
             Gamma, the damping parameter
         """
-        lowerIndex = np.where(self.freqs ==
+        lowerIndex = _np.where(self.freqs ==
             take_closest(self.freqs, lowerLimit))[0][0]
-        upperIndex = np.where(self.freqs ==
+        upperIndex = _np.where(self.freqs ==
             take_closest(self.freqs, upperLimit))[0][0]
 
         if lowerIndex == upperIndex:
@@ -374,7 +376,7 @@ class DataObject():
 
         MaxPSD = max(self.PSD[lowerIndex:upperIndex])
 
-        centralIndex = np.where(self.PSD == MaxPSD)[0][0]
+        centralIndex = _np.where(self.PSD == MaxPSD)[0][0]
         CentralFreq = self.freqs[centralIndex]
 
         approx_A = MaxPSD * 1e16  # 1e16 was calibrated for a number of saves to be approximately the correct conversion factor between the height of the PSD and the A factor in the fitting
@@ -385,7 +387,7 @@ class DataObject():
         HalfMax = MinPSD + (MaxPSD - MinPSD) / 2
 
         try:
-            LeftSideOfPeakIndex = np.where(self.PSD ==
+            LeftSideOfPeakIndex = _np.where(self.PSD ==
                 take_closest(self.PSD[lowerIndex:centralIndex], HalfMax))
             LeftSideOfPeak = self.freqs[LeftSideOfPeakIndex]
         except IndexError:
@@ -394,7 +396,7 @@ class DataObject():
             return val, val, val
 
         try:
-            RightSideOfPeakIndex = np.where(self.PSD ==
+            RightSideOfPeakIndex = _np.where(self.PSD ==
                 take_closest(self.PSD[centralIndex:upperIndex], HalfMax))
             RightSideOfPeak = self.freqs[RightSideOfPeakIndex]
         except IndexError:
@@ -1022,6 +1024,7 @@ def fit_PSD(Data, bandwidth, NMovAve, TrapFreqGuess, AGuess=0.1e10, GammaGuess=4
                  max(10**(logPSD_smoothed / 10))], '--',
                 color="grey")
         ax.semilogy()
+        fig.tight_layout()
         legend = ax.legend(loc="best", frameon = 1)
         frame = legend.get_frame()
         frame.set_facecolor('white')
@@ -1219,8 +1222,8 @@ def get_ZXY_data(Data, zf, xf, yf, FractionOfSampleFreq=1,
     if timeEnd == "Default":
         timeEnd = Data.time[-1]
 
-    StartIndex = np.where(Data.time == take_closest(Data.time, timeStart))
-    EndIndex = np.where(Data.time == take_closest(Data.time, timeEnd))
+    StartIndex = _np.where(Data.time == take_closest(Data.time, timeStart))
+    EndIndex = _np.where(Data.time == take_closest(Data.time, timeEnd))
 
     SAMPLEFREQ = Data.SampleFreq / FractionOfSampleFreq
 
@@ -1334,8 +1337,8 @@ def get_ZXY_data_IFFT(Data, zf, xf, yf,
     if timeEnd == "Default":
         timeEnd = Data.time[-1]
 
-    StartIndex = np.where(Data.time == take_closest(Data.time, timeStart))
-    EndIndex = np.where(Data.time == take_closest(Data.time, timeEnd))
+    StartIndex = _np.where(Data.time == take_closest(Data.time, timeStart))
+    EndIndex = _np.where(Data.time == take_closest(Data.time, timeEnd))
 
     SAMPLEFREQ = Data.SampleFreq
 
@@ -1888,7 +1891,7 @@ def multi_subplots_time(DataArray, SubSampleN=1, units='s', xlim="default", ylim
     for i, data in enumerate(DataArray):
         axs[i].plot(unit_conversion(data.time[::SubSampleN], unit_prefix), data.voltage[::SubSampleN],
                     alpha=0.8, label=LabelArray[i])
-        axs[i].set_xlabel("time (s)")
+        axs[i].set_xlabel("time ({})".format(units))
         axs[i].grid(which="major")
         axs[i].legend(loc="best")
         axs[i].set_ylabel("voltage (V)")
@@ -1896,6 +1899,7 @@ def multi_subplots_time(DataArray, SubSampleN=1, units='s', xlim="default", ylim
             axs[i].set_xlim(xlim)
         if ylim != "default":
             axs[i].set_ylim(ylim)
+    fig.tight_layout()
     if ShowFig == True:
         _plt.show()
     return fig, axs
