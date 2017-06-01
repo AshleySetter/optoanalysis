@@ -1345,10 +1345,10 @@ def get_ZXY_data_IFFT(Data, zf, xf, yf,
                         zwidth / 2, zf + zwidth / 2)
 
     xdata = IFFT_filter(input_signal, SAMPLEFREQ, xf -
-                        zwidth / 2, xf + zwidth / 2)
+                        xwidth / 2, xf + xwidth / 2)
 
     ydata = IFFT_filter(input_signal, SAMPLEFREQ, yf -
-                        zwidth / 2, yf + zwidth / 2)
+                        ywidth / 2, yf + ywidth / 2)
 
     if ShowFig == True:
         NPerSegment = len(Data.time)
