@@ -245,9 +245,9 @@ class DataObject():
             The area under the PSD from lowerFreq to upperFreq
         """
         Freq_startAreaPSD = take_closest(self.freqs, lowerFreq)
-        index_startAreaPSD = int(_np.where(self.freqs == Freq_startAreaPSD)[0])
+        index_startAreaPSD = int(_np.where(self.freqs == Freq_startAreaPSD)[0][0])
         Freq_endAreaPSD = take_closest(self.freqs, upperFreq)
-        index_endAreaPSD = int(_np.where(self.freqs == Freq_endAreaPSD)[0])
+        index_endAreaPSD = int(_np.where(self.freqs == Freq_endAreaPSD)[0][0])
         AreaUnderPSD = sum(self.PSD[index_startAreaPSD: index_endAreaPSD])
         return AreaUnderPSD
 
@@ -388,7 +388,7 @@ class DataObject():
 
         try:
             LeftSideOfPeakIndex = _np.where(self.PSD ==
-                take_closest(self.PSD[lowerIndex:centralIndex], HalfMax))
+                                            take_closest(self.PSD[lowerIndex:centralIndex], HalfMax))[0][0]
             LeftSideOfPeak = self.freqs[LeftSideOfPeakIndex]
         except IndexError:
             _warnings.warn("range is too small, returning NaN", UserWarning)
@@ -397,7 +397,7 @@ class DataObject():
 
         try:
             RightSideOfPeakIndex = _np.where(self.PSD ==
-                take_closest(self.PSD[centralIndex:upperIndex], HalfMax))
+                                             take_closest(self.PSD[centralIndex:upperIndex], HalfMax))[0][0]
             RightSideOfPeak = self.freqs[RightSideOfPeakIndex]
         except IndexError:
             _warnings.warn("range is too small, returning NaN", UserWarning)
@@ -942,14 +942,14 @@ def fit_PSD(Data, bandwidth, NMovAve, TrapFreqGuess, AGuess=0.1e10, GammaGuess=4
     AngTrapFreqGuess = 2 * _np.pi * TrapFreqGuess
 
     ClosestToAngTrapFreqGuess = take_closest(AngFreqs, AngTrapFreqGuess)
-    index_ftrap = _np.where(AngFreqs == ClosestToAngTrapFreqGuess)
+    index_ftrap = _np.where(AngFreqs == ClosestToAngTrapFreqGuess)[0][0]
     ftrap = AngFreqs[index_ftrap]
 
     f_fit_lower = take_closest(AngFreqs, ftrap - Angbandwidth / 2)
     f_fit_upper = take_closest(AngFreqs, ftrap + Angbandwidth / 2)
 
-    indx_fit_lower = int(_np.where(AngFreqs == f_fit_lower)[0])
-    indx_fit_upper = int(_np.where(AngFreqs == f_fit_upper)[0])
+    indx_fit_lower = int(_np.where(AngFreqs == f_fit_lower)[0][0])
+    indx_fit_upper = int(_np.where(AngFreqs == f_fit_upper)[0][0])
 
 #    print(f_fit_lower, f_fit_upper)
 #    print(AngFreqs[indx_fit_lower], AngFreqs[indx_fit_upper])
@@ -958,7 +958,7 @@ def fit_PSD(Data, bandwidth, NMovAve, TrapFreqGuess, AGuess=0.1e10, GammaGuess=4
     # as guess for trap frequency and recalculate region about the trap
     # frequency
     index_ftrap = _np.where(Data.PSD == max(
-        Data.PSD[indx_fit_lower:indx_fit_upper]))
+        Data.PSD[indx_fit_lower:indx_fit_upper]))[0][0]
 
     ftrap = AngFreqs[index_ftrap]
 
@@ -967,8 +967,8 @@ def fit_PSD(Data, bandwidth, NMovAve, TrapFreqGuess, AGuess=0.1e10, GammaGuess=4
     f_fit_lower = take_closest(AngFreqs, ftrap - Angbandwidth / 2)
     f_fit_upper = take_closest(AngFreqs, ftrap + Angbandwidth / 2)
 
-    indx_fit_lower = int(_np.where(AngFreqs == f_fit_lower)[0])
-    indx_fit_upper = int(_np.where(AngFreqs == f_fit_upper)[0])
+    indx_fit_lower = int(_np.where(AngFreqs == f_fit_lower)[0][0])
+    indx_fit_upper = int(_np.where(AngFreqs == f_fit_upper)[0][0])
 
     PSD_smoothed = moving_average(Data.PSD, NMovAve)
     freqs_smoothed = moving_average(AngFreqs, NMovAve)
@@ -1133,11 +1133,11 @@ def get_ZXY_freqs(Data, zfreq, xfreq, yfreq, bandwidth=5000):
     for freq in [zfreq, xfreq, yfreq]:
         z_f_fit_lower = take_closest(Data.freqs, freq - bandwidth / 2)
         z_f_fit_upper = take_closest(Data.freqs, freq + bandwidth / 2)
-        z_indx_fit_lower = int(_np.where(Data.freqs == z_f_fit_lower)[0])
-        z_indx_fit_upper = int(_np.where(Data.freqs == z_f_fit_upper)[0])
+        z_indx_fit_lower = int(_np.where(Data.freqs == z_f_fit_lower)[0][0])
+        z_indx_fit_upper = int(_np.where(Data.freqs == z_f_fit_upper)[0][0])
 
         z_index_ftrap = _np.where(Data.PSD == max(
-            Data.PSD[z_indx_fit_lower:z_indx_fit_upper]))
+            Data.PSD[z_indx_fit_lower:z_indx_fit_upper]))[0][0]
         # find highest point in region about guess for trap frequency
         # use that as guess for trap frequency and recalculate region
         # about the trap frequency
@@ -1222,8 +1222,8 @@ def get_ZXY_data(Data, zf, xf, yf, FractionOfSampleFreq=1,
     if timeEnd == "Default":
         timeEnd = Data.time[-1]
 
-    StartIndex = _np.where(Data.time == take_closest(Data.time, timeStart))
-    EndIndex = _np.where(Data.time == take_closest(Data.time, timeEnd))
+    StartIndex = _np.where(Data.time == take_closest(Data.time, timeStart))[0][0]
+    EndIndex = _np.where(Data.time == take_closest(Data.time, timeEnd))[0][0]
 
     SAMPLEFREQ = Data.SampleFreq / FractionOfSampleFreq
 
@@ -1337,8 +1337,8 @@ def get_ZXY_data_IFFT(Data, zf, xf, yf,
     if timeEnd == "Default":
         timeEnd = Data.time[-1]
 
-    StartIndex = _np.where(Data.time == take_closest(Data.time, timeStart))
-    EndIndex = _np.where(Data.time == take_closest(Data.time, timeEnd))
+    StartIndex = _np.where(Data.time == take_closest(Data.time, timeStart))[0][0]
+    EndIndex = _np.where(Data.time == take_closest(Data.time, timeEnd))[0][0]
 
     SAMPLEFREQ = Data.SampleFreq
 
