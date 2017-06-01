@@ -1,5 +1,4 @@
-import datahandling.LeCroy
-import datahandling.Saleae
+import datahandling
 import matplotlib.pyplot as _plt
 import numpy as _np
 import scipy.signal
@@ -19,7 +18,9 @@ from multiprocessing import cpu_count as _cpu_count
 from scipy.optimize import minimize as _minimize
 import warnings as _warnings
 from scipy.signal import hilbert as _hilbert
+import matplotlib as _mpl
 
+_mpl.rcParams['lines.markeredgewidth'] = 1 # set default markeredgewidth to 1 overriding seaborn's default value of 0
 _sns.set_style("whitegrid")
 
 properties = {
@@ -574,7 +575,6 @@ class DataObject():
             _plt.show()
 
         return VarZ, VarZV, JP1, self.Mass
-
     
 class ORGTableData():
     """
@@ -626,14 +626,18 @@ class ORGTableData():
         return Value 
 
     
-def load_data(Filepath, RelativeChannelNo=None):
+def load_data(Filepath, ObjectType="default", RelativeChannelNo=None):
     """
     Parameters
     ----------
-        Filepath : string
-            filepath to the file containing the data used to initialise
-            and create an instance of the DataObject class
-
+    Filepath : string
+        filepath to the file containing the data used to initialise
+        and create an instance of the DataObject class
+    ObjectType : string, optional
+        type to load the data as, takes the value 'default' if not specified.
+        Options are:
+            'default' : datahandling.DataObject
+            'thermo' : datahandling.thermo.ThermoObject
     Returns
     -------
         Data : DataObject
@@ -641,7 +645,15 @@ def load_data(Filepath, RelativeChannelNo=None):
             that you requested to be loaded.
     """
     print("Loading data from {}".format(Filepath))
-    return DataObject(Filepath, RelativeChannelNo)
+    ObjectTypeDict = {
+        'default' : DataObject,
+        'thermo' : datahandling.thermo.ThermoObject,
+        }
+    try:
+        Object = ObjectTypeDict[ObjectType]
+    except KeyError:
+        raise ValueError("You entered {}, this is not a valid object type".format(ObjectType))
+    return Object(Filepath, RelativeChannelNo)
 
 
 def multi_load_data(Channel, RunNos, RepeatNos, directoryPath='.'):

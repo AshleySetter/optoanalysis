@@ -18,3 +18,6 @@ __version__ = _version_file.read().strip()
 
 # the following line imports all the functions from datahandling.py
 from .datahandling import *
+import datahandling.thermo
+import datahandling.LeCroy
+import datahandling.Saleae
