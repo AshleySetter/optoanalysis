@@ -1148,7 +1148,7 @@ def get_ZXY_freqs(Data, zfreq, xfreq, yfreq, bandwidth=5000):
 
 def get_ZXY_data(Data, zf, xf, yf, FractionOfSampleFreq=1,
                  zwidth=10000, xwidth=5000, ywidth=5000,
-                 ztransition=10000, xtransition=5000, ytransition=5000,
+#                 ztransition=10000, xtransition=5000, ytransition=5000,
                  filterImplementation="filtfilt",
                  timeStart="Default", timeEnd="Default",
                  ShowFig=True):
@@ -1186,15 +1186,15 @@ def get_ZXY_data(Data, zf, xf, yf, FractionOfSampleFreq=1,
     ywidth : float, optional
         The width of the pass-band of the IIR filter to be generated to
         filter Y.
-    ztransition : float, optional
-        The width of the transition-band of the IIR filter to be generated to
-        filter Z.
-    xtransition : float, optional
-        The width of the transition-band of the IIR filter to be generated to
-        filter X.
-    ytransition : float, optional
-        The width of the transition-band of the IIR filter to be generated to
-        filter Y.
+#    ztransition : float, optional
+#        The width of the transition-band of the IIR filter to be generated to
+#        filter Z.
+#    xtransition : float, optional
+#        The width of the transition-band of the IIR filter to be generated to
+#        filter X.
+#    ytransition : float, optional
+#        The width of the transition-band of the IIR filter to be generated to
+#        filter Y.
     filterImplementation : string, optional
         filtfilt or lfilter - use scipy.filtfilt or lfilter
         default: filtfilt
@@ -1237,7 +1237,8 @@ def get_ZXY_data(Data, zf, xf, yf, FractionOfSampleFreq=1,
 
     input_signal = Data.voltage[StartIndex: EndIndex][0::FractionOfSampleFreq]
 
-    bZ, aZ = IIR_filter_design(zf, zwidth, ztransition, SAMPLEFREQ, GainStop=100)
+    #bZ, aZ = make_butterworth_bandpass_b_a(zf, zwidth, ztransition, SAMPLEFREQ, GainStop=100)
+    bZ, aZ = make_butterworth_bandpass_b_a(zf, zwidth, SAMPLEFREQ)
 
     zdata = ApplyFilter(bZ, aZ, input_signal)
 
@@ -1245,7 +1246,8 @@ def get_ZXY_data(Data, zf, xf, yf, FractionOfSampleFreq=1,
         raise ValueError(
             "Value Error: FractionOfSampleFreq must be higher, a sufficiently small sample frequency should be used to produce a working IIR filter.")
 
-    bX, aX = IIR_filter_design(xf, xwidth, xtransition, SAMPLEFREQ, GainStop=100)
+    #bX, aX = make_butterworth_bandpass_b_a(xf, xwidth, xtransition, SAMPLEFREQ, GainStop=100)
+    bX, aX = make_butterworth_bandpass_b_a(xf, xwidth, SAMPLEFREQ)
 
     xdata = ApplyFilter(bX, aX, input_signal)
 
@@ -1253,8 +1255,9 @@ def get_ZXY_data(Data, zf, xf, yf, FractionOfSampleFreq=1,
         raise ValueError(
             "Value Error: FractionOfSampleFreq must be higher, a sufficiently small sample frequency should be used to produce a working IIR filter.")
 
-    bY, aY = IIR_filter_design(yf, ywidth, ytransition, SAMPLEFREQ, GainStop=100)
-
+    #bY, aY = make_butterworth_bandpass_b_a(yf, ywidth, ytransition, SAMPLEFREQ, GainStop=100)
+    bY, aY = make_butterworth_bandpass_b_a(yf, ywidth, SAMPLEFREQ)
+    
     ydata = ApplyFilter(bY, aY, input_signal)
 
     if(_np.isnan(ydata).any()):
@@ -1276,7 +1279,8 @@ def get_ZXY_data(Data, zf, xf, yf, FractionOfSampleFreq=1,
         _plt.plot(f_y, PSD_y, label="y")
         _plt.legend(loc="best")
         _plt.semilogy
-        _plt.xlim([zf - zwidth - ztransition, yf + ywidth + ytransition])
+#        _plt.xlim([zf - zwidth - ztransition, yf + ywidth + ytransition])
+        _plt.xlim([zf - zwidth, yf + ywidth])
         _plt.show()
 
     timedata = Data.time[StartIndex: EndIndex][0::FractionOfSampleFreq]
@@ -1547,6 +1551,71 @@ def IFFT_filter(Signal, SampleFreq, lowerFreq, upperFreq):
     FilteredSignal = 2 * scipy.fftpack.ifft(Signalfft)
     print("done")
     return _np.real(FilteredSignal)
+
+def make_butterworth_b_a(lowcut, highcut, SampleFreq, order=5, btype='band'):
+    """
+    Generates the b and a coefficients for a butterworth IIR filter.
+
+    Parameters
+    ----------
+    lowcut : float
+        frequency of lower bandpass limit
+    highcut : float
+        frequency of higher bandpass limit
+    SampleFreq : float
+        Sample frequency of filter
+    order : int, optional
+        order of IIR filter. Is 5 by default
+    btype : string, optional
+        type of filter to make e.g. (band, low, high)
+
+    Returns
+    -------
+    b : ndarray
+        coefficients multiplying the current and past inputs (feedforward coefficients)
+    a : ndarray
+        coefficients multiplying the past outputs (feedback coefficients)
+    """
+    nyq = 0.5 * SampleFreq
+    low = lowcut / nyq
+    high = highcut / nyq
+    if btype.lower() == 'band':
+        b, a = scipy.signal.butter(order, [low, high], btype = btype)
+    elif btype.lower() == 'low':
+        b, a = scipy.signal.butter(order, low, btype = btype)
+    elif btype.lower() == 'high':
+        b, a = scipy.signal.butter(order, high, btype = btype)
+    else:
+        raise ValueError('Filter type unknown')
+    return b, a
+def make_butterworth_bandpass_b_a(CenterFreq, bandwidth, SampleFreq, order=5, btype='band'):
+    """
+    Generates the b and a coefficients for a butterworth bandpass IIR filter.
+
+    Parameters
+    ----------
+    CenterFreq : float
+        central frequency of bandpass
+    bandwidth : float
+        width of the bandpass from centre to edge
+    SampleFreq : float
+        Sample frequency of filter
+    order : int, optional
+        order of IIR filter. Is 5 by default
+    btype : string, optional
+        type of filter to make e.g. (band, low, high)
+
+    Returns
+    -------
+    b : ndarray
+        coefficients multiplying the current and past inputs (feedforward coefficients)
+    a : ndarray
+        coefficients multiplying the past outputs (feedback coefficients)
+    """    
+    lowcut = CenterFreq-bandwidth/2
+    highcut = CenterFreq+bandwidth/2
+    b, a = make_butterworth_b_a(lowcut, highcut, SampleFreq, order, btype)
+    return b, a
 
 
 def IIR_filter_design(CentralFreq, bandwidth, transitionWidth, SampleFreq, GainStop=40, GainPass=0.01):
