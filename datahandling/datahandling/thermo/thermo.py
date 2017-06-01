@@ -1,4 +1,7 @@
 import datahandling
+import numpy as _np
+import scipy as _scipy
+from numba import jit as _jit
 
 class ThermoObject(datahandling.DataObject):
     """
@@ -29,3 +32,113 @@ class ThermoObject(datahandling.DataObject):
         """
         super(ThermoObject, self).__init__(filepath, RelativeChannelNo) # calls the init func from datahandling
         return None
+
+    @_jit
+    def calc_hamiltonian(self, mass, omega_array):
+        """
+        Calculates the standard (pot+kin) Hamiltonian of your system.
+        
+        Parameters
+        ----------
+        mass : float
+            The mass of the particle in kg
+        omega_array : array
+            array which represents omega at every point in your time trace
+            and should therefore have the same length as self.position_data
+        
+        Requirements
+        ------------
+        self.position_data : array
+            Already filtered for the degree of freedom of intrest and converted into meters. 
+
+        Returns
+        -------
+        Hamiltonian : array
+            The calculated Hamiltonian
+        """
+        Kappa_t= mass*omega_array**2
+        self.E_pot = 0.5*Kappa_t*self.position_data**2
+        self.E_kin = 0.5*mass*(_np.diff(self.position_data)*self.SampleFreq)**2
+        self.Hamiltonian = self.E_pot + self.E_kin
+        return self.Hamiltonian
+
+    @_jit
+    def calc_partition_function(mass, omega_array, temperature_array):
+        """
+        Calculates the partition function of your system at each point in time.
+    
+        Parameters
+        ----------
+        mass : float
+            The mass of the particle in kg
+        omega_array : array
+            array which represents omega at every point in your time trace
+            and should therefore have the same length as the Hamiltonian
+        temperature_array : array
+            array which represents the temperature at every point in your time trace
+            and should therefore have the same length as the Hamiltonian
+    
+        Returns:
+        -------
+        Partition function : array
+            The Partition Function at every point in time over a given trap-frequency and temperature change.
+        """
+        Kappa_t= mass*omega_array**2    
+        return _np.sqrt(4*_np.pi**2*_scipy.constants.Boltzmann**2*temperature_array**2/(mass*Kappa_t))
+    
+    @_jit
+    def calc_phase_space_density(mass, omega_array, temperature_array):
+        """
+        Calculates the partition function of your system at each point in time.
+    
+        Parameters
+        ----------
+        mass : float
+            The mass of the particle in kg
+        omega_array : array
+            array which represents omega at every point in your time trace
+            and should therefore have the same length as the Hamiltonian
+        temperature_array : array
+            array which represents the temperature at every point in your time trace
+            and should therefore have the same length as the Hamiltonian
+        
+        Requirements
+        ------------
+        self.position_data : array
+            Already filtered for the degree of freedom of intrest and converted into meters. 
+
+        Returns:
+        -------
+        Phasespace-density : array
+            The Partition Function at every point in time over a given trap-frequency and temperature change.
+        """
+        return calc_hamiltonian(mass, omega_array)/calc_partition_function(mass, omega_array,temperature_array)
+
+    def extract_thermodynamic_quantities(self,temperature_array):
+        """
+        Calculates the thermodynamic quantities of your system at each point in time.
+        Calculated Quantities: self.Q (heat),self.W (work), self.Delta_E_kin, self.Delta_E_pot
+        self.Delta_E (change of Hamiltonian),
+    
+        Parameters
+        ----------
+        mass : float
+            The mass of the particle in kg
+        omega_array : array
+            array which represents omega at every point in your time trace
+            and should therefore have the same length as the Hamiltonian
+        temperature_array : array
+            array which represents the temperature at every point in your time trace
+            and should therefore have the same length as the Hamiltonian
+        
+        Requirements
+        ------------
+        self.position_data : array
+            Already filtered for the degree of freedom of intrest and converted into meters. 
+
+        Returns:
+        -------
+        Phasespace-density : array
+            The Partition Function at every point in time over a given trap-frequency and temperature change.
+        """
+        return None 
