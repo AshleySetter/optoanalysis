@@ -6,6 +6,8 @@ import numpy as np
 from matplotlib.testing.decorators import image_comparison
 import matplotlib.pyplot as plt
 
+plot_similarity_tolerance = 30
+
 def test_load_data():
     """
     Tests that load_data works and therefore that DataObject.__init__, DataObject.get_time_data and DataObject.getPSD work. Specifically it checks that the data loads and that it returns an object of type DataObject. It checks that the filepath points to the correct place. The data is sampled at the correct frequency and therefore that it has loaded the times correctly. It checks that the max frequency in the PSD is approximately equal to the Nyquist frequency for the test data. It also checks that the data returned by get_time_data matches the data loaded.
@@ -23,15 +25,15 @@ def test_load_data():
 
 GlobalData = datahandling.load_data("testData.raw") # Load data to be used in upcoming tests - so that it doesn't need to be loaded for each individual function to be tested
 
-@pytest.mark.mpl_image_compare(tolerance=20) # this decorator compares the figure object returned by the following function to the baseline png image stored in tests/baseline
+@pytest.mark.mpl_image_compare(tolerance=plot_similarity_tolerance) # this decorator compares the figure object returned by the following function to the baseline png image stored in tests/baseline
 def test_plot_PSD():
     """
     This tests that the plot of the PSD produced by DataObject.plot_PSD is produced correctly and matches the baseline to a certain tolerance.
     """
-    fig, ax = GlobalData.plot_PSD([0, 400e3], ShowFig=False)
+    fig, ax = GlobalData.plot_PSD([0, 400], ShowFig=False)
     return fig
 
-@pytest.mark.mpl_image_compare(tolerance=20) # this decorator compares the figure object returned by the following function to the baseline png image stored in tests/baseline
+@pytest.mark.mpl_image_compare(tolerance=plot_similarity_tolerance) # this decorator compares the figure object returned by the following function to the baseline png image stored in tests/baseline
 def test_get_fit():
     """
     Tests that DataObject.get_fit works and therefore tests fitPSD, fit_curvefit and PSD_Fitting as these are dependancies. It tests that the output values of the fitting are correct (both the values and thier errors) and that the plot looks the same as the baseline, within a certain tolerance.
