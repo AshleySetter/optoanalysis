@@ -136,8 +136,8 @@ class DataObject():
         if timeEnd == "Default":
             timeEnd = self.time[-1]
 
-        StartIndex = list(self.time).index(take_closest(self.time, timeStart))
-        EndIndex = list(self.time).index(take_closest(self.time, timeEnd))
+        StartIndex = np.where(self.time == take_closest(self.time, timeStart))[0][0]
+        EndIndex = np.where(self.time == take_closest(self.time, timeEnd))[0][0]
 
         fig = _plt.figure(figsize=properties['default_fig_size'])
         ax = fig.add_subplot(111)
@@ -362,10 +362,10 @@ class DataObject():
         Gamma : ufloat
             Gamma, the damping parameter
         """
-        lowerIndex = list(self.freqs).index(
-            take_closest(self.freqs, lowerLimit))
-        upperIndex = list(self.freqs).index(
-            take_closest(self.freqs, upperLimit))
+        lowerIndex = np.where(self.freqs ==
+            take_closest(self.freqs, lowerLimit))[0][0]
+        upperIndex = np.where(self.freqs ==
+            take_closest(self.freqs, upperLimit))[0][0]
 
         if lowerIndex == upperIndex:
             _warnings.warn("range is too small, returning NaN", UserWarning)
@@ -374,8 +374,8 @@ class DataObject():
 
         MaxPSD = max(self.PSD[lowerIndex:upperIndex])
 
-        CentralFreq = self.freqs[list(self.PSD).index(MaxPSD)]
-        centralIndex = list(self.freqs).index(CentralFreq)
+        centralIndex = np.where(self.PSD == MaxPSD)[0][0]
+        CentralFreq = self.freqs[centralIndex]
 
         approx_A = MaxPSD * 1e16  # 1e16 was calibrated for a number of saves to be approximately the correct conversion factor between the height of the PSD and the A factor in the fitting
 
@@ -385,7 +385,7 @@ class DataObject():
         HalfMax = MinPSD + (MaxPSD - MinPSD) / 2
 
         try:
-            LeftSideOfPeakIndex = list(self.PSD).index(
+            LeftSideOfPeakIndex = np.where(self.PSD ==
                 take_closest(self.PSD[lowerIndex:centralIndex], HalfMax))
             LeftSideOfPeak = self.freqs[LeftSideOfPeakIndex]
         except IndexError:
@@ -394,7 +394,7 @@ class DataObject():
             return val, val, val
 
         try:
-            RightSideOfPeakIndex = list(self.PSD).index(
+            RightSideOfPeakIndex = np.where(self.PSD ==
                 take_closest(self.PSD[centralIndex:upperIndex], HalfMax))
             RightSideOfPeak = self.freqs[RightSideOfPeakIndex]
         except IndexError:
@@ -1219,8 +1219,8 @@ def get_ZXY_data(Data, zf, xf, yf, FractionOfSampleFreq=1,
     if timeEnd == "Default":
         timeEnd = Data.time[-1]
 
-    StartIndex = list(Data.time).index(take_closest(Data.time, timeStart))
-    EndIndex = list(Data.time).index(take_closest(Data.time, timeEnd))
+    StartIndex = np.where(Data.time == take_closest(Data.time, timeStart))
+    EndIndex = np.where(Data.time == take_closest(Data.time, timeEnd))
 
     SAMPLEFREQ = Data.SampleFreq / FractionOfSampleFreq
 
@@ -1334,8 +1334,8 @@ def get_ZXY_data_IFFT(Data, zf, xf, yf,
     if timeEnd == "Default":
         timeEnd = Data.time[-1]
 
-    StartIndex = list(Data.time).index(take_closest(Data.time, timeStart))
-    EndIndex = list(Data.time).index(take_closest(Data.time, timeEnd))
+    StartIndex = np.where(Data.time == take_closest(Data.time, timeStart))
+    EndIndex = np.where(Data.time == take_closest(Data.time, timeEnd))
 
     SAMPLEFREQ = Data.SampleFreq
 
