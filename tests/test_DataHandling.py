@@ -28,7 +28,7 @@ def test_plot_PSD():
     """
     This tests that the plot of the PSD produced by DataObject.plot_PSD is produced correctly and matches the baseline to a certain tolerance.
     """
-    fig, ax = GlobalData.plot_PSD([0, 400e3], ShowFig=False)
+    fig, ax = GlobalData.plot_PSD([0, 400], ShowFig=False)
     return fig
 
 @pytest.mark.mpl_image_compare(tolerance=20) # this decorator compares the figure object returned by the following function to the baseline png image stored in tests/baseline
