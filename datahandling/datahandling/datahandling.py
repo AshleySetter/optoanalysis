@@ -1278,7 +1278,7 @@ def get_ZXY_data(Data, zf, xf, yf, FractionOfSampleFreq=1,
         _plt.plot(f_x, PSD_x, label="x")
         _plt.plot(f_y, PSD_y, label="y")
         _plt.legend(loc="best")
-        _plt.semilogy
+        _plt.semilogy()
 #        _plt.xlim([zf - zwidth - ztransition, yf + ywidth + ytransition])
         _plt.xlim([zf - zwidth, yf + ywidth])
         _plt.show()
