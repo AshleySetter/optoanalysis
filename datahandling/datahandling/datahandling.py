@@ -73,13 +73,13 @@ class DataObject():
         self.filepath = filepath
         self.filename = filepath.split("/")[-1]
         self.filedir = self.filepath[0:-len(self.filename)]
-        self.get_time_data(RelativeChannelNo)
+        self.load_time_data(RelativeChannelNo)
         self.get_PSD()
         return None
 
-    def get_time_data(self, RelativeChannelNo=None):
+    def load_time_data(self, RelativeChannelNo=None):
         """
-        Gets the time and voltage data and the wave description.
+        Loads the time and voltage data and the wave description from the associated file.
 
         Returns
         -------
@@ -104,6 +104,37 @@ class DataObject():
             self.SampleFreq = 1/SampleTime
         return self.time, self.voltage
 
+    def get_time_data(self, timeStart="Default", timeEnd="Default"):
+        """
+        Gets the time and voltage data.
+
+        Parameters
+        ----------
+        timeStart : float, optional
+            The time get data from.
+            By default it uses the first time point
+        timeEnd : float, optional
+            The time to finish getting data from.
+            By default it uses the last time point        
+
+        Returns
+        -------
+        time : ndarray
+                        array containing the value of time (in seconds) at which the
+                        voltage is sampled
+        voltage : ndarray
+                        array containing the sampled voltages
+        """
+        if timeStart == "Default":
+            timeStart = self.time[0]
+        if timeEnd == "Default":
+            timeEnd = self.time[-1]
+
+        StartIndex = _np.where(self.time == take_closest(self.time, timeStart))[0][0]
+        EndIndex = _np.where(self.time == take_closest(self.time, timeEnd))[0][0]
+        
+        return self.time[StartIndex:EndIndex], self.voltage[StartIndex:EndIndex]
+    
     def plot_time_data(self, timeStart="Default", timeEnd="Default", units='s', ShowFig=True):
         """
         plot time data against voltage data.
