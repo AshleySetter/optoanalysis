@@ -19,9 +19,8 @@ def test_load_data():
     assert data.time[1]-data.time[0] == pytest.approx(1/data.SampleFreq, rel=float_relative_tolerance) # approx equal to within 0.01%
     assert max(data.freqs) == pytest.approx(data.SampleFreq/2, rel=0.00001) # max freq in PSD is approx equal to Nyquist frequency within 0.001%
     t, V = data.get_time_data() 
-#    np.testing.assert_array_equal(t, data.time) # TEMPORARY FIX - FIX THIS IN CODE!!!!!!!!!
-#    np.testing.assert_array_equal(V, data.voltage) # TEMPORARY FIX - FIX THIS IN CODE!!!!!!!!!
-    
+    np.testing.assert_array_equal(t, data.time)
+    np.testing.assert_array_equal(V, data.voltage)
     return None
 
 GlobalData = datahandling.load_data("testData.raw") # Load data to be used in upcoming tests - so that it doesn't need to be loaded for each individual function to be tested

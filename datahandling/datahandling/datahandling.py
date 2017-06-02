@@ -127,12 +127,16 @@ class DataObject():
         """
         if timeStart == "Default":
             timeStart = self.time[0]
+            
         if timeEnd == "Default":
             timeEnd = self.time[-1]
 
         StartIndex = _np.where(self.time == take_closest(self.time, timeStart))[0][0]
         EndIndex = _np.where(self.time == take_closest(self.time, timeEnd))[0][0]
-        
+
+        if EndIndex == len(self.time) - 1:
+            EndIndex = EndIndex + 1 # so that it does not remove the last element
+
         return self.time[StartIndex:EndIndex], self.voltage[StartIndex:EndIndex]
     
     def plot_time_data(self, timeStart="Default", timeEnd="Default", units='s', ShowFig=True):
@@ -323,7 +327,7 @@ class DataObject():
                 γ = conversionFactor
                 Γ_0 = Damping factor due to environment
                 π = pi
-        Ftrap : uncertainties.ufloat
+        OmegaTrap : uncertainties.ufloat
             The trapping frequency in the z axis (in angular frequency)
         Gamma : uncertainties.ufloat
             The damping factor Gamma = Γ = Γ_0 + δΓ
@@ -356,13 +360,13 @@ class DataObject():
                 "Big Gamma: {} +- {}% ".format(Params[2], ParamsErr[2] / Params[2] * 100))
 
         self.A = _uncertainties.ufloat(Params[0], ParamsErr[0])
-        self.Ftrap = _uncertainties.ufloat(Params[1], ParamsErr[1])
+        self.OmegaTrap = _uncertainties.ufloat(Params[1], ParamsErr[1])
         self.Gamma = _uncertainties.ufloat(Params[2], ParamsErr[2])
 
         if MakeFig == True:
-            return self.A, self.Ftrap, self.Gamma, fig, ax
+            return self.A, self.OmegaTrap, self.Gamma, fig, ax
         else:
-            return self.A, self.Ftrap, self.Gamma, None, None
+            return self.A, self.OmegaTrap, self.Gamma, None, None
 
     def get_fit_from_peak(self, lowerLimit, upperLimit, NumPointsSmoothing=1, Silent=False, ShowFig=True):
         """
@@ -388,7 +392,7 @@ class DataObject():
 
         Returns
         -------
-        Ftraps : ufloat
+        OmegaTrap : ufloat
             Trapping frequency
         A : ufloat
             A parameter
@@ -445,7 +449,7 @@ class DataObject():
             _warnings.warn("range is too small to fit, returning NaN", UserWarning)
             val = _uncertainties.ufloat(_np.NaN, _np.NaN)
             return val, val, val
-        FTrap = self.Ftrap
+        OmegaTrap = self.OmegaTrap
         A = self.A
         Gamma = self.Gamma
 
@@ -453,7 +457,7 @@ class DataObject():
             self.freqs[LeftSideOfPeakIndex:RightSideOfPeakIndex]
         PSDArray = self.PSD[LeftSideOfPeakIndex:RightSideOfPeakIndex]
 
-        return FTrap, A, Gamma
+        return OmegaTrap, A, Gamma
 
     def get_fit_auto(self, CentralFreq, MaxWidth=15000, MinWidth=500, WidthIntervals=500, ShowFig=True):
         """
@@ -475,7 +479,7 @@ class DataObject():
 
         Returns
         -------
-        Ftraps : ufloat
+        OmegaTrap : ufloat
             Trapping frequency
         A : ufloat
             A parameter
@@ -485,17 +489,17 @@ class DataObject():
         MinTotalSumSquaredError = _np.infty
         for Width in _np.arange(MaxWidth, MinWidth - WidthIntervals, -WidthIntervals):
             try:
-                Ftrap, A, Gamma = self.get_fit_from_peak(
+                OmegaTrap, A, Gamma = self.get_fit_from_peak(
                     CentralFreq - Width / 2, CentralFreq + Width / 2, Silent=True, ShowFig=False)
             except RuntimeError:
                 _warnings.warn("Couldn't find good fit with width {}".format(
                     Width), RuntimeWarning)
                 val = _uncertainties.ufloat(_np.NaN, _np.NaN)
-                Ftrap = val
+                OmegaTrap = val
                 A = val
                 Gamma = val
             TotalSumSquaredError = (
-                A.std_dev / A.n)**2 + (Gamma.std_dev / Gamma.n)**2 + (Ftrap.std_dev / Ftrap.n)**2
+                A.std_dev / A.n)**2 + (Gamma.std_dev / Gamma.n)**2 + (OmegaTrap.std_dev / OmegaTrap.n)**2
             #print("totalError: {}".format(TotalSumSquaredError))
             if TotalSumSquaredError < MinTotalSumSquaredError:
                 MinTotalSumSquaredError = TotalSumSquaredError
@@ -503,10 +507,10 @@ class DataObject():
         print("found best")
         self.get_fit_from_peak(CentralFreq - BestWidth / 2,
                                CentralFreq + BestWidth / 2, ShowFig=ShowFig)
-        FTrap = self.Ftrap
+        OmegaTrap = self.OmegaTrap
         A = self.A
         Gamma = self.Gamma
-        return FTrap, A, Gamma
+        return OmegaTrap, A, Gamma
 
     def extract_parameters(self, P_mbar, P_Error):
         """
@@ -973,11 +977,11 @@ def fit_PSD(Data, bandwidth, NMovAve, TrapFreqGuess, AGuess=0.1e10, GammaGuess=4
     AngTrapFreqGuess = 2 * _np.pi * TrapFreqGuess
 
     ClosestToAngTrapFreqGuess = take_closest(AngFreqs, AngTrapFreqGuess)
-    index_ftrap = _np.where(AngFreqs == ClosestToAngTrapFreqGuess)[0][0]
-    ftrap = AngFreqs[index_ftrap]
+    index_OmegaTrap = _np.where(AngFreqs == ClosestToAngTrapFreqGuess)[0][0]
+    OmegaTrap = AngFreqs[index_OmegaTrap]
 
-    f_fit_lower = take_closest(AngFreqs, ftrap - Angbandwidth / 2)
-    f_fit_upper = take_closest(AngFreqs, ftrap + Angbandwidth / 2)
+    f_fit_lower = take_closest(AngFreqs, OmegaTrap - Angbandwidth / 2)
+    f_fit_upper = take_closest(AngFreqs, OmegaTrap + Angbandwidth / 2)
 
     indx_fit_lower = int(_np.where(AngFreqs == f_fit_lower)[0][0])
     indx_fit_upper = int(_np.where(AngFreqs == f_fit_upper)[0][0])
@@ -988,15 +992,15 @@ def fit_PSD(Data, bandwidth, NMovAve, TrapFreqGuess, AGuess=0.1e10, GammaGuess=4
     # find highest point in region about guess for trap frequency - use that
     # as guess for trap frequency and recalculate region about the trap
     # frequency
-    index_ftrap = _np.where(Data.PSD == max(
+    index_OmegaTrap = _np.where(Data.PSD == max(
         Data.PSD[indx_fit_lower:indx_fit_upper]))[0][0]
 
-    ftrap = AngFreqs[index_ftrap]
+    OmegaTrap = AngFreqs[index_OmegaTrap]
 
-#    print(ftrap)
+#    print(OmegaTrap)
 
-    f_fit_lower = take_closest(AngFreqs, ftrap - Angbandwidth / 2)
-    f_fit_upper = take_closest(AngFreqs, ftrap + Angbandwidth / 2)
+    f_fit_lower = take_closest(AngFreqs, OmegaTrap - Angbandwidth / 2)
+    f_fit_upper = take_closest(AngFreqs, OmegaTrap + Angbandwidth / 2)
 
     indx_fit_lower = int(_np.where(AngFreqs == f_fit_lower)[0][0])
     indx_fit_upper = int(_np.where(AngFreqs == f_fit_upper)[0][0])
@@ -1017,7 +1021,7 @@ def fit_PSD(Data, bandwidth, NMovAve, TrapFreqGuess, AGuess=0.1e10, GammaGuess=4
     datax = freqs_smoothed[indx_fit_lower:indx_fit_upper]
     datay = logPSD_smoothed[indx_fit_lower:indx_fit_upper]
 
-    p0 = _np.array([AGuess, ftrap, GammaGuess])
+    p0 = _np.array([AGuess, OmegaTrap, GammaGuess])
 
     Params_Fit, Params_Fit_Err = fit_curvefit(p0,
                                               datax, datay, calc_theory_PSD_curve_fit)
@@ -1044,13 +1048,13 @@ def fit_PSD(Data, bandwidth, NMovAve, TrapFreqGuess, AGuess=0.1e10, GammaGuess=4
                 '--', alpha=0.7, color="purple", label="initial vals")
         ax.plot(freqs_smoothed / (2 * _np.pi), 10**(PSDTheory_fit / 10),
                 color="red", label="fitted vals")
-        ax.set_xlim([(ftrap - 5 * Angbandwidth) / (2 * _np.pi),
-                     (ftrap + 5 * Angbandwidth) / (2 * _np.pi)])
-        ax.plot([(ftrap - Angbandwidth) / (2 * _np.pi), (ftrap - Angbandwidth) / (2 * _np.pi)],
+        ax.set_xlim([(OmegaTrap - 5 * Angbandwidth) / (2 * _np.pi),
+                     (OmegaTrap + 5 * Angbandwidth) / (2 * _np.pi)])
+        ax.plot([(OmegaTrap - Angbandwidth) / (2 * _np.pi), (OmegaTrap - Angbandwidth) / (2 * _np.pi)],
                 [min(10**(logPSD_smoothed / 10)),
                  max(10**(logPSD_smoothed / 10))], '--',
                 color="grey")
-        ax.plot([(ftrap + Angbandwidth) / (2 * _np.pi), (ftrap + Angbandwidth) / (2 * _np.pi)],
+        ax.plot([(OmegaTrap + Angbandwidth) / (2 * _np.pi), (OmegaTrap + Angbandwidth) / (2 * _np.pi)],
                 [min(10**(logPSD_smoothed / 10)),
                  max(10**(logPSD_smoothed / 10))], '--',
                 color="grey")
@@ -1167,13 +1171,13 @@ def get_ZXY_freqs(Data, zfreq, xfreq, yfreq, bandwidth=5000):
         z_indx_fit_lower = int(_np.where(Data.freqs == z_f_fit_lower)[0][0])
         z_indx_fit_upper = int(_np.where(Data.freqs == z_f_fit_upper)[0][0])
 
-        z_index_ftrap = _np.where(Data.PSD == max(
+        z_index_OmegaTrap = _np.where(Data.PSD == max(
             Data.PSD[z_indx_fit_lower:z_indx_fit_upper]))[0][0]
         # find highest point in region about guess for trap frequency
         # use that as guess for trap frequency and recalculate region
         # about the trap frequency
-        z_ftrap = Data.freqs[z_index_ftrap]
-        trapfreqs.append(z_ftrap)
+        z_OmegaTrap = Data.freqs[z_index_OmegaTrap]
+        trapfreqs.append(z_OmegaTrap)
     return trapfreqs
 
 
