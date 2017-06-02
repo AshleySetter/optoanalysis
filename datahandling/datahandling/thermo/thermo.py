@@ -114,6 +114,7 @@ class ThermoObject(datahandling.DataObject):
         """
         return calc_hamiltonian(mass, omega_array)/calc_partition_function(mass, omega_array,temperature_array)
 
+    @_jit
     def extract_thermodynamic_quantities(self,temperature_array):
         """
         Calculates the thermodynamic quantities of your system at each point in time.
@@ -133,12 +134,19 @@ class ThermoObject(datahandling.DataObject):
         
         Requirements
         ------------
-        self.position_data : array
-            Already filtered for the degree of freedom of intrest and converted into meters. 
+        execute calc_hamiltonian on the DataObject first
 
         Returns:
         -------
-        Phasespace-density : array
-            The Partition Function at every point in time over a given trap-frequency and temperature change.
+        Q : array
+            The heat exchanged by the particle at every point in time over a given trap-frequency and temperature change.
+        W : array
+            The work "done"  by the particle at every point in time over a given trap-frequency and temperature change.
         """
-        return None 
+        self.Q = self.Hamiltonian/(_scipy.constants.Boltzmann*_np.diff(temperature_array)*self.SampleFreq)
+        self.W = self.Hamiltonian-self.Q
+        self.Delta_E_kin = _np.diff(self.E_kin)*self.SampleFreq
+        self.Delta_E_pot = _np.diff(self.E_pot)*self.SampleFreq
+        self.Delta_E = _np.diff(self.Hamiltonian)*self.SampleFreq
+        
+        return self.Q, self.W 
