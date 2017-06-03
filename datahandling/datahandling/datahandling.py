@@ -543,7 +543,7 @@ class DataObject():
 
         return self.Radius, self.Mass, self.ConvFactor
 
-    def extract_ZXY_motion(self, ApproxZXYFreqs, uncertaintyInFreqs, ZXYPeakWidths, subSampleFraction=1):
+    def extract_ZXY_motion(self, ApproxZXYFreqs, uncertaintyInFreqs, ZXYPeakWidths, subSampleFraction=1, MakeFig=True, ShowFig=True):
         """
         Extracts the x, y and z signals (in volts) from the voltage signal. Does this by finding the highest peaks in the signal about the approximate frequencies, using the uncertaintyinfreqs parameter as the width it searches. It then uses the ZXYPeakWidths to construct bandpass IIR filters for each frequency and filtering them. If too high a sample frequency has been used to collect the data scipy may not be able to construct a filter good enough, in this case increasing the subSampleFraction may be nessesary.
         
@@ -552,9 +552,8 @@ class DataObject():
         ApproxZXYFreqs : array_like
             A sequency containing 3 elements, the approximate 
             z, x and y frequency respectively.
-        uncertaintyInFreqs : array_like
-            A sequency containing 3 elements, the uncertainty in the
-            z, x and y frequency respectively.
+        uncertaintyInFreqs : float
+            The uncertainty in the z, x and y frequency respectively.
         ZXYPeakWidths : array_like
             A sequency containing 3 elements, the widths of the
             z, x and y frequency peaks respectively.
@@ -562,6 +561,9 @@ class DataObject():
             How much to sub-sample the data by before filtering,
             effectively reducing the sample frequency by this 
             fraction.
+        ShowFig : bool, optional
+            Whether to show the figures produced of the PSD of
+            the original signal along with the filtered x, y and z.
 
         Returns
         -------
@@ -574,18 +576,17 @@ class DataObject():
         [zf, xf, yf] = ApproxZXYFreqs
         zf, xf, yf = get_ZXY_freqs(
             self, zf, xf, yf, bandwidth=uncertaintyInFreqs)
-        #print(zf, xf, yf)
         [zwidth, xwidth, ywidth] = ZXYPeakWidths
-        self.zVolts, self.xVolts, self.yVolts = get_ZXY_data(
-            self, zf, xf, yf, subSampleFraction, zwidth, xwidth, ywidth)
-        return self.zVolts, self.xVolts, self.yVolts
+        self.zVolts, self.xVolts, self.yVolts, time, fig, ax = get_ZXY_data(
+            self, zf, xf, yf, subSampleFraction, zwidth, xwidth, ywidth, MakeFig=MakeFig, ShowFig=ShowFig)
+        return self.zVolts, self.xVolts, self.yVolts, time, fig, ax
 
     def plot_phase_space(self, zf, xf=80000, yf=120000, FractionOfSampleFreq=4, zwidth=10000, xwidth=5000, ywidth=5000, ShowFig=True):
         """
         author: Markus Rademacher
         """
-        Z, X, Y, Time = get_ZXY_data(
-            self, zf, xf, yf, FractionOfSampleFreq, zwidth, xwidth, ywidth, ShowFig=False)
+        Z, X, Y, Time, fig, ax = get_ZXY_data(
+            self, zf, xf, yf, FractionOfSampleFreq, zwidth, xwidth, ywidth, MakeFig=False, ShowFig=False)
 
         conv = self.ConvFactor.n
         ZArray = Z / conv
@@ -1183,10 +1184,9 @@ def get_ZXY_freqs(Data, zfreq, xfreq, yfreq, bandwidth=5000):
 
 def get_ZXY_data(Data, zf, xf, yf, FractionOfSampleFreq=1,
                  zwidth=10000, xwidth=5000, ywidth=5000,
-#                 ztransition=10000, xtransition=5000, ytransition=5000,
                  filterImplementation="filtfilt",
                  timeStart="Default", timeEnd="Default",
-                 ShowFig=True):
+                 MakeFig=True, ShowFig=True):
     """
     Given a Data object and the frequencies of the z, x and y peaks (and some
     optional parameters for the created filters) this function extracts the
@@ -1221,15 +1221,6 @@ def get_ZXY_data(Data, zf, xf, yf, FractionOfSampleFreq=1,
     ywidth : float, optional
         The width of the pass-band of the IIR filter to be generated to
         filter Y.
-#    ztransition : float, optional
-#        The width of the transition-band of the IIR filter to be generated to
-#        filter Z.
-#    xtransition : float, optional
-#        The width of the transition-band of the IIR filter to be generated to
-#        filter X.
-#    ytransition : float, optional
-#        The width of the transition-band of the IIR filter to be generated to
-#        filter Y.
     filterImplementation : string, optional
         filtfilt or lfilter - use scipy.filtfilt or lfilter
         default: filtfilt
@@ -1272,34 +1263,31 @@ def get_ZXY_data(Data, zf, xf, yf, FractionOfSampleFreq=1,
 
     input_signal = Data.voltage[StartIndex: EndIndex][0::FractionOfSampleFreq]
 
-    #bZ, aZ = make_butterworth_bandpass_b_a(zf, zwidth, ztransition, SAMPLEFREQ, GainStop=100)
     bZ, aZ = make_butterworth_bandpass_b_a(zf, zwidth, SAMPLEFREQ)
-
+    print("filtering Z")
     zdata = ApplyFilter(bZ, aZ, input_signal)
 
     if(_np.isnan(zdata).any()):
         raise ValueError(
             "Value Error: FractionOfSampleFreq must be higher, a sufficiently small sample frequency should be used to produce a working IIR filter.")
 
-    #bX, aX = make_butterworth_bandpass_b_a(xf, xwidth, xtransition, SAMPLEFREQ, GainStop=100)
     bX, aX = make_butterworth_bandpass_b_a(xf, xwidth, SAMPLEFREQ)
-
+    print("filtering X")
     xdata = ApplyFilter(bX, aX, input_signal)
 
     if(_np.isnan(xdata).any()):
         raise ValueError(
             "Value Error: FractionOfSampleFreq must be higher, a sufficiently small sample frequency should be used to produce a working IIR filter.")
 
-    #bY, aY = make_butterworth_bandpass_b_a(yf, ywidth, ytransition, SAMPLEFREQ, GainStop=100)
     bY, aY = make_butterworth_bandpass_b_a(yf, ywidth, SAMPLEFREQ)
-    
+    print("filtering Y")
     ydata = ApplyFilter(bY, aY, input_signal)
 
     if(_np.isnan(ydata).any()):
         raise ValueError(
             "Value Error: FractionOfSampleFreq must be higher, a sufficiently small sample frequency should be used to produce a working IIR filter.")
 
-    if ShowFig == True:
+    if MakeFig == True:
         NPerSegment = len(Data.time)
         if NPerSegment > 1e5:
             NPerSegment = int(1e5)
@@ -1308,18 +1296,18 @@ def get_ZXY_data(Data, zf, xf, yf, FractionOfSampleFreq=1,
         f_z, PSD_z = scipy.signal.welch(zdata, SAMPLEFREQ, nperseg=NPerSegment)
         f_y, PSD_y = scipy.signal.welch(ydata, SAMPLEFREQ, nperseg=NPerSegment)
         f_x, PSD_x = scipy.signal.welch(xdata, SAMPLEFREQ, nperseg=NPerSegment)
-        _plt.plot(f, PSD)
-        _plt.plot(f_z, PSD_z, label="z")
-        _plt.plot(f_x, PSD_x, label="x")
-        _plt.plot(f_y, PSD_y, label="y")
-        _plt.legend(loc="best")
-        _plt.semilogy()
-#        _plt.xlim([zf - zwidth - ztransition, yf + ywidth + ytransition])
-        _plt.xlim([zf - zwidth, yf + ywidth])
+        fig, ax = _plt.subplots(figsize=properties["default_fig_size"])
+        ax.plot(f, PSD)
+        ax.plot(f_z, PSD_z, label="z")
+        ax.plot(f_x, PSD_x, label="x")
+        ax.plot(f_y, PSD_y, label="y")
+        ax.legend(loc="best")
+        ax.semilogy()
+        ax.set_xlim([zf - zwidth, yf + ywidth])
+    if ShowFig == True:
         _plt.show()
-
     timedata = Data.time[StartIndex: EndIndex][0::FractionOfSampleFreq]
-    return zdata, xdata, ydata, timedata
+    return zdata, xdata, ydata, timedata, fig, ax
 
 
 def get_ZXY_data_IFFT(Data, zf, xf, yf,
@@ -1607,7 +1595,7 @@ def butterworth_filter(Signal, SampleFreq, lowerFreq, upperFreq):
     FilteredData : ndarray
         Array containing the filtered data
     """
-    b, a = make_butterworth_b_a(lowerFreq, upperFreq, SampleFreq)    
+    b, a = make_butterworth_b_a(lowerFreq, upperFreq, SampleFreq)
     FilteredSignal = scipy.signal.filtfilt(b, a, Signal)
     return _np.real(FilteredSignal)
 
