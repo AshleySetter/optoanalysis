@@ -16,9 +16,9 @@ def test_load_data():
     data = datahandling.load_data("testData.raw")
     assert type(data) == datahandling.datahandling.DataObject
     assert data.filename == "testData.raw"
-    assert data.time[1]-data.time[0] == pytest.approx(1/data.SampleFreq, rel=float_relative_tolerance) # approx equal to within 0.01%
-    assert max(data.freqs) == pytest.approx(data.SampleFreq/2, rel=0.00001) # max freq in PSD is approx equal to Nyquist frequency within 0.001%
-    t, V = data.get_time_data() 
+    assert data.time[1]-data.time[0] == pytest.approx(1/data.SampleFreq, rel=float_relative_tolerance) 
+    assert max(data.freqs) == pytest.approx(data.SampleFreq/2, rel=0.00001) # max freq in PSD is approx equal to Nyquist frequency
+    t, V = data.load_time_data() 
     np.testing.assert_array_equal(t, data.time)
     np.testing.assert_array_equal(V, data.voltage)
     return None
@@ -129,3 +129,31 @@ def test_extract_motion():
     assert len(x) == len(y)
     assert len(z) == expectedLength
     return fig
+
+def test_multi_load_data():
+    """
+    Tests the multi_load_data function, checks that the data
+    is loaded correctly by checking various properties are set.
+    """
+    data = datahandling.multi_load_data(1, [1, 36], [0])
+    assert data[0].filename == "CH1_RUN00000001_REPEAT0000.raw"
+    assert data[1].filename == "CH1_RUN00000036_REPEAT0000.raw"
+    for dataset in data:
+        assert type(dataset) == datahandling.datahandling.DataObject
+        assert dataset.time[1]-dataset.time[0] == pytest.approx(1/dataset.SampleFreq, rel=float_relative_tolerance) 
+        assert max(dataset.freqs) == pytest.approx(dataset.SampleFreq/2, rel=0.00001) # max freq in PSD is approx equal to Nyquist frequency
+    return None
+
+GlobalMultiData = datahandling.multi_load_data(1, [1, 36], [0]) # Load data to be used in upcoming tests - so that it doesn't need to be loaded for each individual function to be tested
+
+def test_calc_temp():
+    """
+    Tests calc_temp by calculating the temperature of the
+    z degree of data from it's reference.
+    """
+    for dataset in GlobalMultiData:
+        dataset.get_fit_auto(65e3, ShowFig=False)
+    T = datahandling.calc_temp(GlobalMultiData[0], GlobalMultiData[1])
+    assert T.n == pytest.approx(2.6031509367704735, rel=float_relative_tolerance)
+    assert T.std_dev == pytest.approx(0.21312482508893446, rel=float_relative_tolerance)
+    return None

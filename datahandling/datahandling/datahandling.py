@@ -696,7 +696,9 @@ def load_data(Filepath, ObjectType="default", RelativeChannelNo=None):
 
 def multi_load_data(Channel, RunNos, RepeatNos, directoryPath='.'):
     """
-    Lets you load multiple datasets at once.
+    Lets you load multiple datasets at once assuming they have a 
+    filename which contains a pattern of the form:
+    CH<ChannelNo>_RUN00...<RunNo>_REPEAT00...<RepeatNo>    
 
     Parameters
     ----------
@@ -1577,7 +1579,10 @@ def IFFT_filter(Signal, SampleFreq, lowerFreq, upperFreq):
 
 def butterworth_filter(Signal, SampleFreq, lowerFreq, upperFreq):
     """
-    Filters data using fft -> zeroing out fft bins -> ifft
+    Filters data using by constructing a 5th order butterworth
+    IIR filter and using scipy.signal.filtfilt, which does
+    phase correction after implementing the filter (as IIR 
+    filter apply a phase change)
 
     Parameters
     ----------
@@ -1668,7 +1673,10 @@ def make_butterworth_bandpass_b_a(CenterFreq, bandwidth, SampleFreq, order=5, bt
 
 def IIR_filter_design(CentralFreq, bandwidth, transitionWidth, SampleFreq, GainStop=40, GainPass=0.01):
     """
-    Function to calculate the coefficients of an IIR filter.
+    Function to calculate the coefficients of an IIR filter, 
+    IMPORTANT NOTE: make_butterworth_bandpass_b_a and make_butterworth_b_a
+    can produce IIR filters with higher sample rates and are prefereable
+    due to this.
 
     Parameters
     ----------
@@ -1707,61 +1715,6 @@ def IIR_filter_design(CentralFreq, bandwidth, transitionWidth, SampleFreq, GainS
     print(bandpass, bandstop)
     b, a = scipy.signal.iirdesign(bandpass, bandstop, GainPass, GainStop)
     return b, a
-
-
-#def IIR_filter_design_New(Order, btype, CriticalFreqs, SampleFreq, StopbandAttenuation=40, ftype='cheby2'):
-#    """
-#    Function to calculate the coefficients of an IIR filter.
-#
-#    Parameters
-#    ----------
-#    CentralFreq : float
-#        Central frequency of the IIR filter to be designed
-#    bandwidth : float
-#        The width of the passband to be created about the central frequency
-#    transitionWidth : float
-#        The width of the transition band between the pass-band and stop-band
-#    SampleFreq : float
-#        The sample frequency (rate) of the data to be filtered
-#    GainStop : float
-#        The dB of attenuation within the stopband (i.e. outside the passband)
-#    GainPass : float
-#        The dB attenuation inside the passband (ideally close to 0 for a bandpass filter)
-#
-#    Returns
-#    -------
-#    b : ndarray
-#        coefficients multiplying the current and past inputs (feedforward coefficients)
-#    a : ndarray
-#        coefficients multiplying the past outputs (feedback coefficients)
-#    """
-#    NyquistFreq = SampleFreq / 2
-#    if len(CriticalFreqs) > 1:
-#        if (CriticalFreqs[1] > NyquistFreq):
-#            raise ValueError(
-#                "Need a higher Sample Frequency for this Frequency range")
-#
-#        BandStartNormed = CriticalFreqs[0] / NyquistFreq
-#        BandStopNormed = CriticalFreqs[1] / NyquistFreq
-#
-#        bandpass = [BandStartNormed, BandStopNormed]
-#
-#        b, a = scipy.signal.iirfilter(Order, bandpass, rs=StopbandAttenuation,
-#                                      btype=btype, analog=False, ftype=ftype)
-#    else:
-#        CriticalFreq = CriticalFreqs[0]
-#
-#        if (CriticalFreq > NyquistFreq):
-#            raise ValueError(
-#                "Need a higher Sample Frequency for this Critical Frequency")
-#
-#        CriticalFreqNormed = CriticalFreq / NyquistFreq
-#
-#        b, a = scipy.signal.iirfilter(Order, CriticalFreqNormed, rs=StopbandAttenuation,
-#                                      btype=btype, analog=False, ftype=ftype)
-#
-#    return b, a
-
 
 def get_freq_response(a, b, ShowFig=True, SampleFreq=(2 * _np.pi), NumOfFreqs=500, whole=False):
     """
