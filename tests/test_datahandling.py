@@ -97,6 +97,10 @@ def test_calc_area_under_PSD():
     return None
 
 def test_get_fit_auto():
+    """
+    This tests that DataObect.get_fit_auto continues to return the same
+    values as when the test was created, to within the set tolerance.
+    """
     ATrue = 466612.80058291875
     AErrTrue = 54.936633293369404
     OmegaTrapTrue = 583205139563.28
@@ -112,3 +116,16 @@ def test_get_fit_auto():
     assert BigGamma.std_dev == pytest.approx(BigGammaErrTrue, rel=float_relative_tolerance)
     return None 
 
+@pytest.mark.mpl_image_compare(tolerance=plot_similarity_tolerance)
+def test_extract_motion():
+    """
+    Tests the DataObject.extract_motion function, and therefore
+    the get_ZXY_data function and get_ZXY_freqs function.
+    """
+    expectedLength = int(np.floor(len(GlobalData.time)/3))
+    z, x, y, t, fig, ax = GlobalData.extract_ZXY_motion([75e3, 167e3, 185e3], 5e3, [15e3, 15e3, 15e3], 3, MakeFig=True, ShowFig=False)
+    assert len(z) == len(t)
+    assert len(z) == len(x)
+    assert len(x) == len(y)
+    assert len(z) == expectedLength
+    return fig
