@@ -169,7 +169,7 @@ def test_multi_plot_PSD():
     return fig
 
 @pytest.mark.mpl_image_compare(tolerance=plot_similarity_tolerance)
-def test_multi_plot_PSD():
+def test_multi_plot_time():
     """
     This tests that the plot of time for the 2 datasets (from -1000us to 1000us) 
     produced by DataObject.multi_plot_time is produced correctly and matches the
