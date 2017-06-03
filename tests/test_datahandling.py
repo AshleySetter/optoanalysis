@@ -157,3 +157,23 @@ def test_calc_temp():
     assert T.n == pytest.approx(2.6031509367704735, rel=float_relative_tolerance)
     assert T.std_dev == pytest.approx(0.21312482508893446, rel=float_relative_tolerance)
     return None
+
+@pytest.mark.mpl_image_compare(tolerance=plot_similarity_tolerance)
+def test_multi_plot_PSD():
+    """
+    This tests that the plot of PSD for the 2 datasets (from 0 to 300KHz) 
+    produced by DataObject.multi_plot_PSD is produced correctly and matches the
+    baseline to a certain tolerance.
+    """
+    fig, ax = datahandling.multi_plot_PSD(GlobalMultiData, xlim=[0, 300], units="kHz", LabelArray=["Reference", "Cooled"], ColorArray=["red", "blue"], alphaArray=[0.8, 0.8], ShowFig=False)
+    return fig
+
+@pytest.mark.mpl_image_compare(tolerance=plot_similarity_tolerance)
+def test_multi_plot_PSD():
+    """
+    This tests that the plot of time for the 2 datasets (from -1000us to 1000us) 
+    produced by DataObject.multi_plot_time is produced correctly and matches the
+    baseline to a certain tolerance.
+    """
+    fig, ax = datahandling.multi_plot_time(GlobalMultiData, SubSampleN=1, units='us', xlim=[-1000, 1000], LabelArray=["Reference", "Cooled"], ShowFig=False)
+    return fig
