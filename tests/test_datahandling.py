@@ -177,3 +177,13 @@ def test_multi_plot_time():
     """
     fig, ax = datahandling.multi_plot_time(GlobalMultiData, SubSampleN=1, units='us', xlim=[-1000, 1000], LabelArray=["Reference", "Cooled"], ShowFig=False)
     return fig
+
+@pytest.mark.mpl_image_compare(tolerance=plot_similarity_tolerance)
+def test_multi_subplots_time():
+    """
+    This tests that the plots of time for the 2 datasets (from -1000us to 1000us) 
+    produced by DataObject.multi_subplots_time is produced correctly and matches the
+    baseline to a certain tolerance.
+    """
+    fig, ax = datahandling.multi_subplots_time(GlobalMultiData, SubSampleN=1, units='us', xlim=[-1000, 1000], LabelArray=["Reference", "Cooled"], ShowFig=False)
+    return fig
