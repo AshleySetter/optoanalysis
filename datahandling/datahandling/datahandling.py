@@ -505,8 +505,11 @@ class DataObject():
                 MinTotalSumSquaredError = TotalSumSquaredError
                 BestWidth = Width
         print("found best")
-        self.get_fit_from_peak(CentralFreq - BestWidth / 2,
-                               CentralFreq + BestWidth / 2, ShowFig=ShowFig)
+        try:
+            self.get_fit_from_peak(CentralFreq - BestWidth / 2,
+                                   CentralFreq + BestWidth / 2, ShowFig=ShowFig)
+        except UnboundLocalError:
+            raise ValueError("A best width was not found, try increasing the number of widths tried by either decreasing WidthIntervals or MinWidth or increasing MaxWidth")
         OmegaTrap = self.OmegaTrap
         A = self.A
         Gamma = self.Gamma
