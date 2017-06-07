@@ -73,13 +73,13 @@ class DataObject():
         self.filepath = filepath
         self.filename = filepath.split("/")[-1]
         self.filedir = self.filepath[0:-len(self.filename)]
-        self.get_time_data(RelativeChannelNo)
+        self.load_time_data(RelativeChannelNo)
         self.get_PSD()
         return None
 
-    def get_time_data(self, RelativeChannelNo=None):
+    def load_time_data(self, RelativeChannelNo=None):
         """
-        Gets the time and voltage data and the wave description.
+        Loads the time and voltage data and the wave description from the associated file.
 
         Returns
         -------
@@ -104,6 +104,41 @@ class DataObject():
             self.SampleFreq = 1/SampleTime
         return self.time, self.voltage
 
+    def get_time_data(self, timeStart="Default", timeEnd="Default"):
+        """
+        Gets the time and voltage data.
+
+        Parameters
+        ----------
+        timeStart : float, optional
+            The time get data from.
+            By default it uses the first time point
+        timeEnd : float, optional
+            The time to finish getting data from.
+            By default it uses the last time point        
+
+        Returns
+        -------
+        time : ndarray
+                        array containing the value of time (in seconds) at which the
+                        voltage is sampled
+        voltage : ndarray
+                        array containing the sampled voltages
+        """
+        if timeStart == "Default":
+            timeStart = self.time[0]
+            
+        if timeEnd == "Default":
+            timeEnd = self.time[-1]
+
+        StartIndex = _np.where(self.time == take_closest(self.time, timeStart))[0][0]
+        EndIndex = _np.where(self.time == take_closest(self.time, timeEnd))[0][0]
+
+        if EndIndex == len(self.time) - 1:
+            EndIndex = EndIndex + 1 # so that it does not remove the last element
+
+        return self.time[StartIndex:EndIndex], self.voltage[StartIndex:EndIndex]
+    
     def plot_time_data(self, timeStart="Default", timeEnd="Default", units='s', ShowFig=True):
         """
         plot time data against voltage data.
@@ -292,7 +327,7 @@ class DataObject():
                 γ = conversionFactor
                 Γ_0 = Damping factor due to environment
                 π = pi
-        Ftrap : uncertainties.ufloat
+        OmegaTrap : uncertainties.ufloat
             The trapping frequency in the z axis (in angular frequency)
         Gamma : uncertainties.ufloat
             The damping factor Gamma = Γ = Γ_0 + δΓ
@@ -325,13 +360,13 @@ class DataObject():
                 "Big Gamma: {} +- {}% ".format(Params[2], ParamsErr[2] / Params[2] * 100))
 
         self.A = _uncertainties.ufloat(Params[0], ParamsErr[0])
-        self.Ftrap = _uncertainties.ufloat(Params[1], ParamsErr[1])
+        self.OmegaTrap = _uncertainties.ufloat(Params[1], ParamsErr[1])
         self.Gamma = _uncertainties.ufloat(Params[2], ParamsErr[2])
 
         if MakeFig == True:
-            return self.A, self.Ftrap, self.Gamma, fig, ax
+            return self.A, self.OmegaTrap, self.Gamma, fig, ax
         else:
-            return self.A, self.Ftrap, self.Gamma, None, None
+            return self.A, self.OmegaTrap, self.Gamma, None, None
 
     def get_fit_from_peak(self, lowerLimit, upperLimit, NumPointsSmoothing=1, Silent=False, ShowFig=True):
         """
@@ -357,7 +392,7 @@ class DataObject():
 
         Returns
         -------
-        Ftraps : ufloat
+        OmegaTrap : ufloat
             Trapping frequency
         A : ufloat
             A parameter
@@ -414,7 +449,7 @@ class DataObject():
             _warnings.warn("range is too small to fit, returning NaN", UserWarning)
             val = _uncertainties.ufloat(_np.NaN, _np.NaN)
             return val, val, val
-        FTrap = self.Ftrap
+        OmegaTrap = self.OmegaTrap
         A = self.A
         Gamma = self.Gamma
 
@@ -422,7 +457,7 @@ class DataObject():
             self.freqs[LeftSideOfPeakIndex:RightSideOfPeakIndex]
         PSDArray = self.PSD[LeftSideOfPeakIndex:RightSideOfPeakIndex]
 
-        return FTrap, A, Gamma
+        return OmegaTrap, A, Gamma
 
     def get_fit_auto(self, CentralFreq, MaxWidth=15000, MinWidth=500, WidthIntervals=500, ShowFig=True):
         """
@@ -444,7 +479,7 @@ class DataObject():
 
         Returns
         -------
-        Ftraps : ufloat
+        OmegaTrap : ufloat
             Trapping frequency
         A : ufloat
             A parameter
@@ -454,28 +489,31 @@ class DataObject():
         MinTotalSumSquaredError = _np.infty
         for Width in _np.arange(MaxWidth, MinWidth - WidthIntervals, -WidthIntervals):
             try:
-                Ftrap, A, Gamma = self.get_fit_from_peak(
+                OmegaTrap, A, Gamma = self.get_fit_from_peak(
                     CentralFreq - Width / 2, CentralFreq + Width / 2, Silent=True, ShowFig=False)
             except RuntimeError:
                 _warnings.warn("Couldn't find good fit with width {}".format(
                     Width), RuntimeWarning)
                 val = _uncertainties.ufloat(_np.NaN, _np.NaN)
-                Ftrap = val
+                OmegaTrap = val
                 A = val
                 Gamma = val
             TotalSumSquaredError = (
-                A.std_dev / A.n)**2 + (Gamma.std_dev / Gamma.n)**2 + (Ftrap.std_dev / Ftrap.n)**2
+                A.std_dev / A.n)**2 + (Gamma.std_dev / Gamma.n)**2 + (OmegaTrap.std_dev / OmegaTrap.n)**2
             #print("totalError: {}".format(TotalSumSquaredError))
             if TotalSumSquaredError < MinTotalSumSquaredError:
                 MinTotalSumSquaredError = TotalSumSquaredError
                 BestWidth = Width
         print("found best")
-        self.get_fit_from_peak(CentralFreq - BestWidth / 2,
-                               CentralFreq + BestWidth / 2, ShowFig=ShowFig)
-        FTrap = self.Ftrap
+        try:
+            self.get_fit_from_peak(CentralFreq - BestWidth / 2,
+                                   CentralFreq + BestWidth / 2, ShowFig=ShowFig)
+        except UnboundLocalError:
+            raise ValueError("A best width was not found, try increasing the number of widths tried by either decreasing WidthIntervals or MinWidth or increasing MaxWidth")
+        OmegaTrap = self.OmegaTrap
         A = self.A
         Gamma = self.Gamma
-        return FTrap, A, Gamma
+        return OmegaTrap, A, Gamma
 
     def extract_parameters(self, P_mbar, P_Error):
         """
@@ -508,7 +546,7 @@ class DataObject():
 
         return self.Radius, self.Mass, self.ConvFactor
 
-    def extract_ZXY_motion(self, ApproxZXYFreqs, uncertaintyInFreqs, ZXYPeakWidths, subSampleFraction=1):
+    def extract_ZXY_motion(self, ApproxZXYFreqs, uncertaintyInFreqs, ZXYPeakWidths, subSampleFraction=1, MakeFig=True, ShowFig=True):
         """
         Extracts the x, y and z signals (in volts) from the voltage signal. Does this by finding the highest peaks in the signal about the approximate frequencies, using the uncertaintyinfreqs parameter as the width it searches. It then uses the ZXYPeakWidths to construct bandpass IIR filters for each frequency and filtering them. If too high a sample frequency has been used to collect the data scipy may not be able to construct a filter good enough, in this case increasing the subSampleFraction may be nessesary.
         
@@ -517,9 +555,8 @@ class DataObject():
         ApproxZXYFreqs : array_like
             A sequency containing 3 elements, the approximate 
             z, x and y frequency respectively.
-        uncertaintyInFreqs : array_like
-            A sequency containing 3 elements, the uncertainty in the
-            z, x and y frequency respectively.
+        uncertaintyInFreqs : float
+            The uncertainty in the z, x and y frequency respectively.
         ZXYPeakWidths : array_like
             A sequency containing 3 elements, the widths of the
             z, x and y frequency peaks respectively.
@@ -527,6 +564,9 @@ class DataObject():
             How much to sub-sample the data by before filtering,
             effectively reducing the sample frequency by this 
             fraction.
+        ShowFig : bool, optional
+            Whether to show the figures produced of the PSD of
+            the original signal along with the filtered x, y and z.
 
         Returns
         -------
@@ -539,18 +579,17 @@ class DataObject():
         [zf, xf, yf] = ApproxZXYFreqs
         zf, xf, yf = get_ZXY_freqs(
             self, zf, xf, yf, bandwidth=uncertaintyInFreqs)
-        #print(zf, xf, yf)
         [zwidth, xwidth, ywidth] = ZXYPeakWidths
-        self.zVolts, self.xVolts, self.yVolts = get_ZXY_data(
-            self, zf, xf, yf, subSampleFraction, zwidth, xwidth, ywidth)
-        return self.zVolts, self.xVolts, self.yVolts
+        self.zVolts, self.xVolts, self.yVolts, time, fig, ax = get_ZXY_data(
+            self, zf, xf, yf, subSampleFraction, zwidth, xwidth, ywidth, MakeFig=MakeFig, ShowFig=ShowFig)
+        return self.zVolts, self.xVolts, self.yVolts, time, fig, ax
 
     def plot_phase_space(self, zf, xf=80000, yf=120000, FractionOfSampleFreq=4, zwidth=10000, xwidth=5000, ywidth=5000, ShowFig=True):
         """
         author: Markus Rademacher
         """
-        Z, X, Y, Time = get_ZXY_data(
-            self, zf, xf, yf, FractionOfSampleFreq, zwidth, xwidth, ywidth, ShowFig=False)
+        Z, X, Y, Time, fig, ax = get_ZXY_data(
+            self, zf, xf, yf, FractionOfSampleFreq, zwidth, xwidth, ywidth, MakeFig=False, ShowFig=False)
 
         conv = self.ConvFactor.n
         ZArray = Z / conv
@@ -660,7 +699,9 @@ def load_data(Filepath, ObjectType="default", RelativeChannelNo=None):
 
 def multi_load_data(Channel, RunNos, RepeatNos, directoryPath='.'):
     """
-    Lets you load multiple datasets at once.
+    Lets you load multiple datasets at once assuming they have a 
+    filename which contains a pattern of the form:
+    CH<ChannelNo>_RUN00...<RunNo>_REPEAT00...<RepeatNo>    
 
     Parameters
     ----------
@@ -980,11 +1021,11 @@ def fit_PSD(Data, bandwidth, NMovAve, TrapFreqGuess, AGuess=0.1e10, GammaGuess=4
     AngTrapFreqGuess = 2 * _np.pi * TrapFreqGuess
 
     ClosestToAngTrapFreqGuess = take_closest(AngFreqs, AngTrapFreqGuess)
-    index_ftrap = _np.where(AngFreqs == ClosestToAngTrapFreqGuess)[0][0]
-    ftrap = AngFreqs[index_ftrap]
+    index_OmegaTrap = _np.where(AngFreqs == ClosestToAngTrapFreqGuess)[0][0]
+    OmegaTrap = AngFreqs[index_OmegaTrap]
 
-    f_fit_lower = take_closest(AngFreqs, ftrap - Angbandwidth / 2)
-    f_fit_upper = take_closest(AngFreqs, ftrap + Angbandwidth / 2)
+    f_fit_lower = take_closest(AngFreqs, OmegaTrap - Angbandwidth / 2)
+    f_fit_upper = take_closest(AngFreqs, OmegaTrap + Angbandwidth / 2)
 
     indx_fit_lower = int(_np.where(AngFreqs == f_fit_lower)[0][0])
     indx_fit_upper = int(_np.where(AngFreqs == f_fit_upper)[0][0])
@@ -995,15 +1036,15 @@ def fit_PSD(Data, bandwidth, NMovAve, TrapFreqGuess, AGuess=0.1e10, GammaGuess=4
     # find highest point in region about guess for trap frequency - use that
     # as guess for trap frequency and recalculate region about the trap
     # frequency
-    index_ftrap = _np.where(Data.PSD == max(
+    index_OmegaTrap = _np.where(Data.PSD == max(
         Data.PSD[indx_fit_lower:indx_fit_upper]))[0][0]
 
-    ftrap = AngFreqs[index_ftrap]
+    OmegaTrap = AngFreqs[index_OmegaTrap]
 
-#    print(ftrap)
+#    print(OmegaTrap)
 
-    f_fit_lower = take_closest(AngFreqs, ftrap - Angbandwidth / 2)
-    f_fit_upper = take_closest(AngFreqs, ftrap + Angbandwidth / 2)
+    f_fit_lower = take_closest(AngFreqs, OmegaTrap - Angbandwidth / 2)
+    f_fit_upper = take_closest(AngFreqs, OmegaTrap + Angbandwidth / 2)
 
     indx_fit_lower = int(_np.where(AngFreqs == f_fit_lower)[0][0])
     indx_fit_upper = int(_np.where(AngFreqs == f_fit_upper)[0][0])
@@ -1024,7 +1065,7 @@ def fit_PSD(Data, bandwidth, NMovAve, TrapFreqGuess, AGuess=0.1e10, GammaGuess=4
     datax = freqs_smoothed[indx_fit_lower:indx_fit_upper]
     datay = logPSD_smoothed[indx_fit_lower:indx_fit_upper]
 
-    p0 = _np.array([AGuess, ftrap, GammaGuess])
+    p0 = _np.array([AGuess, OmegaTrap, GammaGuess])
 
     Params_Fit, Params_Fit_Err = fit_curvefit(p0,
                                               datax, datay, calc_theory_PSD_curve_fit)
@@ -1051,13 +1092,13 @@ def fit_PSD(Data, bandwidth, NMovAve, TrapFreqGuess, AGuess=0.1e10, GammaGuess=4
                 '--', alpha=0.7, color="purple", label="initial vals")
         ax.plot(freqs_smoothed / (2 * _np.pi), 10**(PSDTheory_fit / 10),
                 color="red", label="fitted vals")
-        ax.set_xlim([(ftrap - 5 * Angbandwidth) / (2 * _np.pi),
-                     (ftrap + 5 * Angbandwidth) / (2 * _np.pi)])
-        ax.plot([(ftrap - Angbandwidth) / (2 * _np.pi), (ftrap - Angbandwidth) / (2 * _np.pi)],
+        ax.set_xlim([(OmegaTrap - 5 * Angbandwidth) / (2 * _np.pi),
+                     (OmegaTrap + 5 * Angbandwidth) / (2 * _np.pi)])
+        ax.plot([(OmegaTrap - Angbandwidth) / (2 * _np.pi), (OmegaTrap - Angbandwidth) / (2 * _np.pi)],
                 [min(10**(logPSD_smoothed / 10)),
                  max(10**(logPSD_smoothed / 10))], '--',
                 color="grey")
-        ax.plot([(ftrap + Angbandwidth) / (2 * _np.pi), (ftrap + Angbandwidth) / (2 * _np.pi)],
+        ax.plot([(OmegaTrap + Angbandwidth) / (2 * _np.pi), (OmegaTrap + Angbandwidth) / (2 * _np.pi)],
                 [min(10**(logPSD_smoothed / 10)),
                  max(10**(logPSD_smoothed / 10))], '--',
                 color="grey")
@@ -1174,22 +1215,21 @@ def get_ZXY_freqs(Data, zfreq, xfreq, yfreq, bandwidth=5000):
         z_indx_fit_lower = int(_np.where(Data.freqs == z_f_fit_lower)[0][0])
         z_indx_fit_upper = int(_np.where(Data.freqs == z_f_fit_upper)[0][0])
 
-        z_index_ftrap = _np.where(Data.PSD == max(
+        z_index_OmegaTrap = _np.where(Data.PSD == max(
             Data.PSD[z_indx_fit_lower:z_indx_fit_upper]))[0][0]
         # find highest point in region about guess for trap frequency
         # use that as guess for trap frequency and recalculate region
         # about the trap frequency
-        z_ftrap = Data.freqs[z_index_ftrap]
-        trapfreqs.append(z_ftrap)
+        z_OmegaTrap = Data.freqs[z_index_OmegaTrap]
+        trapfreqs.append(z_OmegaTrap)
     return trapfreqs
 
 
 def get_ZXY_data(Data, zf, xf, yf, FractionOfSampleFreq=1,
                  zwidth=10000, xwidth=5000, ywidth=5000,
-#                 ztransition=10000, xtransition=5000, ytransition=5000,
                  filterImplementation="filtfilt",
                  timeStart="Default", timeEnd="Default",
-                 ShowFig=True):
+                 MakeFig=True, ShowFig=True):
     """
     Given a Data object and the frequencies of the z, x and y peaks (and some
     optional parameters for the created filters) this function extracts the
@@ -1224,15 +1264,6 @@ def get_ZXY_data(Data, zf, xf, yf, FractionOfSampleFreq=1,
     ywidth : float, optional
         The width of the pass-band of the IIR filter to be generated to
         filter Y.
-#    ztransition : float, optional
-#        The width of the transition-band of the IIR filter to be generated to
-#        filter Z.
-#    xtransition : float, optional
-#        The width of the transition-band of the IIR filter to be generated to
-#        filter X.
-#    ytransition : float, optional
-#        The width of the transition-band of the IIR filter to be generated to
-#        filter Y.
     filterImplementation : string, optional
         filtfilt or lfilter - use scipy.filtfilt or lfilter
         default: filtfilt
@@ -1275,34 +1306,31 @@ def get_ZXY_data(Data, zf, xf, yf, FractionOfSampleFreq=1,
 
     input_signal = Data.voltage[StartIndex: EndIndex][0::FractionOfSampleFreq]
 
-    #bZ, aZ = make_butterworth_bandpass_b_a(zf, zwidth, ztransition, SAMPLEFREQ, GainStop=100)
     bZ, aZ = make_butterworth_bandpass_b_a(zf, zwidth, SAMPLEFREQ)
-
+    print("filtering Z")
     zdata = ApplyFilter(bZ, aZ, input_signal)
 
     if(_np.isnan(zdata).any()):
         raise ValueError(
             "Value Error: FractionOfSampleFreq must be higher, a sufficiently small sample frequency should be used to produce a working IIR filter.")
 
-    #bX, aX = make_butterworth_bandpass_b_a(xf, xwidth, xtransition, SAMPLEFREQ, GainStop=100)
     bX, aX = make_butterworth_bandpass_b_a(xf, xwidth, SAMPLEFREQ)
-
+    print("filtering X")
     xdata = ApplyFilter(bX, aX, input_signal)
 
     if(_np.isnan(xdata).any()):
         raise ValueError(
             "Value Error: FractionOfSampleFreq must be higher, a sufficiently small sample frequency should be used to produce a working IIR filter.")
 
-    #bY, aY = make_butterworth_bandpass_b_a(yf, ywidth, ytransition, SAMPLEFREQ, GainStop=100)
     bY, aY = make_butterworth_bandpass_b_a(yf, ywidth, SAMPLEFREQ)
-    
+    print("filtering Y")
     ydata = ApplyFilter(bY, aY, input_signal)
 
     if(_np.isnan(ydata).any()):
         raise ValueError(
             "Value Error: FractionOfSampleFreq must be higher, a sufficiently small sample frequency should be used to produce a working IIR filter.")
 
-    if ShowFig == True:
+    if MakeFig == True:
         NPerSegment = len(Data.time)
         if NPerSegment > 1e5:
             NPerSegment = int(1e5)
@@ -1311,18 +1339,21 @@ def get_ZXY_data(Data, zf, xf, yf, FractionOfSampleFreq=1,
         f_z, PSD_z = scipy.signal.welch(zdata, SAMPLEFREQ, nperseg=NPerSegment)
         f_y, PSD_y = scipy.signal.welch(ydata, SAMPLEFREQ, nperseg=NPerSegment)
         f_x, PSD_x = scipy.signal.welch(xdata, SAMPLEFREQ, nperseg=NPerSegment)
-        _plt.plot(f, PSD)
-        _plt.plot(f_z, PSD_z, label="z")
-        _plt.plot(f_x, PSD_x, label="x")
-        _plt.plot(f_y, PSD_y, label="y")
-        _plt.legend(loc="best")
-        _plt.semilogy()
-#        _plt.xlim([zf - zwidth - ztransition, yf + ywidth + ytransition])
-        _plt.xlim([zf - zwidth, yf + ywidth])
+        fig, ax = _plt.subplots(figsize=properties["default_fig_size"])
+        ax.plot(f, PSD)
+        ax.plot(f_z, PSD_z, label="z")
+        ax.plot(f_x, PSD_x, label="x")
+        ax.plot(f_y, PSD_y, label="y")
+        ax.legend(loc="best")
+        ax.semilogy()
+        ax.set_xlim([zf - zwidth, yf + ywidth])
+    else:
+        fig = None
+        ax = None
+    if ShowFig == True:
         _plt.show()
-
     timedata = Data.time[StartIndex: EndIndex][0::FractionOfSampleFreq]
-    return zdata, xdata, ydata, timedata
+    return zdata, xdata, ydata, timedata, fig, ax
 
 
 def get_ZXY_data_IFFT(Data, zf, xf, yf,
@@ -1592,7 +1623,10 @@ def IFFT_filter(Signal, SampleFreq, lowerFreq, upperFreq):
 
 def butterworth_filter(Signal, SampleFreq, lowerFreq, upperFreq):
     """
-    Filters data using fft -> zeroing out fft bins -> ifft
+    Filters data using by constructing a 5th order butterworth
+    IIR filter and using scipy.signal.filtfilt, which does
+    phase correction after implementing the filter (as IIR 
+    filter apply a phase change)
 
     Parameters
     ----------
@@ -1610,7 +1644,7 @@ def butterworth_filter(Signal, SampleFreq, lowerFreq, upperFreq):
     FilteredData : ndarray
         Array containing the filtered data
     """
-    b, a = make_butterworth_b_a(lowerFreq, upperFreq, SampleFreq)    
+    b, a = make_butterworth_b_a(lowerFreq, upperFreq, SampleFreq)
     FilteredSignal = scipy.signal.filtfilt(b, a, Signal)
     return _np.real(FilteredSignal)
 
@@ -1683,7 +1717,10 @@ def make_butterworth_bandpass_b_a(CenterFreq, bandwidth, SampleFreq, order=5, bt
 
 def IIR_filter_design(CentralFreq, bandwidth, transitionWidth, SampleFreq, GainStop=40, GainPass=0.01):
     """
-    Function to calculate the coefficients of an IIR filter.
+    Function to calculate the coefficients of an IIR filter, 
+    IMPORTANT NOTE: make_butterworth_bandpass_b_a and make_butterworth_b_a
+    can produce IIR filters with higher sample rates and are prefereable
+    due to this.
 
     Parameters
     ----------
@@ -1722,61 +1759,6 @@ def IIR_filter_design(CentralFreq, bandwidth, transitionWidth, SampleFreq, GainS
     print(bandpass, bandstop)
     b, a = scipy.signal.iirdesign(bandpass, bandstop, GainPass, GainStop)
     return b, a
-
-
-#def IIR_filter_design_New(Order, btype, CriticalFreqs, SampleFreq, StopbandAttenuation=40, ftype='cheby2'):
-#    """
-#    Function to calculate the coefficients of an IIR filter.
-#
-#    Parameters
-#    ----------
-#    CentralFreq : float
-#        Central frequency of the IIR filter to be designed
-#    bandwidth : float
-#        The width of the passband to be created about the central frequency
-#    transitionWidth : float
-#        The width of the transition band between the pass-band and stop-band
-#    SampleFreq : float
-#        The sample frequency (rate) of the data to be filtered
-#    GainStop : float
-#        The dB of attenuation within the stopband (i.e. outside the passband)
-#    GainPass : float
-#        The dB attenuation inside the passband (ideally close to 0 for a bandpass filter)
-#
-#    Returns
-#    -------
-#    b : ndarray
-#        coefficients multiplying the current and past inputs (feedforward coefficients)
-#    a : ndarray
-#        coefficients multiplying the past outputs (feedback coefficients)
-#    """
-#    NyquistFreq = SampleFreq / 2
-#    if len(CriticalFreqs) > 1:
-#        if (CriticalFreqs[1] > NyquistFreq):
-#            raise ValueError(
-#                "Need a higher Sample Frequency for this Frequency range")
-#
-#        BandStartNormed = CriticalFreqs[0] / NyquistFreq
-#        BandStopNormed = CriticalFreqs[1] / NyquistFreq
-#
-#        bandpass = [BandStartNormed, BandStopNormed]
-#
-#        b, a = scipy.signal.iirfilter(Order, bandpass, rs=StopbandAttenuation,
-#                                      btype=btype, analog=False, ftype=ftype)
-#    else:
-#        CriticalFreq = CriticalFreqs[0]
-#
-#        if (CriticalFreq > NyquistFreq):
-#            raise ValueError(
-#                "Need a higher Sample Frequency for this Critical Frequency")
-#
-#        CriticalFreqNormed = CriticalFreq / NyquistFreq
-#
-#        b, a = scipy.signal.iirfilter(Order, CriticalFreqNormed, rs=StopbandAttenuation,
-#                                      btype=btype, analog=False, ftype=ftype)
-#
-#    return b, a
-
 
 def get_freq_response(a, b, ShowFig=True, SampleFreq=(2 * _np.pi), NumOfFreqs=500, whole=False):
     """
