@@ -1309,6 +1309,9 @@ def get_ZXY_data(Data, zf, xf, yf, FractionOfSampleFreq=1,
         ax.legend(loc="best")
         ax.semilogy()
         ax.set_xlim([zf - zwidth, yf + ywidth])
+    else:
+        fig = None
+        ax = None
     if ShowFig == True:
         _plt.show()
     timedata = Data.time[StartIndex: EndIndex][0::FractionOfSampleFreq]
