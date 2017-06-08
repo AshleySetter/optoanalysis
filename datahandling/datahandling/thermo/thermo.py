@@ -1,6 +1,7 @@
 import datahandling
 import numpy as _np
 import scipy as _scipy
+from scipy import constants
 from numba import jit as _jit
 
 class ThermoObject(datahandling.DataObject):
@@ -33,7 +34,7 @@ class ThermoObject(datahandling.DataObject):
         super(ThermoObject, self).__init__(filepath, RelativeChannelNo) # calls the init func from datahandling
         return None
 
-    @_jit
+   # @_jit
     def calc_hamiltonian(self, mass, omega_array):
         """
         Calculates the standard (pot+kin) Hamiltonian of your system.
@@ -58,36 +59,12 @@ class ThermoObject(datahandling.DataObject):
         """
         Kappa_t= mass*omega_array**2
         self.E_pot = 0.5*Kappa_t*self.position_data**2
-        self.E_kin = 0.5*mass*(_np.diff(self.position_data)*self.SampleFreq)**2
+        self.E_kin = 0.5*mass*(_np.insert(_np.diff(self.position_data), 0, (self.position_data[1]-self.position_data[0]))*self.SampleFreq)**2
         self.Hamiltonian = self.E_pot + self.E_kin
         return self.Hamiltonian
 
-    @_jit
-    def calc_partition_function(mass, omega_array, temperature_array):
-        """
-        Calculates the partition function of your system at each point in time.
-    
-        Parameters
-        ----------
-        mass : float
-            The mass of the particle in kg
-        omega_array : array
-            array which represents omega at every point in your time trace
-            and should therefore have the same length as the Hamiltonian
-        temperature_array : array
-            array which represents the temperature at every point in your time trace
-            and should therefore have the same length as the Hamiltonian
-    
-        Returns:
-        -------
-        Partition function : array
-            The Partition Function at every point in time over a given trap-frequency and temperature change.
-        """
-        Kappa_t= mass*omega_array**2    
-        return _np.sqrt(4*_np.pi**2*_scipy.constants.Boltzmann**2*temperature_array**2/(mass*Kappa_t))
-    
-    @_jit
-    def calc_phase_space_density(mass, omega_array, temperature_array):
+  #  @_jit
+    def calc_phase_space_density(self, mass, omega_array, temperature_array):
         """
         Calculates the partition function of your system at each point in time.
     
@@ -112,9 +89,10 @@ class ThermoObject(datahandling.DataObject):
         Phasespace-density : array
             The Partition Function at every point in time over a given trap-frequency and temperature change.
         """
-        return calc_hamiltonian(mass, omega_array)/calc_partition_function(mass, omega_array,temperature_array)
 
-    @_jit
+        return self.calc_hamiltonian(mass, omega_array)/calc_partition_function(mass, omega_array,temperature_array)
+
+ #   @_jit
     def extract_thermodynamic_quantities(self,temperature_array):
         """
         Calculates the thermodynamic quantities of your system at each point in time.
@@ -123,11 +101,6 @@ class ThermoObject(datahandling.DataObject):
     
         Parameters
         ----------
-        mass : float
-            The mass of the particle in kg
-        omega_array : array
-            array which represents omega at every point in your time trace
-            and should therefore have the same length as the Hamiltonian
         temperature_array : array
             array which represents the temperature at every point in your time trace
             and should therefore have the same length as the Hamiltonian
@@ -143,10 +116,53 @@ class ThermoObject(datahandling.DataObject):
         W : array
             The work "done"  by the particle at every point in time over a given trap-frequency and temperature change.
         """
-        self.Q = self.Hamiltonian/(_scipy.constants.Boltzmann*_np.diff(temperature_array)*self.SampleFreq)
+        self.Q = self.Hamiltonian/(_scipy.constants.Boltzmann*_np.insert(_np.diff(temperature_array),0,(temperature_array[1]-temperature_array[0]))*self.SampleFreq)
         self.W = self.Hamiltonian-self.Q
         self.Delta_E_kin = _np.diff(self.E_kin)*self.SampleFreq
         self.Delta_E_pot = _np.diff(self.E_pot)*self.SampleFreq
         self.Delta_E = _np.diff(self.Hamiltonian)*self.SampleFreq
         
-        return self.Q, self.W 
+        return self.Q, self.W
+
+#@_jit
+def calc_partition_function(mass, omega_array, temperature_array):
+    """
+    Calculates the partition function of your system at each point in time.
+
+    Parameters
+    ----------
+    mass : float
+        The mass of the particle in kg
+    omega_array : array
+        array which represents omega at every point in your time trace
+        and should therefore have the same length as the Hamiltonian
+    temperature_array : array
+        array which represents the temperature at every point in your time trace
+        and should therefore have the same length as the Hamiltonian
+
+    Returns:
+    -------
+    Partition function : array
+        The Partition Function at every point in time over a given trap-frequency and temperature change.
+    """
+    Kappa_t= mass*omega_array**2    
+    return _np.sqrt(4*_np.pi**2*_scipy.constants.Boltzmann**2*temperature_array**2/(mass*Kappa_t))
+        
+    
+@_jit
+def calc_entropy(phase_space_density_array):
+    """
+    Calculates the entropy of your system at each point in time 
+    for your given phase space density evolution in time.
+    
+    Parameters
+    ----------
+    phase_space_density_array : array
+        array which represents the phase space density at every point in time
+     Returns:
+    -------
+    entropy : array
+        The entropy of the particle at every point in time via the phase space density method.  
+    """
+    entropy = -_scipy.constants.Boltzmann*_np.log(phase_space_density_array)
+    return entropy
