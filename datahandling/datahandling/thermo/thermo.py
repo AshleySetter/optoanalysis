@@ -116,7 +116,8 @@ class ThermoObject(datahandling.DataObject):
         W : array
             The work "done"  by the particle at every point in time over a given trap-frequency and temperature change.
         """
-        self.Q = self.Hamiltonian/(_scipy.constants.Boltzmann*_np.insert(_np.diff(temperature_array),0,(temperature_array[1]-temperature_array[0]))*self.SampleFreq)
+        beta = 1/(_scipy.constants.Boltzmann*temperature_array)
+        self.Q = self.Hamiltonian*(_np.insert(_np.diff(beta),0,beta[1]-beta[0])*self.SampleFreq)
         self.W = self.Hamiltonian-self.Q
         self.Delta_E_kin = _np.diff(self.E_kin)*self.SampleFreq
         self.Delta_E_pot = _np.diff(self.E_pot)*self.SampleFreq
