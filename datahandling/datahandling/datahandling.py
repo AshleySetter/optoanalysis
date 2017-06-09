@@ -19,6 +19,7 @@ from scipy.optimize import minimize as _minimize
 import warnings as _warnings
 from scipy.signal import hilbert as _hilbert
 import matplotlib as _mpl
+from scipy.io.wavfile import write as _writewav
 
 _mpl.rcParams['lines.markeredgewidth'] = 1 # set default markeredgewidth to 1 overriding seaborn's default value of 0
 _sns.set_style("whitegrid")
@@ -2352,3 +2353,8 @@ def unit_conversion(array, unit_prefix, current_prefix=""):
     conversion_multiplication = Current_units/Desired_units
     converted_array = array*conversion_multiplication
     return converted_array
+
+def audiate(data, filename):
+    AudioFreq = int(30000/10e6*data.SampleFreq)
+    _writewav(filename, AudioFreq, data.voltage)
+    return None
