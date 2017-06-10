@@ -2,7 +2,13 @@ import datahandling
 import numpy as _np
 import scipy as _scipy
 from scipy import constants
-from numba import jit as _jit
+try:
+    from numba import jit as _jit
+except (OSError, ModuleNotFoundError) as e:
+    def _jit(func):        
+        return func
+    print("Numba not present on system, not importing jit")
+
 
 class ThermoObject(datahandling.DataObject):
     """
