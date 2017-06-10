@@ -787,6 +787,44 @@ def multi_load_data_custom(Channel, TraceTitle, RunNos, directoryPath='.'):
     #    data.append(load_data(filepath))
     data = workerPool.map(load_data, files_CorrectRunNo)
     return data
+def search_data_custom(Channel, TraceTitle, RunNos, directoryPath='.'):
+    """
+    Lets you create a list with full file paths of the files
+    named with the LeCroy's custom naming scheme.
+
+    Parameters
+    ----------
+    Channel : int
+        The channel you want to load
+    TraceTitle : string
+        The custom trace title of the files. 
+    RunNos : sequence
+        Sequence of run numbers you want to load
+    RepeatNos : sequence
+        Sequence of repeat numbers you want to load
+    directoryPath : string, optional
+        The path to the directory housing the data
+        The default is the current directory
+
+    Returns
+    -------
+    Paths : list
+        A list containing the full file paths of the files you were looking for. 
+    """
+    files = glob('{}/*'.format(directoryPath))
+    files_CorrectChannel = []
+    for file_ in files:
+        if 'C{}'.format(Channel) in file_:
+            files_CorrectChannel.append(file_)
+    files_CorrectRunNo = []
+    for RunNo in RunNos:
+        files_match = _fnmatch.filter(
+            files_CorrectChannel, '*C{}'.format(Channel)+TraceTitle+str(RunNo).zfill(5)+'.*')
+        for file_ in files_match:
+            files_CorrectRunNo.append(file_)
+    paths = files_CorrectRunNo
+    return paths
+
 
 def calc_temp(Data_ref, Data):
     """
