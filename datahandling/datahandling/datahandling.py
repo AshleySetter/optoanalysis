@@ -446,7 +446,7 @@ class DataObject():
         try:
             self.get_fit(CentralFreq, (upperLimit-lowerLimit)/2, 
                          A_Initial=approx_A, Gamma_Initial=approx_Gamma, Silent=Silent, MakeFig=ShowFig, ShowFig=ShowFig)
-        except TypeError: 
+        except (TypeError, ValueError) as e: 
             _warnings.warn("range is too small to fit, returning NaN", UserWarning)
             val = _uncertainties.ufloat(_np.NaN, _np.NaN)
             return val, val, val
@@ -993,6 +993,9 @@ def fit_PSD(Data, bandwidth, NMovAve, TrapFreqGuess, AGuess=0.1e10, GammaGuess=4
     indx_fit_lower = int(_np.where(AngFreqs == f_fit_lower)[0][0])
     indx_fit_upper = int(_np.where(AngFreqs == f_fit_upper)[0][0])
 
+    if indx_fit_lower == indx_fit_upper:
+        raise ValueError("Bandwidth argument must be higher, region is too thin.")
+    
 #    print(f_fit_lower, f_fit_upper)
 #    print(AngFreqs[indx_fit_lower], AngFreqs[indx_fit_upper])
 
