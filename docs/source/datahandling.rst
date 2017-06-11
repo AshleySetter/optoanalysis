@@ -6,8 +6,10 @@ Subpackages
 
 .. toctree::
 
+    datahandling.sim_data
+    datahandling.thermo
     datahandling.LeCroy
-    datahandling.SimData
+    datahandling.Saleae
 
 Submodules
 ----------
