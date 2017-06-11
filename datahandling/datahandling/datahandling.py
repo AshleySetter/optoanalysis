@@ -251,7 +251,7 @@ class DataObject():
         #        self.get_PSD()
         unit_prefix = units[:-2]
         if xlim == "Default":
-            xlim = [0, self.SampleFreq / 2]
+            xlim = [0, unit_conversion(self.SampleFreq/2, unit_prefix)]
         fig = _plt.figure(figsize=properties['default_fig_size'])
         ax = fig.add_subplot(111)
         ax.semilogy(unit_conversion(self.freqs, unit_prefix), self.PSD, color="blue")
