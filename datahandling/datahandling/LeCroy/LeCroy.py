@@ -1,6 +1,17 @@
 
 class HDO6104:
+        """
+        Class for communicating with the Teledyne LeCroy Oscilloscope.
+        """
         def __init__(self, address='152.78.194.16'):
+                """
+                Initialises the connection to the Oscilloscope.
+
+                Parameters
+                ----------
+                address : string
+                    IP address of the oscilloscope.
+                """
                 self.address = address
                 import vxi11
                 self.connection = vxi11.Instrument(address)
@@ -11,28 +22,105 @@ class HDO6104:
                 self.read_raw = self.connection.read_raw
 
         def raw(self, channel=1):
+                """
+                Reads the raw input from the oscilloscope.
+
+                Parameters
+                ----------
+                channel : int
+                    channel number of read
+
+                Returns
+                -------
+                rawData : bytes
+                    raw binary data read from the oscilloscope
+                """
                 self.waitOPC()
                 self.write('COMM_FORMAT DEF9,WORD,BIN')
                 self.write('C%u:WAVEFORM?' % channel)
                 return self.read_raw()
         
         def data(self, channel=1):
+                """
+                Reads the raw input from the scope and interprets it
+                returning the header information, time, voltage and 
+                raw integers read with the ADC.
+
+                Parameters
+                ----------
+                channel : int
+                    channel number of read
+
+                Returns
+                -------
+                WAVEDESC : dict
+                    dictionary containing some properties of the time trace and oscilloscope
+                    settings extracted from the header file.
+                x : ndarray
+                    The array of time values recorded by the oscilloscope
+                y : ndarray
+                    The array of voltage values recorded by the oscilloscope
+                integers : ndarray
+                    The array of raw integers recorded from the ADC and stored in the binary file
+                """
                 raw = self.raw(channel) # Grab waveform from scope
                 return InterpretWaveform(raw)
 
         def waitOPC(self):
+                """
+                Waits for a response from the oscilloscope indicating that
+                processing is complete and it is ready to receive more commands.
+                Function sleeps until the oscilloscope is ready.
+                """
                 from time import sleep
                 self.write('WAIT')
                 while not self.opc():
                         sleep(1)
                 
         def opc(self):
+                """
+                Asks the oscilloscope if it is done processing data.
+
+                Returns
+                -------
+                IsDoneProcessing : bool
+                    returns False if oscilloscope is still busy, 
+                    True is oscilloscope is done processing last commands.
+                """
                 return self.ask('*OPC?')[-1] == '1'
 
 
 def InterpretWaveform(raw, integersOnly=False, headersOnly=False):
-        from struct import unpack
+        """
+        Take the raw binary from a file saved from the LeCroy, read from a file using 
+        the 2 lines:
+        with open(filename, "rb") as file:
+            raw = file.read()
+        And extracts various properties of the saved time trace.
+        
+        Parameters
+        ----------
+        raw : bytes
+            Bytes object containing the binary contents of the saved raw/trc file
+        integersOnly : bool, optional
+            If True, only returns the unprocessed integers (read from the ADC) 
+            rather than the signal in volts. Defaults to False. 
+        headersOnly : bool, optional
+            If True, only returns the file header. Defaults to False. 
 
+        Returns
+        -------
+        WAVEDESC : dict
+            dictionary containing some properties of the time trace and oscilloscope
+            settings extracted from the header file.
+        x : ndarray
+            The array of time values recorded by the oscilloscope
+        y : ndarray
+            The array of voltage values recorded by the oscilloscope
+        integers : ndarray
+            The array of raw integers recorded from the ADC and stored in the binary file
+        """
+        from struct import unpack
         
         if raw[0:1] != b'#':
                 cmd = raw.split(b',')[0]  # "C1:WF ALL" or similar
