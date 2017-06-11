@@ -576,7 +576,16 @@ class DataObject():
         self.xVolts : ndarray
             The x signal in volts extracted by bandpass IIR filtering
         self.yVolts : ndarray
-            The y signal in volts extracted by bandpass IIR filtering        """
+            The y signal in volts extracted by bandpass IIR filtering
+        time : ndarray
+            The array of times corresponding to the above 3 arrays
+        fig : matplotlib.figure.Figure object
+            figure object containing a plot of the PSD of the original 
+            signal with the z, x and y filtered signals
+        ax : matplotlib.axes.Axes object
+            axes object corresponding to the above figure
+        
+        """
         [zf, xf, yf] = ApproxZXYFreqs
         zf, xf, yf = get_ZXY_freqs(
             self, zf, xf, yf, bandwidth=uncertaintyInFreqs)
