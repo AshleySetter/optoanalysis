@@ -96,7 +96,7 @@ class DataObject():
         FileExtension = self.filepath.split('.')[-1]
         if FileExtension == "raw" or FileExtension == "trc":
             waveDescription, self.time, self.voltage, _ = \
-                                                               datahandling.LeCroy.InterpretWaveform(raw)
+                                                          datahandling.LeCroy.InterpretWaveform(raw)
             self.SampleFreq = (1 / waveDescription["HORIZ_INTERVAL"])
         elif FileExtension == "bin":
             if RelativeChannelNo == None:
@@ -1896,7 +1896,7 @@ def multi_plot_PSD(DataArray, xlim=[0, 500], units="kHz", LabelArray=[], ColorAr
     for i, data in enumerate(DataArray):
         ax.semilogy(unit_conversion(data.freqs, unit_prefix), data.PSD, label=LabelArray[i], color=ColorArray[i], alpha=alphaArray[i])
             
-    ax.set_xlabel("Frequency (Hz)")
+    ax.set_xlabel("Frequency ({})".format(units))
     ax.set_xlim(xlim)
     ax.grid(which="major")
     legend = ax.legend(loc="best", frameon = 1)
