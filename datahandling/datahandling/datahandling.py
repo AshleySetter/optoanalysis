@@ -371,11 +371,11 @@ class DataObject():
 
     def get_fit_from_peak(self, lowerLimit, upperLimit, NumPointsSmoothing=1, Silent=False, ShowFig=True):
         """
-        Finds an approximate values for the peaks central frequency, height, 
-        and FWHM by looking for the heighest peak in the frequncy range defined 
-        by the imput arguments. It then uses the central frequncy as the trapping 
-        frequency, peak height to an approximate A value and the FWHM to an approximate
-        Gamma (damping) value.
+        Finds approximate values for the peaks central frequency, height, 
+        and FWHM by looking for the heighest peak in the frequency range defined 
+        by the input arguments. It then uses the central frequency as the trapping 
+        frequency, peak height to approximate the A value and the FWHM to an approximate
+        the Gamma (damping) value.
 
         Parameters
         ----------
