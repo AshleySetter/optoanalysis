@@ -20,6 +20,7 @@ import warnings as _warnings
 from scipy.signal import hilbert as _hilbert
 import matplotlib as _mpl
 from scipy.io.wavfile import write as _writewav
+from matplotlib import colors as _mcolors
 
 _mpl.rcParams['lines.markeredgewidth'] = 1 # set default markeredgewidth to 1 overriding seaborn's default value of 0
 _sns.set_style("whitegrid")
@@ -2257,7 +2258,7 @@ def parse_orgtable(lines):
     dataframe.set_index("RunNo")
     return dataframe
 
-def plot_3d_dist(Z, X, Y, N=1000, AxisOffset=0, LowLim="Default", HighLim="Default", ShowFig=True):
+def plot_3d_dist(Z, X, Y, N=1000, AxisOffset=0, Angle=-40, LowLim="Default", HighLim="Default", ShowFig=True):
     """
     Plots Z, X and Y as a 3d scatter plot with heatmaps of each axis pair.
 
@@ -2288,13 +2289,14 @@ def plot_3d_dist(Z, X, Y, N=1000, AxisOffset=0, LowLim="Default", HighLim="Defau
     ax : fig.add_subplot(111)
         The subplot object created
     """
+    angle = Angle
+    fig = _plt.figure(figsize=(8, 6))
+    ax = fig.add_subplot(111, projection='3d')
+
     y = Z[0:N]
     x = X[0:N]
     z = Y[0:N]
 
-    angle = -40
-    fig = _plt.figure(figsize=(8, 6))
-    ax = fig.add_subplot(111, projection='3d')
     ax.scatter(x, y, z, alpha=0.3)
 
     xlim = ax.get_xlim()
@@ -2339,6 +2341,114 @@ def plot_3d_dist(Z, X, Y, N=1000, AxisOffset=0, LowLim="Default", HighLim="Defau
     zpos = lowLim # Plane of histogram
     zflat = _np.full_like(yy, zpos) 
     p = ax.plot_surface(xx, yy, zflat, facecolors=normalized_map, rstride=1, cstride=1, shade=False)
+    if ShowFig == True:
+        _plt.show()
+    return fig, ax
+
+def multi_plot_3d_dist(ZXYData, N=1000, AxisOffset=0, Angle=-40, LowLim="Default", HighLim="Default", ColorArray=None, alphaLevel=0.3, ShowFig=True):
+    """
+    Plots serveral Z, X and Y datasets as a 3d scatter plot with heatmaps of each axis pair in each dataset.
+
+    Parameters
+    ----------
+    ZXYData : ndarray
+        Array of arrays containing Z, X, Y data e.g. [[Z1, X1, Y1], [Z2, X2, Y2]]
+    N : optional, int
+        Number of time points to plot (Defaults to 1000)
+    AxisOffset : optional, double
+        Offset to add to each axis from the data - used to get a better view
+        of the heat maps (Defaults to 0)
+    LowLim : optional, double
+        Lower limit of x, y and z axis
+    HighLim : optional, double
+        Upper limit of x, y and z axis
+    ShowFig : optional, bool
+        Whether to show the produced figure before returning
+
+    Returns
+    -------
+    fig : plt.figure
+        The figure object created
+    ax : fig.add_subplot(111)
+        The subplot object created
+    """
+    if ZXYData.shape[1] != 3:
+        raise ValueError("Parameter ZXYData should be an array of length-3 arrays containing arrays of Z, X and Y data")
+    if ColorArray != None:
+        if ZXYData.shape[0] != len(ColorArray):
+            raise ValueError("Parameter ColorArray should be the same lenth as ZXYData")
+    else:
+        ColorArray = list(mcolours.BASE_COLORS.keys())
+        #ColorArray = ['b', 'g', 'r']
+        #    ColorMapArray = [_plt.cm.Blues, _plt.cm.Greens, _plt.cm.Reds]
+        if ZXYData.shape[0] > len(ColorArray):
+            raise NotImplementedError("Only {} datasets can be plotted with automatic colors".format(len(ColorArray)))
+        
+    angle = Angle
+    fig = _plt.figure(figsize=(8, 6))
+    ax = fig.add_subplot(111, projection='3d')
+
+    for datindx, ZXY in enumerate(ZXYData):
+        y = ZXY[0][0:N]
+        x = ZXY[1][0:N]
+        z = ZXY[2][0:N]
+        ax.scatter(x, y, z, alpha=alphaLevel, color=ColorArray[datindx])
+        
+    xlim = ax.get_xlim()
+    ylim = ax.get_ylim()
+    zlim = ax.get_zlim()
+    if LowLim != "Default":
+        lowLim = LowLim - AxisOffset
+    else:
+        lowLim = min([xlim[0], ylim[0], zlim[0]]) - AxisOffset
+    if HighLim != "Default":
+        highLim = HighLim + AxisOffset
+    else:
+        highLim = max([xlim[1], ylim[1], zlim[1]]) + AxisOffset
+    ax.set_xlim([lowLim, highLim])
+    ax.set_ylim([lowLim, highLim])
+    ax.set_zlim([lowLim, highLim])
+
+    for datindx, ZXY in enumerate(ZXYData):
+        y = ZXY[0][0:N]
+        x = ZXY[1][0:N]
+        z = ZXY[2][0:N]
+        
+        #h, yedges, zedges = _np.histogram2d(y, z, bins=50)
+        #h = h.transpose()
+        #normalized_map = ColorMapArray[datindx](h/h.max())
+        #yy, zz = _np.meshgrid(yedges, zedges)
+        xpos = lowLim # Plane of histogram
+        #xflat = _np.full_like(yy, xpos) 
+        #p = ax.plot_surface(xflat, yy, zz, facecolors=normalized_map, rstride=1, cstride=1, shade=False)
+        xflat = _np.full_like(y, xpos) 
+        ax.scatter(xflat, y, z, color=ColorArray[datindx], alpha=alphaLevel)
+        
+        #h, xedges, zedges = _np.histogram2d(x, z, bins=50)
+        #h = h.transpose()
+        #normalized_map = ColorMapArray[datindx](h/h.max())
+        #xx, zz = _np.meshgrid(xedges, zedges)
+        ypos = highLim # Plane of histogram
+        #yflat = _np.full_like(xx, ypos) 
+        #p = ax.plot_surface(xx, yflat, zz, facecolors=normalized_map, rstride=1, cstride=1, shade=False)
+        yflat = _np.full_like(x, ypos) 
+        ax.scatter(x, yflat, z, color=ColorArray[datindx], alpha=alphaLevel)
+        
+        #h, yedges, xedges = _np.histogram2d(y, x, bins=50)
+        #h = h.transpose()
+        #normalized_map = ColorMapArray[datindx](h/h.max())
+        #yy, xx = _np.meshgrid(yedges, xedges)
+        zpos = lowLim # Plane of histogram
+        #zflat = _np.full_like(yy, zpos) 
+        #p = ax.plot_surface(xx, yy, zflat, facecolors=normalized_map, rstride=1, cstride=1, shade=False)
+        zflat = _np.full_like(y, zpos) 
+        ax.scatter(x, y, zflat, color=ColorArray[datindx], alpha=alphaLevel)
+    
+    ax.set_xlabel("x")
+    ax.set_ylabel("z")
+    ax.set_zlabel("y")
+    ax.view_init(30, angle)
+    
     if ShowFig == True:
         _plt.show()
     return fig, ax
