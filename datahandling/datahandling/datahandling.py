@@ -665,7 +665,7 @@ class DataObject():
         input_signal = self.voltage[StartIndex: EndIndex][0::FractionOfSampleFreq]
     
         b, a = make_butterworth_bandpass_b_a(freq, PeakWidth, SAMPLEFREQ)
-        print("filtering Z")
+        print("filtering data")
         filteredData = ApplyFilter(b, a, input_signal)
     
         if(_np.isnan(filteredData).any()):
@@ -693,38 +693,62 @@ class DataObject():
         timedata = self.time[StartIndex: EndIndex][0::FractionOfSampleFreq]
         return filteredData, timedata, fig, ax
 
-    def plot_phase_space(self, zf, xf=80000, yf=120000, FractionOfSampleFreq=4, zwidth=10000, xwidth=5000, ywidth=5000, ShowFig=True):
+    def plot_phase_space(self, freq, ConvFactor, PeakWidth=10000, FractionOfSampleFreq=1, units="nm", ShowFig=True, ShowPSD=False):
         """
-        author: Markus Rademacher
+        Plots the phase space of a peak in the PSD.
+        
+        freq : float
+            The frequenecy of the peak (Trapping frequency of the dimension of interest)
+        ConvFactor : float (or ufloat)
+            The conversion factor between Volts and Meters
+        PeakWidth : float, optional
+            The width of the peak. Defaults to 10KHz
+        FractionOfSampleFreq : int, optional
+            The fraction of the sample freq to use to filter the data.
+            Defaults to 1.
+        units : string, optional
+            Units of position to plot on the axis - defaults to nm
+        ShowFig : bool, optional
+            Whether to show the figure before exiting the function
+            Defaults to True.
+        ShowPSD : bool, optional
+            Where to show the PSD of the unfiltered and the filtered signal used 
+            to make the phase space plot. Defaults to False.
         """
-        Z, X, Y, Time, fig, ax = get_ZXY_data(
-            self, zf, xf, yf, FractionOfSampleFreq, zwidth, xwidth, ywidth, MakeFig=False, ShowFig=False)
+        unit_prefix = units[:-1]
+        
+        Pos, Time, fig, ax = self.filter_data(
+            freq, FractionOfSampleFreq, PeakWidth, MakeFig=ShowPSD, ShowFig=ShowPSD)
 
-        conv = self.ConvFactor.n
-        ZArray = Z / conv
-        ZVArray = _np.diff(ZArray) * (self.SampleFreq / FractionOfSampleFreq)
-        VarZ = _np.var(ZArray)
-        VarZV = _np.var(ZVArray)
-        MaxZ = _np.max(ZArray)
-        MaxZV = _np.max(ZVArray)
-        if MaxZ > MaxZV / (2 * _np.pi * zf):
-            _plotlimit = MaxZ * 1.1
+        if type(ConvFactor) == _uncertainties.core.Variable:
+            conv = ConvFactor.n
         else:
-            _plotlimit = MaxZV / (2 * _np.pi * zf) * 1.1
+            conv = ConvFactor
+        PosArray = Pos / conv # converts V to m
+        PosArray = unit_conversion(PosArray, unit_prefix) # converts m to units required (nm by default)
+        VelArray = _np.diff(PosArray) * (self.SampleFreq / FractionOfSampleFreq)
+        VarPos = _np.var(PosArray)
+        VarVel = _np.var(VelArray)
+        MaxPos = _np.max(PosArray)
+        MaxVel = _np.max(VelArray)
+        if MaxPos > MaxVel / (2 * _np.pi * freq):
+            _plotlimit = MaxPos * 1.1
+        else:
+            _plotlimit = MaxVel / (2 * _np.pi * freq) * 1.1
 
-        JP1 = _sns.jointplot(_pd.Series(ZArray[1:], name="$z$(m) \n filepath=%s" % (self.filepath)), _pd.Series(
-            ZVArray / (2 * _np.pi * zf), name="$v_z$/$\omega$(m)"), stat_func=None, xlim=[-_plotlimit, _plotlimit], ylim=[-_plotlimit, _plotlimit])
-        JP1.ax_joint.text(_np.mean(ZArray), MaxZV / (2 * _np.pi * zf) * 1.15,
-                          r"$\sigma_z=$ %.2Em, $\sigma_v=$ %.2Em" % (
-                              VarZ, VarZV),
+        JP1 = _sns.jointplot(_pd.Series(PosArray[1:], name="$z$({}) \n filepath=%s".format(units) % (self.filepath)), _pd.Series(
+            VelArray / (2 * _np.pi * freq), name="$v_z$/$\omega$({})".format(units)), stat_func=None, xlim=[-_plotlimit, _plotlimit], ylim=[-_plotlimit, _plotlimit], size=max(properties['default_fig_size']))
+        JP1.ax_joint.text(_np.mean(PosArray), MaxVel / (2 * _np.pi * freq) * 1.15,
+#                          r"$\sigma_z=$ %.2Em, $\sigma_v=$ %.2Em" % (
+#                              VarPos, VarVel),
                           horizontalalignment='center')
-        JP1.ax_joint.text(_np.mean(ZArray), MaxZV / (2 * _np.pi * zf) * 1.6,
-                          "filepath=%s" % (self.filepath),
+        JP1.ax_joint.text(_np.mean(PosArray), MaxVel / (2 * _np.pi * freq) * 1.6,
+#                          "filepath=%s" % (self.filepath),
                           horizontalalignment='center')
         if ShowFig == True:
             _plt.show()
 
-        return VarZ, VarZV, JP1, self.Mass
+        return JP1
     
 class ORGTableData():
     """
@@ -2549,33 +2573,6 @@ def multi_plot_3d_dist(ZXYData, N=1000, AxisOffset=0, Angle=-40, LowLim="Default
     if ShowFig == True:
         _plt.show()
     return fig, ax
-
-#def plot_phase_space(PositionArray, TrapFreq, SampleFreq, ShowFig=True):
-#    """
-#    
-#    """
-#    PositionArray = PositionArray
-#    VelocityArray = _np.diff(PositionArray) * (SampleFreq)
-#    VarianceInPosition = _np.var(PositionArray)
-#    VarianceInVelocity = _np.var(VelocityArray)
-#    MaxPosition = _np.max(PositionArray)
-#    MaxVelocity = _np.max(VelocityArray)
-#    _plotlimit = MaxPosition * 1.1
-#
-#    JP1 = _sns.jointplot(_pd.Series(PositionArray[1:], name="$z$ (m)"),  _pd.Series(
-#        VelocityArray / (2 * _np.pi * TrapFreq), name="$v_z$/$\omega$ (m)"), stat_func=None, xlim=[-_plotlimit, _plotlimit], ylim=[-_plotlimit, _plotlimit])
-#    JP1.ax_joint.text(_np.mean(PositionArray), MaxVelocity / (2 * _np.pi * TrapFreq) * 1.15,
-#                      "$\sigma_z=$ %.2Em, $\sigma_v=$ %.2Em" % (
-#                          VarianceInPosition, VarianceInVelocity),
-#                      horizontalalignment='center')
-#    JP1.ax_joint.text(_np.mean(PositionArray), MaxVelocity / (2 * _np.pi * TrapFreq) * 1.6,
-#                      "filepath=%s" % (self.filepath),
-#                      horizontalalignment='center')
-#    if ShowFig == True:
-#        _plt.show()
-#
-#    return JP1
-
 
 def unit_conversion(array, unit_prefix, current_prefix=""):
     """
