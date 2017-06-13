@@ -595,6 +595,104 @@ class DataObject():
             self, zf, xf, yf, subSampleFraction, zwidth, xwidth, ywidth, MakeFig=MakeFig, ShowFig=ShowFig)
         return self.zVolts, self.xVolts, self.yVolts, time, fig, ax
 
+    def filter_data(self, freq, FractionOfSampleFreq=1, PeakWidth=10000,
+                  filterImplementation="filtfilt",
+                  timeStart="Default", timeEnd="Default",
+                  MakeFig=True, ShowFig=True):
+        """
+        filter out data about a central frequency with some bandwidth using an IIR filter.
+    
+        Parameters
+        ----------
+        freq : float
+            The frequency of the peak of interest in the PSD
+        FractionOfSampleFreq : integer, optional
+            The fraction of the sample frequency to sub-sample the data by.
+            This sometimes needs to be done because a filter with the appropriate
+            frequency response may not be generated using the sample rate at which
+            the data was taken. Increasing this number means the x, y and z signals
+            produced by this function will be sampled at a lower rate but a higher
+            number means a higher chance that the filter produced will have a nice
+            frequency response.
+        PeakWidth : float, optional
+            The width of the pass-band of the IIR filter to be generated to
+            filter the peak. Defaults to 10KHz
+        filterImplementation : string, optional
+            filtfilt or lfilter - use scipy.filtfilt or lfilter
+            default: filtfilt
+        timeStart : float, optional
+            Starting time for filtering. Defaults to start of time data.
+        timeEnd : float, optional
+            Ending time for filtering. Defaults to end of time data.
+        MakeFig : bool, optional
+            If True - generate figure showing filtered and unfiltered PSD
+            Defaults to True.
+        ShowFig : bool, optional
+            If True - plot unfiltered and filtered PSD
+            Defaults to True.
+    
+        Returns
+        -------
+        FiletedData : ndarray
+            Array containing the filtered signal in volts with time.
+        timedata : ndarray
+            Array containing the time data
+        fig : matplotlib.figure.Figure object
+            The figure object created showing the PSD of the filtered 
+            and unfiltered signal
+        ax : matplotlib.axes.Axes object
+            The axes object created showing the PSD of the filtered 
+            and unfiltered signal
+        """
+        if timeStart == "Default":
+            timeStart = self.time[0]
+        if timeEnd == "Default":
+            timeEnd = self.time[-1]
+    
+        StartIndex = _np.where(self.time == take_closest(self.time, timeStart))[0][0]
+        EndIndex = _np.where(self.time == take_closest(self.time, timeEnd))[0][0]
+    
+        SAMPLEFREQ = self.SampleFreq / FractionOfSampleFreq
+    
+        if filterImplementation == "filtfilt":
+            ApplyFilter = scipy.signal.filtfilt
+        elif filterImplementation == "lfilter":
+            ApplyFilter = scipy.signal.lfilter
+        else:
+            raise ValueError("filterImplementation must be one of [filtfilt, lfilter] you entered: {}".format(
+                filterImplementation))
+    
+        input_signal = self.voltage[StartIndex: EndIndex][0::FractionOfSampleFreq]
+    
+        b, a = make_butterworth_bandpass_b_a(freq, PeakWidth, SAMPLEFREQ)
+        print("filtering Z")
+        filteredData = ApplyFilter(b, a, input_signal)
+    
+        if(_np.isnan(filteredData).any()):
+            raise ValueError(
+                "Value Error: FractionOfSampleFreq must be higher, a sufficiently small sample frequency should be used to produce a working IIR filter.")
+    
+        if MakeFig == True:
+            NPerSegment = len(self.time)
+            if NPerSegment > 1e5:
+                NPerSegment = int(1e5)
+            f, PSD = scipy.signal.welch(
+                input_signal, SAMPLEFREQ, nperseg=NPerSegment)
+            f_filtdata, PSD_filtdata = scipy.signal.welch(filteredData, SAMPLEFREQ, nperseg=NPerSegment)
+            fig, ax = _plt.subplots(figsize=properties["default_fig_size"])
+            ax.plot(f, PSD)
+            ax.plot(f_filtdata, PSD_filtdata, label="filtered data")
+            ax.legend(loc="best")
+            ax.semilogy()
+            ax.set_xlim([freq - PeakWidth, freq + PeakWidth])
+        else:
+            fig = None
+            ax = None
+        if ShowFig == True:
+            _plt.show()
+        timedata = self.time[StartIndex: EndIndex][0::FractionOfSampleFreq]
+        return filteredData, timedata, fig, ax
+
     def plot_phase_space(self, zf, xf=80000, yf=120000, FractionOfSampleFreq=4, zwidth=10000, xwidth=5000, ywidth=5000, ShowFig=True):
         """
         author: Markus Rademacher
@@ -1237,7 +1335,6 @@ def get_ZXY_freqs(Data, zfreq, xfreq, yfreq, bandwidth=5000):
         z_OmegaTrap = Data.freqs[z_index_OmegaTrap]
         trapfreqs.append(z_OmegaTrap)
     return trapfreqs
-
 
 def get_ZXY_data(Data, zf, xf, yf, FractionOfSampleFreq=1,
                  zwidth=10000, xwidth=5000, ywidth=5000,
@@ -2452,6 +2549,33 @@ def multi_plot_3d_dist(ZXYData, N=1000, AxisOffset=0, Angle=-40, LowLim="Default
     if ShowFig == True:
         _plt.show()
     return fig, ax
+
+#def plot_phase_space(PositionArray, TrapFreq, SampleFreq, ShowFig=True):
+#    """
+#    
+#    """
+#    PositionArray = PositionArray
+#    VelocityArray = _np.diff(PositionArray) * (SampleFreq)
+#    VarianceInPosition = _np.var(PositionArray)
+#    VarianceInVelocity = _np.var(VelocityArray)
+#    MaxPosition = _np.max(PositionArray)
+#    MaxVelocity = _np.max(VelocityArray)
+#    _plotlimit = MaxPosition * 1.1
+#
+#    JP1 = _sns.jointplot(_pd.Series(PositionArray[1:], name="$z$ (m)"),  _pd.Series(
+#        VelocityArray / (2 * _np.pi * TrapFreq), name="$v_z$/$\omega$ (m)"), stat_func=None, xlim=[-_plotlimit, _plotlimit], ylim=[-_plotlimit, _plotlimit])
+#    JP1.ax_joint.text(_np.mean(PositionArray), MaxVelocity / (2 * _np.pi * TrapFreq) * 1.15,
+#                      "$\sigma_z=$ %.2Em, $\sigma_v=$ %.2Em" % (
+#                          VarianceInPosition, VarianceInVelocity),
+#                      horizontalalignment='center')
+#    JP1.ax_joint.text(_np.mean(PositionArray), MaxVelocity / (2 * _np.pi * TrapFreq) * 1.6,
+#                      "filepath=%s" % (self.filepath),
+#                      horizontalalignment='center')
+#    if ShowFig == True:
+#        _plt.show()
+#
+#    return JP1
+
 
 def unit_conversion(array, unit_prefix, current_prefix=""):
     """
