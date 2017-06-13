@@ -738,13 +738,13 @@ class DataObject():
 
         JP1 = _sns.jointplot(_pd.Series(PosArray[1:], name="$z$({}) \n filepath=%s".format(units) % (self.filepath)), _pd.Series(
             VelArray / (2 * _np.pi * freq), name="$v_z$/$\omega$({})".format(units)), stat_func=None, xlim=[-_plotlimit, _plotlimit], ylim=[-_plotlimit, _plotlimit], size=max(properties['default_fig_size']))
-        JP1.ax_joint.text(_np.mean(PosArray), MaxVel / (2 * _np.pi * freq) * 1.15,
+#        JP1.ax_joint.text(_np.mean(PosArray), MaxVel / (2 * _np.pi * freq) * 1.15,
 #                          r"$\sigma_z=$ %.2Em, $\sigma_v=$ %.2Em" % (
 #                              VarPos, VarVel),
-                          horizontalalignment='center')
-        JP1.ax_joint.text(_np.mean(PosArray), MaxVel / (2 * _np.pi * freq) * 1.6,
+#                          horizontalalignment='center')
+#        JP1.ax_joint.text(_np.mean(PosArray), MaxVel / (2 * _np.pi * freq) * 1.6,
 #                          "filepath=%s" % (self.filepath),
-                          horizontalalignment='center')
+#                          horizontalalignment='center')
         if ShowFig == True:
             _plt.show()
 
