@@ -43,7 +43,7 @@ logcmap = _sns.blend_palette(colors, as_cmap=True)
 properties = {
     'default_fig_size': [6.5, 4],
     'default_linear_cmap': _sns.cubehelix_palette(n_colors=1024, light=1, as_cmap=True, rot=-.4),
-    'default_log_cmap': GenCmap('green', [0, -50], 256, logscale=True),
+    'default_log_cmap': GenCmap('green', [0, -60], 256, logscale=True),
     'default_base_color': 'green',
     }
 
@@ -711,7 +711,7 @@ class DataObject():
         timedata = self.time[StartIndex: EndIndex][0::FractionOfSampleFreq]
         return filteredData, timedata, fig, ax
 
-    def plot_phase_space(self, freq, ConvFactor, PeakWidth=10000, FractionOfSampleFreq=1, kind="hex", timeStart="Default", timeEnd ="Default", PointsOfPadding=500, units="nm", logscale=False, cmap="Default", marginalColor="Default", gridsize=30, ShowFig=True, ShowPSD=False, *args, **kwargs):
+    def plot_phase_space(self, freq, ConvFactor, PeakWidth=10000, FractionOfSampleFreq=1, kind="hex", timeStart="Default", timeEnd ="Default", PointsOfPadding=500, units="nm", logscale=False, cmap="Default", marginalColor="Default", gridsize=200, ShowFig=True, ShowPSD=False, *args, **kwargs):
         """
         Plots the phase space of a peak in the PSD.
         
