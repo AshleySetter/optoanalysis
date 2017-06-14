@@ -693,10 +693,12 @@ class DataObject():
         timedata = self.time[StartIndex: EndIndex][0::FractionOfSampleFreq]
         return filteredData, timedata, fig, ax
 
-    def plot_phase_space(self, freq, ConvFactor, PeakWidth=10000, FractionOfSampleFreq=1, units="nm", ShowFig=True, ShowPSD=False):
+    def plot_phase_space(self, freq, ConvFactor, PeakWidth=10000, FractionOfSampleFreq=1, kind="hex", timeStart="Default", timeEnd ="Default", PointsOfPadding=500, units="nm", logscale=False, ShowFig=True, ShowPSD=False, *args, **kwargs):
         """
         Plots the phase space of a peak in the PSD.
         
+        Parameters
+        ----------
         freq : float
             The frequenecy of the peak (Trapping frequency of the dimension of interest)
         ConvFactor : float (or ufloat)
@@ -706,20 +708,39 @@ class DataObject():
         FractionOfSampleFreq : int, optional
             The fraction of the sample freq to use to filter the data.
             Defaults to 1.
+        kind : string, optional
+            kind of plot to draw - pass to jointplot from seaborne
+        timeStart : float, optional
+            Starting time for data from which to calculate the phase space.
+            Defaults to start of time data.
+        timeEnd : float, optional
+            Ending time for data from which to calculate the phase space.
+            Defaults to start of time data.
+        PointsOfPadding : float, optional
+            How many points of the data at the beginning and end to disregard for plotting
+            the phase space, to remove filtering artifacts. Defaults to ??
         units : string, optional
             Units of position to plot on the axis - defaults to nm
+        logscale : bool, optional
+            Set to true to plot marginals with logscale
         ShowFig : bool, optional
             Whether to show the figure before exiting the function
             Defaults to True.
         ShowPSD : bool, optional
             Where to show the PSD of the unfiltered and the filtered signal used 
             to make the phase space plot. Defaults to False.
+
+        Returns
+        -------
+        
         """
         unit_prefix = units[:-1]
         
-        Pos, Time, fig, ax = self.filter_data(
-            freq, FractionOfSampleFreq, PeakWidth, MakeFig=ShowPSD, ShowFig=ShowPSD)
+        Pos, _, fig, ax = self.filter_data(
+            freq, FractionOfSampleFreq, PeakWidth, MakeFig=ShowPSD, ShowFig=ShowPSD, timeStart=timeStart, timeEnd=timeEnd)
 
+        Pos = Pos[PointsOfPadding : -PointsOfPadding+1]
+        
         if type(ConvFactor) == _uncertainties.core.Variable:
             conv = ConvFactor.n
         else:
@@ -736,8 +757,22 @@ class DataObject():
         else:
             _plotlimit = MaxVel / (2 * _np.pi * freq) * 1.1
 
-        JP1 = _sns.jointplot(_pd.Series(PosArray[1:], name="$z$({}) \n filepath=%s".format(units) % (self.filepath)), _pd.Series(
-            VelArray / (2 * _np.pi * freq), name="$v_z$/$\omega$({})".format(units)), stat_func=None, xlim=[-_plotlimit, _plotlimit], ylim=[-_plotlimit, _plotlimit], size=max(properties['default_fig_size']))
+        print("Plotting Phase Space")
+
+        JP1 = _sns.jointplot(_pd.Series(PosArray[1:], name="$z$ ({}) \n filepath=%s".format(units) % (self.filepath)),
+                             _pd.Series(VelArray / (2 * _np.pi * freq), name="$v_z$/$\omega$ ({})".format(units)),
+                             stat_func=None,
+                             xlim=[-_plotlimit, _plotlimit],
+                             ylim=[-_plotlimit, _plotlimit],
+                             size=max(properties['default_fig_size']),
+                             kind=kind,
+                             marginal_kws={'hist_kws': {'log': logscale},},
+                             *args,
+                             **kwargs,
+        )
+
+        fig = JP1.fig
+        
 #        JP1.ax_joint.text(_np.mean(PosArray), MaxVel / (2 * _np.pi * freq) * 1.15,
 #                          r"$\sigma_z=$ %.2Em, $\sigma_v=$ %.2Em" % (
 #                              VarPos, VarVel),
@@ -746,9 +781,10 @@ class DataObject():
 #                          "filepath=%s" % (self.filepath),
 #                          horizontalalignment='center')
         if ShowFig == True:
+            print("Showing Phase Space")
             _plt.show()
-
-        return JP1
+            
+        return fig, JP1
     
 class ORGTableData():
     """
