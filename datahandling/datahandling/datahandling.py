@@ -263,9 +263,9 @@ class DataObject():
         Returns
         -------
         fig : plt.figure
-                        The figure object created
-                ax : fig.add_subplot(111)
-                        The subplot object created
+            The figure object created
+        ax : fig.add_subplot(111)
+            The subplot object created
         """
         #        self.get_PSD()
         unit_prefix = units[:-2]
@@ -736,7 +736,7 @@ class DataObject():
             Defaults to start of time data.
         PointsOfPadding : float, optional
             How many points of the data at the beginning and end to disregard for plotting
-            the phase space, to remove filtering artifacts. Defaults to ??
+            the phase space, to remove filtering artifacts. Defaults to 500.
         units : string, optional
             Units of position to plot on the axis - defaults to nm
         logscale : bool, optional
@@ -756,7 +756,10 @@ class DataObject():
 
         Returns
         -------
-        
+        fig : matplotlib.figure.Figure object
+            figure object containing the phase space plot
+        JP : seaborn.jointplot object
+            joint plot object containing the phase space plot
         """
         if cmap == "Default":
             if logscale == True:
@@ -765,19 +768,12 @@ class DataObject():
                 cmap = properties['default_linear_cmap']
         
         unit_prefix = units[:-1]
-        
-        Pos, _, fig, ax = self.filter_data(
-            freq, FractionOfSampleFreq, PeakWidth, MakeFig=ShowPSD, ShowFig=ShowPSD, timeStart=timeStart, timeEnd=timeEnd)
 
-        Pos = Pos[PointsOfPadding : -PointsOfPadding+1]
-        
-        if type(ConvFactor) == _uncertainties.core.Variable:
-            conv = ConvFactor.n
-        else:
-            conv = ConvFactor
-        PosArray = Pos / conv # converts V to m
+        PosArray, VelArray = self.calc_phase_space(freq, ConvFactor, PeakWidth=PeakWidth, FractionOfSampleFreq=FractionOfSampleFreq, timeStart=timeStart, timeEnd=timeEnd, PointsOfPadding=PointsOfPadding, ShowPSD=ShowPSD)
+
         PosArray = unit_conversion(PosArray, unit_prefix) # converts m to units required (nm by default)
-        VelArray = _np.diff(PosArray) * (self.SampleFreq / FractionOfSampleFreq)
+        VelArray = unit_conversion(VelArray, unit_prefix) # converts m/s to units required (nm/s by default)
+        
         VarPos = _np.var(PosArray)
         VarVel = _np.var(VelArray)
         MaxPos = _np.max(PosArray)
@@ -830,19 +826,61 @@ class DataObject():
 
         fig = JP1.fig
         
-#        JP1.ax_joint.text(_np.mean(PosArray), MaxVel / (2 * _np.pi * freq) * 1.15,
-#                          r"$\sigma_z=$ %.2Em, $\sigma_v=$ %.2Em" % (
-#                              VarPos, VarVel),
-#                          horizontalalignment='center')
-#        JP1.ax_joint.text(_np.mean(PosArray), MaxVel / (2 * _np.pi * freq) * 1.6,
-#                          "filepath=%s" % (self.filepath),
-#                          horizontalalignment='center')
         if ShowFig == True:
             print("Showing Phase Space")
             _plt.show()
             
         return fig, JP1
-    
+
+    def calc_phase_space(self, freq, ConvFactor, PeakWidth=10000, FractionOfSampleFreq=1, timeStart="Default", timeEnd ="Default", PointsOfPadding=500, ShowPSD=False):
+        """
+        Calculates the position and velocity (in m) for use in plotting the phase space distribution.
+
+        Parameters
+        ----------
+        freq : float
+            The frequenecy of the peak (Trapping frequency of the dimension of interest)
+        ConvFactor : float (or ufloat)
+            The conversion factor between Volts and Meters
+        PeakWidth : float, optional
+            The width of the peak. Defaults to 10KHz
+        FractionOfSampleFreq : int, optional
+            The fraction of the sample freq to use to filter the data.
+            Defaults to 1.
+        timeStart : float, optional
+            Starting time for data from which to calculate the phase space.
+            Defaults to start of time data.
+        timeEnd : float, optional
+            Ending time for data from which to calculate the phase space.
+            Defaults to start of time data.
+        PointsOfPadding : float, optional
+            How many points of the data at the beginning and end to disregard for plotting
+            the phase space, to remove filtering artifacts. Defaults to 500
+        ShowPSD : bool, optional
+            Where to show the PSD of the unfiltered and the filtered signal used 
+            to make the phase space plot. Defaults to False.
+
+        Returns
+        -------
+        PosArray : ndarray
+            Array of position of the particle in time
+        VelArray : ndarray
+            Array of velocity of the particle in time
+        """
+        Pos, _, fig, ax = self.filter_data(
+            freq, FractionOfSampleFreq, PeakWidth, MakeFig=ShowPSD, ShowFig=ShowPSD, timeStart=timeStart, timeEnd=timeEnd)
+
+        Pos = Pos[PointsOfPadding : -PointsOfPadding+1]
+                
+        if type(ConvFactor) == _uncertainties.core.Variable:
+            conv = ConvFactor.n
+        else:
+            conv = ConvFactor
+        PosArray = Pos / conv # converts V to m
+        VelArray = _np.diff(PosArray) * (self.SampleFreq / FractionOfSampleFreq) # calcs velocity (in m/s) by differtiating position
+        return PosArray, VelArray
+        
+        
 class ORGTableData():
     """
     Class for reading in general data from org-mode tables.
