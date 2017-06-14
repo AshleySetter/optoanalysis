@@ -25,8 +25,26 @@ from matplotlib import colors as _mcolors
 _mpl.rcParams['lines.markeredgewidth'] = 1 # set default markeredgewidth to 1 overriding seaborn's default value of 0
 _sns.set_style("whitegrid")
 
+def GenCmap(basecolor, ColorRange, NumOfColors, logscale=False):
+    if NumOfColors > 256:
+        _warnings.warn("Maximum Number of colors is 256", UserWarning)
+        NumOfColors = 256
+    if logscale == True:
+        colors = [_sns.set_hls_values(basecolor, l=l) for l in _np.logspace(ColorRange[0], ColorRange[1], NumOfColors)]
+    else:
+        colors = [_sns.set_hls_values(basecolor, l=l) for l in _np.linspace(ColorRange[0], ColorRange[1], NumOfColors)]
+    cmap = _sns.blend_palette(colors, as_cmap=True, n_colors=NumOfColors)
+    return cmap
+
+color = "green"
+colors = [_sns.set_hls_values(color, l=l) for l in _np.logspace(-0.01, -20, 100)]
+logcmap = _sns.blend_palette(colors, as_cmap=True)
+
 properties = {
     'default_fig_size': [6.5, 4],
+    'default_linear_cmap': _sns.cubehelix_palette(n_colors=1024, light=1, as_cmap=True, rot=-.4),
+    'default_log_cmap': GenCmap('green', [0, -50], 256, logscale=True),
+    'default_base_color': 'green',
     }
 
 class DataObject():
@@ -693,7 +711,7 @@ class DataObject():
         timedata = self.time[StartIndex: EndIndex][0::FractionOfSampleFreq]
         return filteredData, timedata, fig, ax
 
-    def plot_phase_space(self, freq, ConvFactor, PeakWidth=10000, FractionOfSampleFreq=1, kind="hex", timeStart="Default", timeEnd ="Default", PointsOfPadding=500, units="nm", logscale=False, ShowFig=True, ShowPSD=False, *args, **kwargs):
+    def plot_phase_space(self, freq, ConvFactor, PeakWidth=10000, FractionOfSampleFreq=1, kind="hex", timeStart="Default", timeEnd ="Default", PointsOfPadding=500, units="nm", logscale=False, cmap="Default", marginalColor="Default", gridsize=30, ShowFig=True, ShowPSD=False, *args, **kwargs):
         """
         Plots the phase space of a peak in the PSD.
         
@@ -723,6 +741,12 @@ class DataObject():
             Units of position to plot on the axis - defaults to nm
         logscale : bool, optional
             Set to true to plot marginals with logscale
+        cmap : matplotlib.colors.ListedColormap, optional
+            cmap to use for plotting the jointplot
+        marginalColor : string, optional
+            color to use for marginal plots
+        gridsize : int, optional
+            size of the grid to use with kind="hex"
         ShowFig : bool, optional
             Whether to show the figure before exiting the function
             Defaults to True.
@@ -734,6 +758,12 @@ class DataObject():
         -------
         
         """
+        if cmap == "Default":
+            if logscale == True:
+                cmap = properties['default_log_cmap']
+            else:
+                cmap = properties['default_linear_cmap']
+        
         unit_prefix = units[:-1]
         
         Pos, _, fig, ax = self.filter_data(
@@ -759,17 +789,44 @@ class DataObject():
 
         print("Plotting Phase Space")
 
-        JP1 = _sns.jointplot(_pd.Series(PosArray[1:], name="$z$ ({}) \n filepath=%s".format(units) % (self.filepath)),
-                             _pd.Series(VelArray / (2 * _np.pi * freq), name="$v_z$/$\omega$ ({})".format(units)),
-                             stat_func=None,
-                             xlim=[-_plotlimit, _plotlimit],
-                             ylim=[-_plotlimit, _plotlimit],
-                             size=max(properties['default_fig_size']),
-                             kind=kind,
-                             marginal_kws={'hist_kws': {'log': logscale},},
-                             *args,
-                             **kwargs,
-        )
+        if marginalColor == "Default":
+            try:
+                marginalColor = tuple((cmap.colors[len(cmap.colors)/2][:-1]))
+            except AttributeError:
+                try:
+                    marginalColor = cmap(2)
+                except:
+                    marginalColor = properties['default_base_color']
+
+        if kind == "hex":    # gridsize can only be passed if kind="hex"
+            JP1 = _sns.jointplot(_pd.Series(PosArray[1:], name="$z$ ({}) \n filepath=%s".format(units) % (self.filepath)),
+                                 _pd.Series(VelArray / (2 * _np.pi * freq), name="$v_z$/$\omega$ ({})".format(units)),
+                                 stat_func=None,
+                                 xlim=[-_plotlimit, _plotlimit],
+                                 ylim=[-_plotlimit, _plotlimit],
+                                 size=max(properties['default_fig_size']),
+                                 kind=kind,
+                                 marginal_kws={'hist_kws': {'log': logscale},},
+                                 cmap=cmap,
+                                 color=marginalColor,
+                                 gridsize=gridsize,
+                                 *args,
+                                 **kwargs,
+            )
+        else:
+            JP1 = _sns.jointplot(_pd.Series(PosArray[1:], name="$z$ ({}) \n filepath=%s".format(units) % (self.filepath)),
+                                     _pd.Series(VelArray / (2 * _np.pi * freq), name="$v_z$/$\omega$ ({})".format(units)),
+                                 stat_func=None,
+                                 xlim=[-_plotlimit, _plotlimit],
+                                 ylim=[-_plotlimit, _plotlimit],
+                                 size=max(properties['default_fig_size']),
+                                 kind=kind,
+                                 marginal_kws={'hist_kws': {'log': logscale},},
+                                 cmap=cmap,
+                                 color=marginalColor,
+                                 *args,
+                                 **kwargs,
+            )
 
         fig = JP1.fig
         
