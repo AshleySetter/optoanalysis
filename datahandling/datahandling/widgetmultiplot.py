@@ -42,17 +42,20 @@ def update(val):
     if LeftIndex < 0:
         LeftIndex = 0
     RightIndex = int(CentreTime+TimeWidth)
-    if RightIndex > len(t):
-        RightIndex = len(t)
+    if RightIndex > len(t)-1:
+        RightIndex = len(t)-1
     global r1
     r1.remove()
     r1 = ax1.fill_between(t[LeftIndex:RightIndex], min(s), max(s), facecolor='green', alpha=0.5)
     l2.set_xdata(t[LeftIndex:RightIndex])
     l2.set_ydata(z[LeftIndex:RightIndex])
+    ax2.set_xlim([t[LeftIndex], t[RightIndex]])
     l3.set_xdata(t[LeftIndex:RightIndex])
     l3.set_ydata(x[LeftIndex:RightIndex])
+    ax3.set_xlim([t[LeftIndex], t[RightIndex]])
     l4.set_xdata(t[LeftIndex:RightIndex])
     l4.set_ydata(y[LeftIndex:RightIndex])
+    ax4.set_xlim([t[LeftIndex], t[RightIndex]])
     fig.canvas.draw_idle()
 SliderCentreTime.on_changed(update)
 SliderTimeWidth.on_changed(update)
