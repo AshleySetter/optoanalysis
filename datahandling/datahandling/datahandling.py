@@ -711,7 +711,7 @@ class DataObject():
         timedata = self.time[StartIndex: EndIndex][0::FractionOfSampleFreq]
         return filteredData, timedata, fig, ax
 
-    def plot_phase_space(self, freq, ConvFactor, PeakWidth=10000, FractionOfSampleFreq=1, kind="hex", timeStart="Default", timeEnd ="Default", PointsOfPadding=500, units="nm", logscale=False, cmap="Default", marginalColor="Default", gridsize=200, ShowFig=True, ShowPSD=False, *args, **kwargs):
+    def plot_phase_space(self, freq, ConvFactor, PeakWidth=10000, FractionOfSampleFreq=1, kind="hex", timeStart="Default", timeEnd ="Default", PointsOfPadding=500, units="nm", logscale=False, cmap="Default", marginalColor="Default", gridsize=200, ShowFig=True, ShowPSD=False, alpha=0.5, *args, **kwargs):
         """
         Plots the phase space of a peak in the PSD.
         
@@ -806,6 +806,7 @@ class DataObject():
                                  cmap=cmap,
                                  color=marginalColor,
                                  gridsize=gridsize,
+                                 alpha=alpha,
                                  *args,
                                  **kwargs,
             )
@@ -820,6 +821,7 @@ class DataObject():
                                  marginal_kws={'hist_kws': {'log': logscale},},
                                  cmap=cmap,
                                  color=marginalColor,
+                                 alpha=alpha,                                
                                  *args,
                                  **kwargs,
             )
