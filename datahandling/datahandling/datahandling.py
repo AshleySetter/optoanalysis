@@ -21,12 +21,31 @@ from scipy.signal import hilbert as _hilbert
 import matplotlib as _mpl
 from scipy.io.wavfile import write as _writewav
 from matplotlib import colors as _mcolors
+import qplots as _qplots
 
 _mpl.rcParams['lines.markeredgewidth'] = 1 # set default markeredgewidth to 1 overriding seaborn's default value of 0
 _sns.set_style("whitegrid")
 
+def GenCmap(basecolor, ColorRange, NumOfColors, logscale=False):
+    if NumOfColors > 256:
+        _warnings.warn("Maximum Number of colors is 256", UserWarning)
+        NumOfColors = 256
+    if logscale == True:
+        colors = [_sns.set_hls_values(basecolor, l=l) for l in _np.logspace(ColorRange[0], ColorRange[1], NumOfColors)]
+    else:
+        colors = [_sns.set_hls_values(basecolor, l=l) for l in _np.linspace(ColorRange[0], ColorRange[1], NumOfColors)]
+    cmap = _sns.blend_palette(colors, as_cmap=True, n_colors=NumOfColors)
+    return cmap
+
+color = "green"
+colors = [_sns.set_hls_values(color, l=l) for l in _np.logspace(-0.01, -20, 100)]
+logcmap = _sns.blend_palette(colors, as_cmap=True)
+
 properties = {
     'default_fig_size': [6.5, 4],
+    'default_linear_cmap': _sns.cubehelix_palette(n_colors=1024, light=1, as_cmap=True, rot=-.4),
+    'default_log_cmap': GenCmap('green', [0, -60], 256, logscale=True),
+    'default_base_color': 'green',
     }
 
 class DataObject():
@@ -96,8 +115,13 @@ class DataObject():
         f.close()
         FileExtension = self.filepath.split('.')[-1]
         if FileExtension == "raw" or FileExtension == "trc":
-            waveDescription, self.time, self.voltage, _ = \
-                                                          datahandling.LeCroy.InterpretWaveform(raw)
+            try:
+                waveDescription, self.time, self.voltage, _ = \
+                                                              datahandling.LeCroy.InterpretWaveform(raw)
+            except Exception as err:
+                print("Couldn't load file {}. May be corrupted.".format(self.filepath))
+                raise err
+                
             self.SampleFreq = (1 / waveDescription["HORIZ_INTERVAL"])
         elif FileExtension == "bin":
             if RelativeChannelNo == None:
@@ -245,9 +269,9 @@ class DataObject():
         Returns
         -------
         fig : plt.figure
-                        The figure object created
-                ax : fig.add_subplot(111)
-                        The subplot object created
+            The figure object created
+        ax : fig.add_subplot(111)
+            The subplot object created
         """
         #        self.get_PSD()
         unit_prefix = units[:-2]
@@ -693,10 +717,12 @@ class DataObject():
         timedata = self.time[StartIndex: EndIndex][0::FractionOfSampleFreq]
         return filteredData, timedata, fig, ax
 
-    def plot_phase_space(self, freq, ConvFactor, PeakWidth=10000, FractionOfSampleFreq=1, units="nm", ShowFig=True, ShowPSD=False):
+    def plot_phase_space_sns(self, freq, ConvFactor, PeakWidth=10000, FractionOfSampleFreq=1, kind="hex", timeStart="Default", timeEnd ="Default", PointsOfPadding=500, units="nm", logscale=False, cmap="Default", marginalColor="Default", gridsize=200, ShowFig=True, ShowPSD=False, alpha=0.5, *args, **kwargs):
         """
         Plots the phase space of a peak in the PSD.
         
+        Parameters
+        ----------
         freq : float
             The frequenecy of the peak (Trapping frequency of the dimension of interest)
         ConvFactor : float (or ufloat)
@@ -706,27 +732,54 @@ class DataObject():
         FractionOfSampleFreq : int, optional
             The fraction of the sample freq to use to filter the data.
             Defaults to 1.
+        kind : string, optional
+            kind of plot to draw - pass to jointplot from seaborne
+        timeStart : float, optional
+            Starting time for data from which to calculate the phase space.
+            Defaults to start of time data.
+        timeEnd : float, optional
+            Ending time for data from which to calculate the phase space.
+            Defaults to start of time data.
+        PointsOfPadding : float, optional
+            How many points of the data at the beginning and end to disregard for plotting
+            the phase space, to remove filtering artifacts. Defaults to 500.
         units : string, optional
             Units of position to plot on the axis - defaults to nm
+        logscale : bool, optional
+            Set to true to plot marginals with logscale
+        cmap : matplotlib.colors.ListedColormap, optional
+            cmap to use for plotting the jointplot
+        marginalColor : string, optional
+            color to use for marginal plots
+        gridsize : int, optional
+            size of the grid to use with kind="hex"
         ShowFig : bool, optional
             Whether to show the figure before exiting the function
             Defaults to True.
         ShowPSD : bool, optional
             Where to show the PSD of the unfiltered and the filtered signal used 
             to make the phase space plot. Defaults to False.
-        """
-        unit_prefix = units[:-1]
-        
-        Pos, Time, fig, ax = self.filter_data(
-            freq, FractionOfSampleFreq, PeakWidth, MakeFig=ShowPSD, ShowFig=ShowPSD)
 
-        if type(ConvFactor) == _uncertainties.core.Variable:
-            conv = ConvFactor.n
-        else:
-            conv = ConvFactor
-        PosArray = Pos / conv # converts V to m
+        Returns
+        -------
+        fig : matplotlib.figure.Figure object
+            figure object containing the phase space plot
+        JP : seaborn.jointplot object
+            joint plot object containing the phase space plot
+        """
+        if cmap == "Default":
+            if logscale == True:
+                cmap = properties['default_log_cmap']
+            else:
+                cmap = properties['default_linear_cmap']
+        
+        unit_prefix = units[:-1]
+
+        PosArray, VelArray = self.calc_phase_space(freq, ConvFactor, PeakWidth=PeakWidth, FractionOfSampleFreq=FractionOfSampleFreq, timeStart=timeStart, timeEnd=timeEnd, PointsOfPadding=PointsOfPadding, ShowPSD=ShowPSD)
+
         PosArray = unit_conversion(PosArray, unit_prefix) # converts m to units required (nm by default)
-        VelArray = _np.diff(PosArray) * (self.SampleFreq / FractionOfSampleFreq)
+        VelArray = unit_conversion(VelArray, unit_prefix) # converts m/s to units required (nm/s by default)
+        
         VarPos = _np.var(PosArray)
         VarVel = _np.var(VelArray)
         MaxPos = _np.max(PosArray)
@@ -736,20 +789,121 @@ class DataObject():
         else:
             _plotlimit = MaxVel / (2 * _np.pi * freq) * 1.1
 
-        JP1 = _sns.jointplot(_pd.Series(PosArray[1:], name="$z$({}) \n filepath=%s".format(units) % (self.filepath)), _pd.Series(
-            VelArray / (2 * _np.pi * freq), name="$v_z$/$\omega$({})".format(units)), stat_func=None, xlim=[-_plotlimit, _plotlimit], ylim=[-_plotlimit, _plotlimit], size=max(properties['default_fig_size']))
-#        JP1.ax_joint.text(_np.mean(PosArray), MaxVel / (2 * _np.pi * freq) * 1.15,
-#                          r"$\sigma_z=$ %.2Em, $\sigma_v=$ %.2Em" % (
-#                              VarPos, VarVel),
-#                          horizontalalignment='center')
-#        JP1.ax_joint.text(_np.mean(PosArray), MaxVel / (2 * _np.pi * freq) * 1.6,
-#                          "filepath=%s" % (self.filepath),
-#                          horizontalalignment='center')
-        if ShowFig == True:
-            _plt.show()
+        print("Plotting Phase Space")
 
-        return JP1
+        if marginalColor == "Default":
+            try:
+                marginalColor = tuple((cmap.colors[len(cmap.colors)/2][:-1]))
+            except AttributeError:
+                try:
+                    marginalColor = cmap(2)
+                except:
+                    marginalColor = properties['default_base_color']
+
+        if kind == "hex":    # gridsize can only be passed if kind="hex"
+            JP1 = _sns.jointplot(_pd.Series(PosArray[1:], name="$z$ ({}) \n filepath=%s".format(units) % (self.filepath)),
+                                 _pd.Series(VelArray / (2 * _np.pi * freq), name="$v_z$/$\omega$ ({})".format(units)),
+                                 stat_func=None,
+                                 xlim=[-_plotlimit, _plotlimit],
+                                 ylim=[-_plotlimit, _plotlimit],
+                                 size=max(properties['default_fig_size']),
+                                 kind=kind,
+                                 marginal_kws={'hist_kws': {'log': logscale},},
+                                 cmap=cmap,
+                                 color=marginalColor,
+                                 gridsize=gridsize,
+                                 alpha=alpha,
+                                 *args,
+                                 **kwargs,
+            )
+        else:
+            JP1 = _sns.jointplot(_pd.Series(PosArray[1:], name="$z$ ({}) \n filepath=%s".format(units) % (self.filepath)),
+                                     _pd.Series(VelArray / (2 * _np.pi * freq), name="$v_z$/$\omega$ ({})".format(units)),
+                                 stat_func=None,
+                                 xlim=[-_plotlimit, _plotlimit],
+                                 ylim=[-_plotlimit, _plotlimit],
+                                 size=max(properties['default_fig_size']),
+                                 kind=kind,
+                                 marginal_kws={'hist_kws': {'log': logscale},},
+                                 cmap=cmap,
+                                 color=marginalColor,
+                                 alpha=alpha,                                
+                                 *args,
+                                 **kwargs,
+            )
+
+        fig = JP1.fig
+        
+        if ShowFig == True:
+            print("Showing Phase Space")
+            _plt.show()
+            
+        return fig, JP1
+ 
+    def plot_phase_space(self, freq, ConvFactor, PeakWidth=10000, FractionOfSampleFreq=1, timeStart="Default", timeEnd ="Default", PointsOfPadding=500, units="nm", logscale=False, ShowFig=True, ShowPSD=False, *args, **kwargs):
+        unit_prefix = units[:-1]
+
+        PosArray, VelArray = self.calc_phase_space(freq, ConvFactor, PeakWidth=PeakWidth, FractionOfSampleFreq=FractionOfSampleFreq, timeStart=timeStart, timeEnd=timeEnd, PointsOfPadding=PointsOfPadding, ShowPSD=ShowPSD)
+
+        PosArray = unit_conversion(PosArray, unit_prefix) # converts m to units required (nm by default)
+        VelArray = unit_conversion(VelArray, unit_prefix) # converts m/s to units required (nm/s by default)
+
+        VelArray = VelArray/(2*_np.pi*freq)
+        PosArray = PosArray[1:]
+
+        fig, axscatter, axhistx, axhisty, cb = _qplots.joint_plot(PosArray, VelArray, logscale=logscale, ShowFig=ShowFig, *args, **kwargs)
+
+        return fig, axscatter, axhistx, axhisty, cb
     
+    def calc_phase_space(self, freq, ConvFactor, PeakWidth=10000, FractionOfSampleFreq=1, timeStart="Default", timeEnd ="Default", PointsOfPadding=500, ShowPSD=False):
+        """
+        Calculates the position and velocity (in m) for use in plotting the phase space distribution.
+
+        Parameters
+        ----------
+        freq : float
+            The frequenecy of the peak (Trapping frequency of the dimension of interest)
+        ConvFactor : float (or ufloat)
+            The conversion factor between Volts and Meters
+        PeakWidth : float, optional
+            The width of the peak. Defaults to 10KHz
+        FractionOfSampleFreq : int, optional
+            The fraction of the sample freq to use to filter the data.
+            Defaults to 1.
+        timeStart : float, optional
+            Starting time for data from which to calculate the phase space.
+            Defaults to start of time data.
+        timeEnd : float, optional
+            Ending time for data from which to calculate the phase space.
+            Defaults to start of time data.
+        PointsOfPadding : float, optional
+            How many points of the data at the beginning and end to disregard for plotting
+            the phase space, to remove filtering artifacts. Defaults to 500
+        ShowPSD : bool, optional
+            Where to show the PSD of the unfiltered and the filtered signal used 
+            to make the phase space plot. Defaults to False.
+
+        Returns
+        -------
+        PosArray : ndarray
+            Array of position of the particle in time
+        VelArray : ndarray
+            Array of velocity of the particle in time
+        """
+        Pos, _, fig, ax = self.filter_data(
+            freq, FractionOfSampleFreq, PeakWidth, MakeFig=ShowPSD, ShowFig=ShowPSD, timeStart=timeStart, timeEnd=timeEnd)
+
+        Pos = Pos[PointsOfPadding : -PointsOfPadding+1]
+                
+        if type(ConvFactor) == _uncertainties.core.Variable:
+            conv = ConvFactor.n
+        else:
+            conv = ConvFactor
+        PosArray = Pos / conv # converts V to m
+        VelArray = _np.diff(PosArray) * (self.SampleFreq / FractionOfSampleFreq) # calcs velocity (in m/s) by differtiating position
+        return PosArray, VelArray
+        
+        
 class ORGTableData():
     """
     Class for reading in general data from org-mode tables.
