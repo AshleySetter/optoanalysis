@@ -40,7 +40,7 @@ class ThermoObject(datahandling.DataObject):
         super(ThermoObject, self).__init__(filepath, RelativeChannelNo) # calls the init func from datahandling
         return None
 
-   # @_jit
+    @_jit
     def calc_hamiltonian(self, mass, omega_array):
         """
         Calculates the standard (pot+kin) Hamiltonian of your system.
@@ -69,7 +69,7 @@ class ThermoObject(datahandling.DataObject):
         self.Hamiltonian = self.E_pot + self.E_kin
         return self.Hamiltonian
 
-  #  @_jit
+    @_jit
     def calc_phase_space_density(self, mass, omega_array, temperature_array):
         """
         Calculates the partition function of your system at each point in time.
@@ -98,7 +98,7 @@ class ThermoObject(datahandling.DataObject):
 
         return self.calc_hamiltonian(mass, omega_array)/calc_partition_function(mass, omega_array,temperature_array)
 
- #   @_jit
+    @_jit
     def extract_thermodynamic_quantities(self,temperature_array):
         """
         Calculates the thermodynamic quantities of your system at each point in time.
@@ -131,7 +131,7 @@ class ThermoObject(datahandling.DataObject):
         
         return self.Q, self.W
 
-#@_jit
+@_jit
 def calc_partition_function(mass, omega_array, temperature_array):
     """
     Calculates the partition function of your system at each point in time.
