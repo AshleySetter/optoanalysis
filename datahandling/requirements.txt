@@ -5,8 +5,9 @@
 numpy
 scipy
 matplotlib
-uncertainties
 seaborn
+qplots
+uncertainties
 pytest
 pytest-cov
 pytest-mpl

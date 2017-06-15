@@ -21,6 +21,7 @@ from scipy.signal import hilbert as _hilbert
 import matplotlib as _mpl
 from scipy.io.wavfile import write as _writewav
 from matplotlib import colors as _mcolors
+import qplots as _qplots
 
 _mpl.rcParams['lines.markeredgewidth'] = 1 # set default markeredgewidth to 1 overriding seaborn's default value of 0
 _sns.set_style("whitegrid")
@@ -114,8 +115,13 @@ class DataObject():
         f.close()
         FileExtension = self.filepath.split('.')[-1]
         if FileExtension == "raw" or FileExtension == "trc":
-            waveDescription, self.time, self.voltage, _ = \
-                                                          datahandling.LeCroy.InterpretWaveform(raw)
+            try:
+                waveDescription, self.time, self.voltage, _ = \
+                                                              datahandling.LeCroy.InterpretWaveform(raw)
+            except Exception as err:
+                print("Couldn't load file {}. May be corrupted.".format(self.filepath))
+                raise err
+                
             self.SampleFreq = (1 / waveDescription["HORIZ_INTERVAL"])
         elif FileExtension == "bin":
             if RelativeChannelNo == None:
@@ -711,7 +717,7 @@ class DataObject():
         timedata = self.time[StartIndex: EndIndex][0::FractionOfSampleFreq]
         return filteredData, timedata, fig, ax
 
-    def plot_phase_space(self, freq, ConvFactor, PeakWidth=10000, FractionOfSampleFreq=1, kind="hex", timeStart="Default", timeEnd ="Default", PointsOfPadding=500, units="nm", logscale=False, cmap="Default", marginalColor="Default", gridsize=200, ShowFig=True, ShowPSD=False, alpha=0.5, *args, **kwargs):
+    def plot_phase_space_sns(self, freq, ConvFactor, PeakWidth=10000, FractionOfSampleFreq=1, kind="hex", timeStart="Default", timeEnd ="Default", PointsOfPadding=500, units="nm", logscale=False, cmap="Default", marginalColor="Default", gridsize=200, ShowFig=True, ShowPSD=False, alpha=0.5, *args, **kwargs):
         """
         Plots the phase space of a peak in the PSD.
         
@@ -833,7 +839,22 @@ class DataObject():
             _plt.show()
             
         return fig, JP1
+ 
+    def plot_phase_space(self, freq, ConvFactor, PeakWidth=10000, FractionOfSampleFreq=1, timeStart="Default", timeEnd ="Default", PointsOfPadding=500, units="nm", logscale=False, ShowFig=True, ShowPSD=False, *args, **kwargs):
+        unit_prefix = units[:-1]
 
+        PosArray, VelArray = self.calc_phase_space(freq, ConvFactor, PeakWidth=PeakWidth, FractionOfSampleFreq=FractionOfSampleFreq, timeStart=timeStart, timeEnd=timeEnd, PointsOfPadding=PointsOfPadding, ShowPSD=ShowPSD)
+
+        PosArray = unit_conversion(PosArray, unit_prefix) # converts m to units required (nm by default)
+        VelArray = unit_conversion(VelArray, unit_prefix) # converts m/s to units required (nm/s by default)
+
+        VelArray = VelArray/(2*_np.pi*freq)
+        PosArray = PosArray[1:]
+
+        fig, axscatter, axhistx, axhisty, cb = _qplots.joint_plot(PosArray, VelArray, logscale=logscale, ShowFig=ShowFig, *args, **kwargs)
+
+        return fig, axscatter, axhistx, axhisty, cb
+    
     def calc_phase_space(self, freq, ConvFactor, PeakWidth=10000, FractionOfSampleFreq=1, timeStart="Default", timeEnd ="Default", PointsOfPadding=500, ShowPSD=False):
         """
         Calculates the position and velocity (in m) for use in plotting the phase space distribution.
