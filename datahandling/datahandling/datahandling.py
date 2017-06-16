@@ -76,7 +76,7 @@ class DataObject():
 
     """
 
-    def __init__(self, filepath, RelativeChannelNo=None, NPerSegmentPSD=1000000):
+    def __init__(self, filepath, RelativeChannelNo=None, calcPSD=True, NPerSegmentPSD=1000000):
         """
         Parameters
         ----------
@@ -96,7 +96,8 @@ class DataObject():
         self.filename = filepath.split("/")[-1]
         self.filedir = self.filepath[0:-len(self.filename)]
         self.load_time_data(RelativeChannelNo)
-        self.get_PSD(NPerSegmentPSD)
+        if calcPSD != False:
+            self.get_PSD(NPerSegmentPSD)
         return None
 
     def load_time_data(self, RelativeChannelNo=None):
@@ -843,7 +844,7 @@ class DataObject():
         PosArray = unit_conversion(PosArray, unit_prefix) # converts m to units required (nm by default)
         VelArray = unit_conversion(VelArray, unit_prefix) # converts m/s to units required (nm/s by default)
 
-        VelArray = VelArray/(2*_np.pi*freq)
+        VelArray = VelArray/(2*_np.pi*freq) # converst nm/s to nm/radian
         PosArray = PosArray[1:]
 
         fig, axscatter, axhistx, axhisty, cb = _qplots.joint_plot(PosArray, VelArray, logscale=logscale, *args, **kwargs)
@@ -953,7 +954,7 @@ class ORGTableData():
         return Value 
 
     
-def load_data(Filepath, ObjectType="default", RelativeChannelNo=None, NPerSegmentPSD=1000000):
+def load_data(Filepath, ObjectType="default", RelativeChannelNo=None, calcPSD=True, NPerSegmentPSD=1000000):
     """
     Parameters
     ----------
@@ -980,10 +981,10 @@ def load_data(Filepath, ObjectType="default", RelativeChannelNo=None, NPerSegmen
         Object = ObjectTypeDict[ObjectType]
     except KeyError:
         raise ValueError("You entered {}, this is not a valid object type".format(ObjectType))
-    return Object(Filepath, RelativeChannelNo, NPerSegmentPSD)
+    return Object(Filepath, RelativeChannelNo, calcPSD, NPerSegmentPSD)
 
 
-def multi_load_data(Channel, RunNos, RepeatNos, directoryPath='.', NPerSegmentPSD=1000000):
+def multi_load_data(Channel, RunNos, RepeatNos, directoryPath='.', calcPSD=True, NPerSegmentPSD=1000000):
     """
     Lets you load multiple datasets at once assuming they have a 
     filename which contains a pattern of the form:
@@ -1028,7 +1029,7 @@ def multi_load_data(Channel, RunNos, RepeatNos, directoryPath='.', NPerSegmentPS
     # for filepath in files_CorrectRepeatNo:
     #    print(filepath)
     #    data.append(load_data(filepath))
-    load_data_partial = _partial(load_data, NPerSegmentPSD=NPerSegmentPSD)
+    load_data_partial = _partial(load_data, calcPSD=calcPSD, NPerSegmentPSD=NPerSegmentPSD)
     data = workerPool.map(load_data_partial, files_CorrectRepeatNo)
     return data
 
@@ -1071,7 +1072,7 @@ def multi_load_data_custom(Channel, TraceTitle, RunNos, directoryPath='.', NPerS
     # for filepath in files_CorrectRepeatNo:
     #    print(filepath)
     #    data.append(load_data(filepath))
-    load_data_partial = _partial(load_data, NPerSegmentPSD=NPerSegmentPSD)
+    load_data_partial = _partial(load_data, calcPSD=calcPSD, NPerSegmentPSD=NPerSegmentPSD)
     data = workerPool.map(load_data_partial, files_CorrectRepeatNo)
     return data
 
