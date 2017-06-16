@@ -130,6 +130,14 @@ def test_extract_motion():
     assert len(z) == expectedLength
     return fig
 
+@pytest.mark.mpl_image_compare(tolerance=plot_similarity_tolerance)
+def test_plot_phase_space():
+    """
+    Test the plot_phase_space and therefore calc_phase_space function.
+    """
+    fig1, axscatter, axhistx, axhisty, cb = GlobalData.plot_phase_space(75e3, GlobalData.ConvFactor, PeakWidth=10e3, logscale=False, ShowPSD=False, ShowFig=False, FractionOfSampleFreq=3)
+    return fig1
+    
 def test_multi_load_data():
     """
     Tests the multi_load_data function, checks that the data

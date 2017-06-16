@@ -11,6 +11,7 @@ import matplotlib.animation as _animation
 from glob import glob
 import re
 import seaborn as _sns
+_sns.reset_orig()
 import pandas as _pd
 import fnmatch as _fnmatch
 from multiprocessing import Pool as _Pool
@@ -781,6 +782,8 @@ class DataObject():
 
         PosArray, VelArray = self.calc_phase_space(freq, ConvFactor, PeakWidth=PeakWidth, FractionOfSampleFreq=FractionOfSampleFreq, timeStart=timeStart, timeEnd=timeEnd, PointsOfPadding=PointsOfPadding, ShowPSD=ShowPSD)
 
+        _plt.close('all')
+        
         PosArray = unit_conversion(PosArray, unit_prefix) # converts m to units required (nm by default)
         VelArray = unit_conversion(VelArray, unit_prefix) # converts m/s to units required (nm/s by default)
         
