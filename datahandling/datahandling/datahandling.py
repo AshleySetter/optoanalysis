@@ -82,6 +82,14 @@ class DataObject():
         ----------
         filepath : string
             The filepath to the data file to initialise this object instance.
+        RelativeChannelNo : int, optional
+            If loading a .bin file produced by the Saneae datalogger, used to specify
+            the channel number
+        calcPSD : bool, optional
+            Whether to calculate the PSD upon loading the file, can take some time
+            off the loading and reduce memory usage if frequency space info is not required
+        NPerSegmentPSD : int, optional
+            NPerSegment to pass to scipy.signal.welch to calculate the PSD
 
         Initialisation - assigns values to the following attributes:
         - filepath
@@ -585,6 +593,8 @@ class DataObject():
             How much to sub-sample the data by before filtering,
             effectively reducing the sample frequency by this 
             fraction.
+        NPerSegmentPSD : int, optional
+            NPerSegment to pass to scipy.signal.welch to calculate the PSD
         ShowFig : bool, optional
             Whether to show the figures produced of the PSD of
             the original signal along with the filtered x, y and z.
@@ -644,6 +654,8 @@ class DataObject():
             Starting time for filtering. Defaults to start of time data.
         timeEnd : float, optional
             Ending time for filtering. Defaults to end of time data.
+        NPerSegmentPSD : int, optional
+            NPerSegment to pass to scipy.signal.welch to calculate the PSD
         MakeFig : bool, optional
             If True - generate figure showing filtered and unfiltered PSD
             Defaults to True.
@@ -966,6 +978,15 @@ def load_data(Filepath, ObjectType="default", RelativeChannelNo=None, calcPSD=Tr
         Options are:
             'default' : datahandling.DataObject
             'thermo' : datahandling.thermo.ThermoObject
+    RelativeChannelNo : int, optional
+        If loading a .bin file produced by the Saneae datalogger, used to specify
+        the channel number
+    calcPSD : bool, optional
+        Whether to calculate the PSD upon loading the file, can take some time
+        off the loading and reduce memory usage if frequency space info is not required
+    NPerSegmentPSD : int, optional
+        NPerSegment to pass to scipy.signal.welch to calculate the PSD
+
     Returns
     -------
         Data : DataObject
