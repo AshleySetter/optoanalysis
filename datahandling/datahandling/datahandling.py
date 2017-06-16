@@ -125,13 +125,12 @@ class DataObject():
         f.close()
         FileExtension = self.filepath.split('.')[-1]
         if FileExtension == "raw" or FileExtension == "trc":
-            try:
-                waveDescription, self.time, self.voltage, _ = \
-                                                              datahandling.LeCroy.InterpretWaveform(raw)
-            except Exception as err:
-                print("Couldn't load file {}. May be corrupted.".format(self.filepath))
-                raise err
-                
+            with _warnings.catch_warnings(): # supress missing data warning and raise a missing
+                # data warning from datahandling with the filepath
+                _warnings.simplefilter("ignore")
+                waveDescription, self.time, self.voltage, _, missingdata = datahandling.LeCroy.InterpretWaveform(raw) 
+            if missingdata:
+                _warnings.warn("Waveform not of expected length. File {} may be missing data.".format(self.filepath))
             self.SampleFreq = (1 / waveDescription["HORIZ_INTERVAL"])
         elif FileExtension == "bin":
             if RelativeChannelNo == None:
