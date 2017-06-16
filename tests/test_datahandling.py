@@ -23,7 +23,7 @@ def test_load_data():
     np.testing.assert_array_equal(V, data.voltage)
     return None
 
-GlobalData = datahandling.load_data("testData.raw") # Load data to be used in upcoming tests - so that it doesn't need to be loaded for each individual function to be tested
+GlobalData = datahandling.load_data("testData.raw", NPerSegmentPSD=int(1e5)) # Load data to be used in upcoming tests - so that it doesn't need to be loaded for each individual function to be tested
 
 @pytest.mark.mpl_image_compare(tolerance=plot_similarity_tolerance) # this decorator compares the figure object returned by the following function to the baseline png image stored in tests/baseline
 def test_plot_PSD():
@@ -123,7 +123,7 @@ def test_extract_motion():
     the get_ZXY_data function and get_ZXY_freqs function.
     """
     expectedLength = int(np.floor(len(GlobalData.time)/3))
-    z, x, y, t, fig, ax = GlobalData.extract_ZXY_motion([75e3, 167e3, 185e3], 5e3, [15e3, 15e3, 15e3], 3, MakeFig=True, ShowFig=False)
+    z, x, y, t, fig, ax = GlobalData.extract_ZXY_motion([75e3, 167e3, 185e3], 5e3, [15e3, 15e3, 15e3], 3, NPerSegmentPSD=int(1e5), MakeFig=True, ShowFig=False)
     assert len(z) == len(t)
     assert len(z) == len(x)
     assert len(x) == len(y)
@@ -144,7 +144,7 @@ def test_multi_load_data():
         assert max(dataset.freqs) == pytest.approx(dataset.SampleFreq/2, rel=0.00001) # max freq in PSD is approx equal to Nyquist frequency
     return None
 
-GlobalMultiData = datahandling.multi_load_data(1, [1, 36], [0]) # Load data to be used in upcoming tests - so that it doesn't need to be loaded for each individual function to be tested
+GlobalMultiData = datahandling.multi_load_data(1, [1, 36], [0], NPerSegmentPSD=int(1e5)) # Load data to be used in upcoming tests - so that it doesn't need to be loaded for each individual function to be tested
 
 def test_calc_temp():
     """

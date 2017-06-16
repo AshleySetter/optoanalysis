@@ -22,6 +22,7 @@ import matplotlib as _mpl
 from scipy.io.wavfile import write as _writewav
 from matplotlib import colors as _mcolors
 import qplots as _qplots
+from functools import partial as _partial
 
 _mpl.rcParams['lines.markeredgewidth'] = 1 # set default markeredgewidth to 1 overriding seaborn's default value of 0
 _sns.set_style("whitegrid")
@@ -75,7 +76,7 @@ class DataObject():
 
     """
 
-    def __init__(self, filepath, RelativeChannelNo=None):
+    def __init__(self, filepath, RelativeChannelNo=None, NPerSegmentPSD=1000000):
         """
         Parameters
         ----------
@@ -95,7 +96,7 @@ class DataObject():
         self.filename = filepath.split("/")[-1]
         self.filedir = self.filepath[0:-len(self.filename)]
         self.load_time_data(RelativeChannelNo)
-        self.get_PSD()
+        self.get_PSD(NPerSegmentPSD)
         return None
 
     def load_time_data(self, RelativeChannelNo=None):
@@ -212,7 +213,7 @@ class DataObject():
             _plt.show()
         return fig, ax
 
-    def get_PSD(self, NPerSegment='Default', window="hann"):
+    def get_PSD(self, NPerSegment=1000000, window="hann"):
         """
         Extracts the pulse spectral density (PSD) from the data.
 
@@ -220,7 +221,7 @@ class DataObject():
         ----------
         NPerSegment : int, optional
             Length of each segment used in scipy.welch
-            default = the Number of time points
+            default = 1000000
 
         window : str or tuple or array_like, optional
             Desired window to use. See get_window for a list of windows
@@ -238,14 +239,7 @@ class DataObject():
                 Array containing the value of the PSD at the corresponding
                 frequency value in V**2/Hz
         """
-        if NPerSegment == "Default":
-            NPerSegment = len(self.time)
-            if NPerSegment > 1e7:
-                NPerSegment = int(1e7)
-        freqs, PSD = scipy.signal.welch(self.voltage, self.SampleFreq,
-                                        window=window, nperseg=NPerSegment)
-        PSD = PSD[freqs.argsort()]
-        freqs.sort()
+        freqs, PSD = calc_PSD(self.voltage, self.SampleFreq, NPerSegment=NPerSegment)
         self.PSD = PSD
         self.freqs = freqs
         return self.freqs, self.PSD
@@ -572,7 +566,7 @@ class DataObject():
 
         return self.Radius, self.Mass, self.ConvFactor
 
-    def extract_ZXY_motion(self, ApproxZXYFreqs, uncertaintyInFreqs, ZXYPeakWidths, subSampleFraction=1, MakeFig=True, ShowFig=True):
+    def extract_ZXY_motion(self, ApproxZXYFreqs, uncertaintyInFreqs, ZXYPeakWidths, subSampleFraction=1, NPerSegmentPSD=1000000, MakeFig=True, ShowFig=True):
         """
         Extracts the x, y and z signals (in volts) from the voltage signal. Does this by finding the highest peaks in the signal about the approximate frequencies, using the uncertaintyinfreqs parameter as the width it searches. It then uses the ZXYPeakWidths to construct bandpass IIR filters for each frequency and filtering them. If too high a sample frequency has been used to collect the data scipy may not be able to construct a filter good enough, in this case increasing the subSampleFraction may be nessesary.
         
@@ -616,12 +610,13 @@ class DataObject():
             self, zf, xf, yf, bandwidth=uncertaintyInFreqs)
         [zwidth, xwidth, ywidth] = ZXYPeakWidths
         self.zVolts, self.xVolts, self.yVolts, time, fig, ax = get_ZXY_data(
-            self, zf, xf, yf, subSampleFraction, zwidth, xwidth, ywidth, MakeFig=MakeFig, ShowFig=ShowFig)
+            self, zf, xf, yf, subSampleFraction, zwidth, xwidth, ywidth, MakeFig=MakeFig, ShowFig=ShowFig, NPerSegmentPSD=NPerSegmentPSD)
         return self.zVolts, self.xVolts, self.yVolts, time, fig, ax
 
     def filter_data(self, freq, FractionOfSampleFreq=1, PeakWidth=10000,
                   filterImplementation="filtfilt",
                   timeStart="Default", timeEnd="Default",
+                    NPerSegmentPSD=1000000,
                   MakeFig=True, ShowFig=True):
         """
         filter out data about a central frequency with some bandwidth using an IIR filter.
@@ -697,12 +692,9 @@ class DataObject():
                 "Value Error: FractionOfSampleFreq must be higher, a sufficiently small sample frequency should be used to produce a working IIR filter.")
     
         if MakeFig == True:
-            NPerSegment = len(self.time)
-            if NPerSegment > 1e7:
-                NPerSegment = int(1e7)
             f, PSD = scipy.signal.welch(
-                input_signal, SAMPLEFREQ, nperseg=NPerSegment)
-            f_filtdata, PSD_filtdata = scipy.signal.welch(filteredData, SAMPLEFREQ, nperseg=NPerSegment)
+                input_signal, SAMPLEFREQ, nperseg=NPerSegmentPSD)
+            f_filtdata, PSD_filtdata = scipy.signal.welch(filteredData, SAMPLEFREQ, nperseg=NPerSegmentPSD)
             fig, ax = _plt.subplots(figsize=properties["default_fig_size"])
             ax.plot(f, PSD)
             ax.plot(f_filtdata, PSD_filtdata, label="filtered data")
@@ -961,7 +953,7 @@ class ORGTableData():
         return Value 
 
     
-def load_data(Filepath, ObjectType="default", RelativeChannelNo=None):
+def load_data(Filepath, ObjectType="default", RelativeChannelNo=None, NPerSegmentPSD=1000000):
     """
     Parameters
     ----------
@@ -988,10 +980,10 @@ def load_data(Filepath, ObjectType="default", RelativeChannelNo=None):
         Object = ObjectTypeDict[ObjectType]
     except KeyError:
         raise ValueError("You entered {}, this is not a valid object type".format(ObjectType))
-    return Object(Filepath, RelativeChannelNo)
+    return Object(Filepath, RelativeChannelNo, NPerSegmentPSD)
 
 
-def multi_load_data(Channel, RunNos, RepeatNos, directoryPath='.'):
+def multi_load_data(Channel, RunNos, RepeatNos, directoryPath='.', NPerSegmentPSD=1000000):
     """
     Lets you load multiple datasets at once assuming they have a 
     filename which contains a pattern of the form:
@@ -1036,10 +1028,11 @@ def multi_load_data(Channel, RunNos, RepeatNos, directoryPath='.'):
     # for filepath in files_CorrectRepeatNo:
     #    print(filepath)
     #    data.append(load_data(filepath))
-    data = workerPool.map(load_data, files_CorrectRepeatNo)
+    load_data_partial = _partial(load_data, NPerSegmentPSD=NPerSegmentPSD)
+    data = workerPool.map(load_data_partial, files_CorrectRepeatNo)
     return data
 
-def multi_load_data_custom(Channel, TraceTitle, RunNos, directoryPath='.'):
+def multi_load_data_custom(Channel, TraceTitle, RunNos, directoryPath='.', NPerSegmentPSD=1000000):
     """
     Lets you load multiple datasets named with the LeCroy's custom naming scheme at once.
 
@@ -1078,8 +1071,10 @@ def multi_load_data_custom(Channel, TraceTitle, RunNos, directoryPath='.'):
     # for filepath in files_CorrectRepeatNo:
     #    print(filepath)
     #    data.append(load_data(filepath))
-    data = workerPool.map(load_data, files_CorrectRunNo)
+    load_data_partial = _partial(load_data, NPerSegmentPSD=NPerSegmentPSD)
+    data = workerPool.map(load_data_partial, files_CorrectRepeatNo)
     return data
+
 def search_data_custom(Channel, TraceTitle, RunNos, directoryPath='.'):
     """
     Lets you create a list with full file paths of the files
@@ -1525,6 +1520,7 @@ def get_ZXY_data(Data, zf, xf, yf, FractionOfSampleFreq=1,
                  zwidth=10000, xwidth=5000, ywidth=5000,
                  filterImplementation="filtfilt",
                  timeStart="Default", timeEnd="Default",
+                 NPerSegmentPSD=1000000,
                  MakeFig=True, ShowFig=True):
     """
     Given a Data object and the frequencies of the z, x and y peaks (and some
@@ -1626,15 +1622,12 @@ def get_ZXY_data(Data, zf, xf, yf, FractionOfSampleFreq=1,
         raise ValueError(
             "Value Error: FractionOfSampleFreq must be higher, a sufficiently small sample frequency should be used to produce a working IIR filter.")
 
-    if MakeFig == True:
-        NPerSegment = len(Data.time)
-        if NPerSegment > 1e7:
-            NPerSegment = int(1e7)
+    if MakeFig == True:        
         f, PSD = scipy.signal.welch(
-            input_signal, SAMPLEFREQ, nperseg=NPerSegment)
-        f_z, PSD_z = scipy.signal.welch(zdata, SAMPLEFREQ, nperseg=NPerSegment)
-        f_y, PSD_y = scipy.signal.welch(ydata, SAMPLEFREQ, nperseg=NPerSegment)
-        f_x, PSD_x = scipy.signal.welch(xdata, SAMPLEFREQ, nperseg=NPerSegment)
+            input_signal, SAMPLEFREQ, nperseg=NPerSegmentPSD)
+        f_z, PSD_z = scipy.signal.welch(zdata, SAMPLEFREQ, nperseg=NPerSegmentPSD)
+        f_y, PSD_y = scipy.signal.welch(ydata, SAMPLEFREQ, nperseg=NPerSegmentPSD)
+        f_x, PSD_x = scipy.signal.welch(xdata, SAMPLEFREQ, nperseg=NPerSegmentPSD)
         fig, ax = _plt.subplots(figsize=properties["default_fig_size"])
         ax.plot(f, PSD)
         ax.plot(f_z, PSD_z, label="z")
@@ -1792,11 +1785,11 @@ def animate(zdata, xdata, ydata,
     a = 20
     b = 0.6 * a
     myFPS = 7
-    myBitrate = 1e6
+    myBitrate = 1000000
 
     fig = _plt.figure(figsize=(a, b))
     ax = fig.add_subplot(111, projection='3d')
-    ax.set_title("{} us".format(timedata[0] * 1e6))
+    ax.set_title("{} us".format(timedata[0] * 1000000))
     ax.set_xlabel('X (nm)')
     ax.set_xlim([XBoxStart, XBoxEnd])
     ax.set_ylabel('Y (nm)')
@@ -1819,7 +1812,7 @@ def animate(zdata, xdata, ydata,
         print("Frame: {}".format(i), end="\r")
         ax.clear()
         ax.view_init(20, -30)
-        ax.set_title("{} us".format(timedata[i] * 1e6))
+        ax.set_title("{} us".format(timedata[i] * 1000000))
         ax.set_xlabel('X (nm)')
         ax.set_xlim([XBoxStart, XBoxEnd])
         ax.set_ylabel('Y (nm)')
@@ -2315,7 +2308,7 @@ def multi_subplots_time(DataArray, SubSampleN=1, units='s', xlim="default", ylim
     return fig, axs
 
 
-def calc_PSD(Signal, SampleFreq, NPerSegment='Default', window="hann"):
+def calc_PSD(Signal, SampleFreq, NPerSegment=1000000, window="hann"):
     """
     Extracts the pulse spectral density (PSD) from the data.
 
@@ -2327,7 +2320,7 @@ def calc_PSD(Signal, SampleFreq, NPerSegment='Default', window="hann"):
         Sample frequency of the signal array
     NPerSegment : int, optional
         Length of each segment used in scipy.welch
-        default = the Number of time points
+        default = 1000000
     window : str or tuple or array_like, optional
         Desired window to use. See get_window for a list of windows
         and required parameters. If window is array_like it will be
@@ -2344,10 +2337,6 @@ def calc_PSD(Signal, SampleFreq, NPerSegment='Default', window="hann"):
             Array containing the value of the PSD at the corresponding
             frequency value in V**2/Hz
     """
-    if NPerSegment == "Default":
-        NPerSegment = len(Signal)
-        if NPerSegment > 1e7:
-            NPerSegment = int(1e7)
     freqs, PSD = scipy.signal.welch(Signal, SampleFreq,
                                     window=window, nperseg=NPerSegment)
     PSD = PSD[freqs.argsort()]
