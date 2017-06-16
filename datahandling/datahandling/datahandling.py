@@ -240,8 +240,8 @@ class DataObject():
         """
         if NPerSegment == "Default":
             NPerSegment = len(self.time)
-            if NPerSegment > 1e5:
-                NPerSegment = int(1e5)
+            if NPerSegment > 1e7:
+                NPerSegment = int(1e7)
         freqs, PSD = scipy.signal.welch(self.voltage, self.SampleFreq,
                                         window=window, nperseg=NPerSegment)
         PSD = PSD[freqs.argsort()]
@@ -698,8 +698,8 @@ class DataObject():
     
         if MakeFig == True:
             NPerSegment = len(self.time)
-            if NPerSegment > 1e5:
-                NPerSegment = int(1e5)
+            if NPerSegment > 1e7:
+                NPerSegment = int(1e7)
             f, PSD = scipy.signal.welch(
                 input_signal, SAMPLEFREQ, nperseg=NPerSegment)
             f_filtdata, PSD_filtdata = scipy.signal.welch(filteredData, SAMPLEFREQ, nperseg=NPerSegment)
@@ -840,9 +840,12 @@ class DataObject():
             
         return fig, JP1
  
-    def plot_phase_space(self, freq, ConvFactor, PeakWidth=10000, FractionOfSampleFreq=1, timeStart="Default", timeEnd ="Default", PointsOfPadding=500, units="nm", logscale=False, ShowFig=True, ShowPSD=False, *args, **kwargs):
+    def plot_phase_space(self, freq, ConvFactor, PeakWidth=10000, FractionOfSampleFreq=1, timeStart="Default", timeEnd ="Default", PointsOfPadding=500, units="nm", logscale=False, ShowFig=True, ShowPSD=False, xlabel='', ylabel='', *args, **kwargs):
         unit_prefix = units[:-1]
 
+        xlabel = xlabel + "({})".format(units)
+        ylabel = ylabel + "({})".format(units)
+            
         PosArray, VelArray = self.calc_phase_space(freq, ConvFactor, PeakWidth=PeakWidth, FractionOfSampleFreq=FractionOfSampleFreq, timeStart=timeStart, timeEnd=timeEnd, PointsOfPadding=PointsOfPadding, ShowPSD=ShowPSD)
 
         PosArray = unit_conversion(PosArray, unit_prefix) # converts m to units required (nm by default)
@@ -851,8 +854,12 @@ class DataObject():
         VelArray = VelArray/(2*_np.pi*freq)
         PosArray = PosArray[1:]
 
-        fig, axscatter, axhistx, axhisty, cb = _qplots.joint_plot(PosArray, VelArray, logscale=logscale, ShowFig=ShowFig, *args, **kwargs)
+        fig, axscatter, axhistx, axhisty, cb = _qplots.joint_plot(PosArray, VelArray, logscale=logscale, *args, **kwargs)
+        axscatter.set_xlabel(xlabel)
+        axscatter.set_ylabel(ylabel)
 
+        if ShowFig == True:
+            _plt.show()
         return fig, axscatter, axhistx, axhisty, cb
     
     def calc_phase_space(self, freq, ConvFactor, PeakWidth=10000, FractionOfSampleFreq=1, timeStart="Default", timeEnd ="Default", PointsOfPadding=500, ShowPSD=False):
@@ -1621,8 +1628,8 @@ def get_ZXY_data(Data, zf, xf, yf, FractionOfSampleFreq=1,
 
     if MakeFig == True:
         NPerSegment = len(Data.time)
-        if NPerSegment > 1e5:
-            NPerSegment = int(1e5)
+        if NPerSegment > 1e7:
+            NPerSegment = int(1e7)
         f, PSD = scipy.signal.welch(
             input_signal, SAMPLEFREQ, nperseg=NPerSegment)
         f_z, PSD_z = scipy.signal.welch(zdata, SAMPLEFREQ, nperseg=NPerSegment)
@@ -1717,8 +1724,8 @@ def get_ZXY_data_IFFT(Data, zf, xf, yf,
 
     if ShowFig == True:
         NPerSegment = len(Data.time)
-        if NPerSegment > 1e5:
-            NPerSegment = int(1e5)
+        if NPerSegment > 1e7:
+            NPerSegment = int(1e7)
         f, PSD = scipy.signal.welch(
             input_signal, SAMPLEFREQ, nperseg=NPerSegment)
         f_z, PSD_z = scipy.signal.welch(zdata, SAMPLEFREQ, nperseg=NPerSegment)
@@ -2339,8 +2346,8 @@ def calc_PSD(Signal, SampleFreq, NPerSegment='Default', window="hann"):
     """
     if NPerSegment == "Default":
         NPerSegment = len(Signal)
-        if NPerSegment > 1e5:
-            NPerSegment = int(1e5)
+        if NPerSegment > 1e7:
+            NPerSegment = int(1e7)
     freqs, PSD = scipy.signal.welch(Signal, SampleFreq,
                                     window=window, nperseg=NPerSegment)
     PSD = PSD[freqs.argsort()]
