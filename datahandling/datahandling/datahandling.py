@@ -253,7 +253,7 @@ class DataObject():
         self.freqs = freqs
         return self.freqs, self.PSD
 
-    def plot_PSD(self, xlim="Default", units="kHz", ShowFig=True):
+    def plot_PSD(self, xlim="Default", units="kHz", ShowFig=True, *args, **kwargs):
         """
         plot the pulse spectral density.
 
@@ -282,7 +282,7 @@ class DataObject():
             xlim = [0, unit_conversion(self.SampleFreq/2, unit_prefix)]
         fig = _plt.figure(figsize=properties['default_fig_size'])
         ax = fig.add_subplot(111)
-        ax.semilogy(unit_conversion(self.freqs, unit_prefix), self.PSD, color="blue")
+        ax.semilogy(unit_conversion(self.freqs, unit_prefix), self.PSD, *args, **kwargs)
         ax.set_xlabel("Frequency ({})".format(units))
         ax.set_xlim(xlim)
         ax.grid(which="major")
