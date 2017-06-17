@@ -1387,7 +1387,7 @@ def fit_PSD(Data, bandwidth, NMovAve, TrapFreqGuess, AGuess=0.1e10, GammaGuess=4
                                               datax, datay, calc_theory_PSD_curve_fit)
 
     if MakeFig == True:
-        fig = _plt.figure()
+        fig = _plt.figure(figsize=properties["default_fig_size"])
         ax = fig.add_subplot(111)
 
         PSDTheory_fit_initial = 10 * _np.log10(
