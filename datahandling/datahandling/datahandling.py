@@ -222,7 +222,7 @@ class DataObject():
             _plt.show()
         return fig, ax
 
-    def get_PSD(self, NPerSegment=1000000, window="hann", timeStart=None, timeEnd=None):
+    def get_PSD(self, NPerSegment=1000000, window="hann", timeStart=None, timeEnd=None, override=False):
         """
         Extracts the pulse spectral density (PSD) from the data.
 
@@ -263,6 +263,9 @@ class DataObject():
             if EndIndex == len(self.time) - 1:
                 EndIndex = EndIndex + 1 # so that it does not remove the last element
             freqs, PSD = calc_PSD(self.voltage[StartIndex:EndIndex], self.SampleFreq, NPerSegment=NPerSegment)
+            if override == True:
+                self.freqs = freqs
+                self.PSD = PSD
 
         return freqs, PSD
 
