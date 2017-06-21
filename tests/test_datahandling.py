@@ -107,7 +107,7 @@ def test_get_fit_auto():
     OmegaTrapErrTrue = 7359927227.585048
     BigGammaTrue = 3946.998785496495
     BigGammaErrTrue = 107.96706466271127
-    A, OmegaTrap, BigGamma = GlobalData.get_fit_auto(70e3, ShowFig=False)
+    A, OmegaTrap, BigGamma, _, _ = GlobalData.get_fit_auto(70e3, MakeFig=False, ShowFig=False)
     assert A.n == pytest.approx(ATrue, rel=float_relative_tolerance)
     assert OmegaTrap.n == pytest.approx(OmegaTrapTrue, rel=float_relative_tolerance)
     assert BigGamma.n == pytest.approx(BigGammaTrue, rel=float_relative_tolerance)
@@ -135,7 +135,7 @@ def test_plot_phase_space():
     """
     Test the plot_phase_space and therefore calc_phase_space function.
     """
-    fig1, axscatter, axhistx, axhisty, cb = GlobalData.plot_phase_space(75e3, GlobalData.ConvFactor, PeakWidth=10e3, logscale=False, ShowPSD=False, ShowFig=False, FractionOfSampleFreq=3)
+    fig1, axscatter, axhistx, axhisty, cb = GlobalData.plot_phase_space(75e3, GlobalData.ConvFactor, PeakWidth=10e3, ShowPSD=False, ShowFig=False, FractionOfSampleFreq=3)
     return fig1
     
 def test_multi_load_data():
@@ -160,7 +160,7 @@ def test_calc_temp():
     z degree of data from it's reference.
     """
     for dataset in GlobalMultiData:
-        dataset.get_fit_auto(65e3, ShowFig=False)
+        dataset.get_fit_auto(65e3, MakeFig=False, ShowFig=False)
     T = datahandling.calc_temp(GlobalMultiData[0], GlobalMultiData[1])
     assert T.n == pytest.approx(2.6031509367704735, rel=float_relative_tolerance)
     assert T.std_dev == pytest.approx(0.21312482508893446, rel=float_relative_tolerance)

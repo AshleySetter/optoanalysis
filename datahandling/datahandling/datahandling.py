@@ -217,7 +217,6 @@ class DataObject():
         ax.set_xlabel("time ({})".format(units))
         ax.set_ylabel("voltage (V)")
         ax.set_xlim([timeStart, timeEnd])
-        fig.tight_layout()
         if ShowFig == True:
             _plt.show()
         return fig, ax
@@ -309,7 +308,6 @@ class DataObject():
         ax.set_xlim(xlim)
         ax.grid(which="major")
         ax.set_ylabel("$S_{xx}$ ($v^2/Hz$)")
-        fig.tight_layout()
         if ShowFig == True:
             _plt.show()
         return fig, ax
@@ -414,7 +412,6 @@ class DataObject():
         self.OmegaTrap = _uncertainties.ufloat(Params[1], ParamsErr[1])
         self.Gamma = _uncertainties.ufloat(Params[2], ParamsErr[2])
 
-        fig.tight_layout()
         
         if MakeFig == True:
             return self.A, self.OmegaTrap, self.Gamma, fig, ax
@@ -460,7 +457,7 @@ class DataObject():
         if lowerIndex == upperIndex:
             _warnings.warn("range is too small, returning NaN", UserWarning)
             val = _uncertainties.ufloat(_np.NaN, _np.NaN)
-            return val, val, val
+            return val, val, val, val, val
 
         MaxPSD = max(self.PSD[lowerIndex:upperIndex])
 
@@ -481,7 +478,7 @@ class DataObject():
         except IndexError:
             _warnings.warn("range is too small, returning NaN", UserWarning)
             val = _uncertainties.ufloat(_np.NaN, _np.NaN)
-            return val, val, val
+            return val, val, val, val, val
 
         try:
             RightSideOfPeakIndex = _np.where(self.PSD ==
@@ -490,7 +487,7 @@ class DataObject():
         except IndexError:
             _warnings.warn("range is too small, returning NaN", UserWarning)
             val = _uncertainties.ufloat(_np.NaN, _np.NaN)
-            return val, val, val
+            return val, val, val, val, val
 
         FWHM = RightSideOfPeak - LeftSideOfPeak
 
@@ -1446,7 +1443,6 @@ def fit_PSD(Data, bandwidth, NMovAve, TrapFreqGuess, AGuess=0.1e10, GammaGuess=4
                  max(10**(logPSD_smoothed / 10))], '--',
                 color="grey")
         ax.semilogy()
-        fig.tight_layout()
         legend = ax.legend(loc="best", frameon = 1)
         frame = legend.get_frame()
         frame.set_facecolor('white')
@@ -2353,7 +2349,6 @@ def multi_subplots_time(DataArray, SubSampleN=1, units='s', xlim="default", ylim
             axs[i].set_xlim(xlim)
         if ylim != "default":
             axs[i].set_ylim(ylim)
-    fig.tight_layout()
     if ShowFig == True:
         _plt.show()
     return fig, axs
