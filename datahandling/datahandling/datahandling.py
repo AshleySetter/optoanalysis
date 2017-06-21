@@ -750,8 +750,6 @@ class DataObject():
             the phase space, to remove filtering artifacts. Defaults to 500.
         units : string, optional
             Units of position to plot on the axis - defaults to nm
-        logscale : bool, optional
-            Set to true to plot marginals with logscale
         cmap : matplotlib.colors.ListedColormap, optional
             cmap to use for plotting the jointplot
         marginalColor : string, optional
@@ -762,8 +760,10 @@ class DataObject():
             Whether to show the figure before exiting the function
             Defaults to True.
         ShowPSD : bool, optional
-            Where to show the PSD of the unfiltered and the filtered signal used 
-            to make the phase space plot. Defaults to False.
+            Where to show the PSD of the unfiltered and the 
+            filtered signal used to make the phase space
+            plot. Defaults to False.
+        
 
         Returns
         -------
@@ -847,7 +847,7 @@ class DataObject():
             
         return fig, JP1
  
-    def plot_phase_space(self, freq, ConvFactor, PeakWidth=10000, FractionOfSampleFreq=1, timeStart="Default", timeEnd ="Default", PointsOfPadding=500, units="nm", logscale=False, ShowFig=True, ShowPSD=False, xlabel='', ylabel='', *args, **kwargs):
+    def plot_phase_space(self, freq, ConvFactor, PeakWidth=10000, FractionOfSampleFreq=1, timeStart="Default", timeEnd ="Default", PointsOfPadding=500, units="nm", ShowFig=True, ShowPSD=False, xlabel='', ylabel='', *args, **kwargs):
         unit_prefix = units[:-1]
 
         xlabel = xlabel + "({})".format(units)
@@ -861,7 +861,7 @@ class DataObject():
         VelArray = VelArray/(2*_np.pi*freq) # converst nm/s to nm/radian
         PosArray = PosArray[1:]
 
-        fig, axscatter, axhistx, axhisty, cb = _qplots.joint_plot(PosArray, VelArray, logscale=logscale, *args, **kwargs)
+        fig, axscatter, axhistx, axhisty, cb = _qplots.joint_plot(PosArray, VelArray, *args, **kwargs)
         axscatter.set_xlabel(xlabel)
         axscatter.set_ylabel(ylabel)
 
@@ -896,6 +896,9 @@ class DataObject():
         ShowPSD : bool, optional
             Where to show the PSD of the unfiltered and the filtered signal used 
             to make the phase space plot. Defaults to False.
+        *args, **kwargs : optional
+            args and kwargs passed to qplots.joint_plot
+
 
         Returns
         -------
