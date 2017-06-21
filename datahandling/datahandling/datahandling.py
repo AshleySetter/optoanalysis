@@ -222,7 +222,7 @@ class DataObject():
             _plt.show()
         return fig, ax
 
-    def get_PSD(self, NPerSegment=1000000, window="hann"):
+    def get_PSD(self, NPerSegment=1000000, window="hann", timeStart=None, timeEnd=None, override=False):
         """
         Extracts the pulse spectral density (PSD) from the data.
 
@@ -248,12 +248,28 @@ class DataObject():
                 Array containing the value of the PSD at the corresponding
                 frequency value in V**2/Hz
         """
-        freqs, PSD = calc_PSD(self.voltage, self.SampleFreq, NPerSegment=NPerSegment)
-        self.PSD = PSD
-        self.freqs = freqs
-        return self.freqs, self.PSD
+        if timeStart == None and timeEnd == None:
+            freqs, PSD = calc_PSD(self.voltage, self.SampleFreq, NPerSegment=NPerSegment)
+            self.PSD = PSD
+            self.freqs = freqs
+        else:
+            if timeStart == None:
+                timeStart = self.time[0]
+            if timeEnd == None:
+                timeEnd = self.time[-1]
+            StartIndex = _np.where(self.time == take_closest(self.time, timeStart))[0][0]
+            EndIndex = _np.where(self.time == take_closest(self.time, timeEnd))[0][0]
 
-    def plot_PSD(self, xlim="Default", units="kHz", ShowFig=True, *args, **kwargs):
+            if EndIndex == len(self.time) - 1:
+                EndIndex = EndIndex + 1 # so that it does not remove the last element
+            freqs, PSD = calc_PSD(self.voltage[StartIndex:EndIndex], self.SampleFreq, NPerSegment=NPerSegment)
+            if override == True:
+                self.freqs = freqs
+                self.PSD = PSD
+
+        return freqs, PSD
+
+    def plot_PSD(self, xlim="Default", units="kHz", ShowFig=True, timeStart=None, timeEnd=None, *args, **kwargs):
         """
         plot the pulse spectral density.
 
@@ -277,12 +293,18 @@ class DataObject():
             The subplot object created
         """
         #        self.get_PSD()
+        if timeStart == None and timeEnd == None:
+            freqs = self.freqs
+            PSD = self.PSD
+        else:
+            freqs, PSD = self.get_PSD(timeStart=timeStart, timeEnd=timeEnd)
+            
         unit_prefix = units[:-2]
         if xlim == "Default":
             xlim = [0, unit_conversion(self.SampleFreq/2, unit_prefix)]
         fig = _plt.figure(figsize=properties['default_fig_size'])
         ax = fig.add_subplot(111)
-        ax.semilogy(unit_conversion(self.freqs, unit_prefix), self.PSD, *args, **kwargs)
+        ax.semilogy(unit_conversion(freqs, unit_prefix), PSD, *args, **kwargs)
         ax.set_xlabel("Frequency ({})".format(units))
         ax.set_xlim(xlim)
         ax.grid(which="major")

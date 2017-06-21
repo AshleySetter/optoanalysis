@@ -33,11 +33,11 @@ class ThermoObject(datahandling.DataObject):
                 Contains the values for the PSD (Pulse Spectral Density) as calculated
                 at each frequency contained in freqs        
     """
-    def __init__(self, filepath, RelativeChannelNo=None):
+    def __init__(self, filepath, RelativeChannelNo=None, calcPSD=True, NPerSegmentPSD=1000000):
         """
         Initialises the object by generating the data and calculating the PSD.
         """
-        super(ThermoObject, self).__init__(filepath, RelativeChannelNo) # calls the init func from datahandling
+        super(ThermoObject, self).__init__(filepath, RelativeChannelNo, calcPSD=True, NPerSegmentPSD=1000000) # calls the init func from datahandling
         return None
 
    # @_jit
