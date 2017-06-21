@@ -6,7 +6,7 @@ numpy
 scipy
 matplotlib
 seaborn
-qplots>=0.4
+qplots>=0.5
 uncertainties
 pytest
 pytest-cov

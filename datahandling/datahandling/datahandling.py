@@ -414,12 +414,14 @@ class DataObject():
         self.OmegaTrap = _uncertainties.ufloat(Params[1], ParamsErr[1])
         self.Gamma = _uncertainties.ufloat(Params[2], ParamsErr[2])
 
+        fig.tight_layout()
+        
         if MakeFig == True:
             return self.A, self.OmegaTrap, self.Gamma, fig, ax
         else:
             return self.A, self.OmegaTrap, self.Gamma, None, None
 
-    def get_fit_from_peak(self, lowerLimit, upperLimit, NumPointsSmoothing=1, Silent=False, ShowFig=True):
+    def get_fit_from_peak(self, lowerLimit, upperLimit, NumPointsSmoothing=1, Silent=False, MakeFig=True, ShowFig=True):
         """
         Finds approximate values for the peaks central frequency, height, 
         and FWHM by looking for the heighest peak in the frequency range defined 
@@ -494,12 +496,12 @@ class DataObject():
 
         approx_Gamma = FWHM/4
         try:
-            self.get_fit(CentralFreq, (upperLimit-lowerLimit)/2, 
-                         A_Initial=approx_A, Gamma_Initial=approx_Gamma, Silent=Silent, MakeFig=ShowFig, ShowFig=ShowFig)
+            A, OmegaTrap, Gamma, fig, ax = self.get_fit(CentralFreq, (upperLimit-lowerLimit)/2, 
+                         A_Initial=approx_A, Gamma_Initial=approx_Gamma, Silent=Silent, MakeFig=MakeFig, ShowFig=ShowFig)
         except (TypeError, ValueError) as e: 
             _warnings.warn("range is too small to fit, returning NaN", UserWarning)
             val = _uncertainties.ufloat(_np.NaN, _np.NaN)
-            return val, val, val
+            return val, val, val, val, val
         OmegaTrap = self.OmegaTrap
         A = self.A
         Gamma = self.Gamma
@@ -508,9 +510,9 @@ class DataObject():
             self.freqs[LeftSideOfPeakIndex:RightSideOfPeakIndex]
         PSDArray = self.PSD[LeftSideOfPeakIndex:RightSideOfPeakIndex]
 
-        return OmegaTrap, A, Gamma
+        return OmegaTrap, A, Gamma, fig, ax 
 
-    def get_fit_auto(self, CentralFreq, MaxWidth=15000, MinWidth=500, WidthIntervals=500, ShowFig=True):
+    def get_fit_auto(self, CentralFreq, MaxWidth=15000, MinWidth=500, WidthIntervals=500, MakeFig=True, ShowFig=True):
         """
         Tries a range of regions to search for peaks and runs the one with the least error
         and returns the parameters with the least errors.
@@ -540,8 +542,8 @@ class DataObject():
         MinTotalSumSquaredError = _np.infty
         for Width in _np.arange(MaxWidth, MinWidth - WidthIntervals, -WidthIntervals):
             try:
-                OmegaTrap, A, Gamma = self.get_fit_from_peak(
-                    CentralFreq - Width / 2, CentralFreq + Width / 2, Silent=True, ShowFig=False)
+                OmegaTrap, A, Gamma,_ , _ = self.get_fit_from_peak(
+                    CentralFreq - Width / 2, CentralFreq + Width / 2, Silent=True, MakeFig=False, ShowFig=False)
             except RuntimeError:
                 _warnings.warn("Couldn't find good fit with width {}".format(
                     Width), RuntimeWarning)
@@ -557,14 +559,14 @@ class DataObject():
                 BestWidth = Width
         print("found best")
         try:
-            self.get_fit_from_peak(CentralFreq - BestWidth / 2,
-                                   CentralFreq + BestWidth / 2, ShowFig=ShowFig)
+            OmegaTrap, A, Gamma, fig, ax = self.get_fit_from_peak(CentralFreq - BestWidth / 2,
+                                                                  CentralFreq + BestWidth / 2, MakeFig=MakeFig, ShowFig=ShowFig)
         except UnboundLocalError:
             raise ValueError("A best width was not found, try increasing the number of widths tried by either decreasing WidthIntervals or MinWidth or increasing MaxWidth")
         OmegaTrap = self.OmegaTrap
         A = self.A
         Gamma = self.Gamma
-        return OmegaTrap, A, Gamma
+        return OmegaTrap, A, Gamma, fig, ax
 
     def extract_parameters(self, P_mbar, P_Error):
         """
