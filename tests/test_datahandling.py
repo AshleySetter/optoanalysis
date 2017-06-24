@@ -21,6 +21,7 @@ def test_load_data():
     t, V = data.load_time_data() 
     np.testing.assert_array_equal(t, data.time)
     np.testing.assert_array_equal(V, data.voltage)
+    datahandling.load_data("testData.raw", ObjectType="thermo") #testing specifically for init of ThermoObject here
     return None
 
 GlobalData = datahandling.load_data("testData.raw", NPerSegmentPSD=int(1e5)) # Load data to be used in upcoming tests - so that it doesn't need to be loaded for each individual function to be tested
