@@ -1,7 +1,7 @@
 import matplotlib
 matplotlib.use('agg', warn=False, force=True)
 import pytest
-import datahandling
+import optoanalysis
 import numpy as np
 from matplotlib.testing.decorators import image_comparison
 import matplotlib.pyplot as plt
@@ -13,18 +13,18 @@ def test_load_data():
     """
     Tests that load_data works and therefore that DataObject.__init__, DataObject.get_time_data and DataObject.getPSD work. Specifically it checks that the data loads and that it returns an object of type DataObject. It checks that the filepath points to the correct place. The data is sampled at the correct frequency and therefore that it has loaded the times correctly. It checks that the max frequency in the PSD is approximately equal to the Nyquist frequency for the test data. It also checks that the data returned by get_time_data matches the data loaded.
     """
-    data = datahandling.load_data("testData.raw")
-    assert type(data) == datahandling.datahandling.DataObject
+    data = optoanalysis.load_data("testData.raw")
+    assert type(data) == optoanalysis.optoanalysis.DataObject
     assert data.filename == "testData.raw"
     assert data.time[1]-data.time[0] == pytest.approx(1/data.SampleFreq, rel=float_relative_tolerance) 
     assert max(data.freqs) == pytest.approx(data.SampleFreq/2, rel=0.00001) # max freq in PSD is approx equal to Nyquist frequency
     t, V = data.load_time_data() 
     np.testing.assert_array_equal(t, data.time)
     np.testing.assert_array_equal(V, data.voltage)
-    datahandling.load_data("testData.raw", ObjectType="thermo") #testing specifically for init of ThermoObject here
+    optoanalysis.load_data("testData.raw", ObjectType="thermo") #testing specifically for init of ThermoObject here
     return None
 
-GlobalData = datahandling.load_data("testData.raw", NPerSegmentPSD=int(1e5)) # Load data to be used in upcoming tests - so that it doesn't need to be loaded for each individual function to be tested
+GlobalData = optoanalysis.load_data("testData.raw", NPerSegmentPSD=int(1e5)) # Load data to be used in upcoming tests - so that it doesn't need to be loaded for each individual function to be tested
 
 @pytest.mark.mpl_image_compare(tolerance=plot_similarity_tolerance) # this decorator compares the figure object returned by the following function to the baseline png image stored in tests/baseline
 def test_plot_PSD():
@@ -144,16 +144,16 @@ def test_multi_load_data():
     Tests the multi_load_data function, checks that the data
     is loaded correctly by checking various properties are set.
     """
-    data = datahandling.multi_load_data(1, [1, 36], [0])
+    data = optoanalysis.multi_load_data(1, [1, 36], [0])
     assert data[0].filename == "CH1_RUN00000001_REPEAT0000.raw"
     assert data[1].filename == "CH1_RUN00000036_REPEAT0000.raw"
     for dataset in data:
-        assert type(dataset) == datahandling.datahandling.DataObject
+        assert type(dataset) == optoanalysis.optoanalysis.DataObject
         assert dataset.time[1]-dataset.time[0] == pytest.approx(1/dataset.SampleFreq, rel=float_relative_tolerance) 
         assert max(dataset.freqs) == pytest.approx(dataset.SampleFreq/2, rel=0.00001) # max freq in PSD is approx equal to Nyquist frequency
     return None
 
-GlobalMultiData = datahandling.multi_load_data(1, [1, 36], [0], NPerSegmentPSD=int(1e5)) # Load data to be used in upcoming tests - so that it doesn't need to be loaded for each individual function to be tested
+GlobalMultiData = optoanalysis.multi_load_data(1, [1, 36], [0], NPerSegmentPSD=int(1e5)) # Load data to be used in upcoming tests - so that it doesn't need to be loaded for each individual function to be tested
 
 def test_calc_temp():
     """
@@ -162,7 +162,7 @@ def test_calc_temp():
     """
     for dataset in GlobalMultiData:
         dataset.get_fit_auto(65e3, MakeFig=False, ShowFig=False)
-    T = datahandling.calc_temp(GlobalMultiData[0], GlobalMultiData[1])
+    T = optoanalysis.calc_temp(GlobalMultiData[0], GlobalMultiData[1])
     assert T.n == pytest.approx(2.6031509367704735, rel=float_relative_tolerance)
     assert T.std_dev == pytest.approx(0.21312482508893446, rel=float_relative_tolerance)
     return None
@@ -174,7 +174,7 @@ def test_multi_plot_PSD():
     produced by DataObject.multi_plot_PSD is produced correctly and matches the
     baseline to a certain tolerance.
     """
-    fig, ax = datahandling.multi_plot_PSD(GlobalMultiData, xlim=[0, 300], units="kHz", LabelArray=["Reference", "Cooled"], ColorArray=["red", "blue"], alphaArray=[0.8, 0.8], ShowFig=False)
+    fig, ax = optoanalysis.multi_plot_PSD(GlobalMultiData, xlim=[0, 300], units="kHz", LabelArray=["Reference", "Cooled"], ColorArray=["red", "blue"], alphaArray=[0.8, 0.8], ShowFig=False)
     return fig
 
 @pytest.mark.mpl_image_compare(tolerance=plot_similarity_tolerance)
@@ -184,7 +184,7 @@ def test_multi_plot_time():
     produced by DataObject.multi_plot_time is produced correctly and matches the
     baseline to a certain tolerance.
     """
-    fig, ax = datahandling.multi_plot_time(GlobalMultiData, SubSampleN=1, units='us', xlim=[-1000, 1000], LabelArray=["Reference", "Cooled"], ShowFig=False)
+    fig, ax = optoanalysis.multi_plot_time(GlobalMultiData, SubSampleN=1, units='us', xlim=[-1000, 1000], LabelArray=["Reference", "Cooled"], ShowFig=False)
     return fig
 
 @pytest.mark.mpl_image_compare(tolerance=plot_similarity_tolerance)
@@ -194,5 +194,5 @@ def test_multi_subplots_time():
     produced by DataObject.multi_subplots_time is produced correctly and matches the
     baseline to a certain tolerance.
     """
-    fig, ax = datahandling.multi_subplots_time(GlobalMultiData, SubSampleN=1, units='us', xlim=[-1000, 1000], LabelArray=["Reference", "Cooled"], ShowFig=False)
+    fig, ax = optoanalysis.multi_subplots_time(GlobalMultiData, SubSampleN=1, units='us', xlim=[-1000, 1000], LabelArray=["Reference", "Cooled"], ShowFig=False)
     return fig
