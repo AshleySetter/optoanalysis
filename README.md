@@ -1,7 +1,7 @@
 [![DOI](https://zenodo.org/badge/74761875.svg)](https://zenodo.org/badge/latestdoi/74761875)
 [![Build Status](https://travis-ci.org/AshleySetter/optoanalysis.png)](https://travis-ci.org/AshleySetter/optoanalysis)
 [![codecov](https://codecov.io/gh/AshleySetter/optoanalysis/branch/master/graph/badge.svg)](https://codecov.io/gh/AshleySetter/optoanalysis)
-[![Documentation Status](https://readthedocs.org/projects/datahandling/badge/?version=latest)](http://datahandling.readthedocs.org/en/latest/?badge=latest)
+[![Documentation Status](https://readthedocs.org/projects/optoanalysis/badge/?version=latest)](http://optoanalysis.readthedocs.org/en/latest/?badge=latest)
 [![PyPI version](https://badge.fury.io/py/optoanalysis.svg)](https://badge.fury.io/py/optoanalysis)
 
 # optoanalysis
