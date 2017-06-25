@@ -1,5 +1,5 @@
 #
-####### requirements.txt for DataHandling #######
+####### requirements.txt for optoanalysis #######
 #
 ###### Requirements without Version Specifiers ######
 numpy

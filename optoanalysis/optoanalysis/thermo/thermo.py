@@ -1,4 +1,4 @@
-import datahandling
+import optoanalysis
 import numpy as _np
 import scipy as _scipy
 from scipy import constants
@@ -10,7 +10,7 @@ except (OSError, ModuleNotFoundError) as e:
     print("Numba not present on system, not importing jit")
 
 
-class ThermoObject(datahandling.DataObject):
+class ThermoObject(optoanalysis.DataObject):
     """
     Creates an object containing some data and all it's properties
     for thermodynamics analysis.
@@ -37,7 +37,7 @@ class ThermoObject(datahandling.DataObject):
         """
         Initialises the object by generating the data and calculating the PSD.
         """
-        super(ThermoObject, self).__init__(filepath, RelativeChannelNo, calcPSD=True, NPerSegmentPSD=1000000) # calls the init func from datahandling
+        super(ThermoObject, self).__init__(filepath, RelativeChannelNo, calcPSD=True, NPerSegmentPSD=1000000) # calls the init func from optoanalysis
         return None
 
     @_jit

@@ -1,13 +1,13 @@
-datahandling.Saleae package
+optoanalysis.Saleae package
 ===========================
 
 Submodules
 ----------
 
-datahandling.Saleae.Saleae module
+optoanalysis.Saleae.Saleae module
 ---------------------------------
 
-.. automodule:: datahandling.Saleae.Saleae
+.. automodule:: optoanalysis.Saleae.Saleae
     :members:
     :undoc-members:
     :show-inheritance:
@@ -16,7 +16,7 @@ datahandling.Saleae.Saleae module
 Module contents
 ---------------
 
-.. automodule:: datahandling.Saleae
+.. automodule:: optoanalysis.Saleae
     :members:
     :undoc-members:
     :show-inheritance:

@@ -1,13 +1,13 @@
-datahandling.thermo package
+optoanalysis.LeCroy package
 ===========================
 
 Submodules
 ----------
 
-datahandling.thermo.thermo module
+optoanalysis.LeCroy.LeCroy module
 ---------------------------------
 
-.. automodule:: datahandling.thermo.thermo
+.. automodule:: optoanalysis.LeCroy.LeCroy
     :members:
     :undoc-members:
     :show-inheritance:
@@ -16,7 +16,7 @@ datahandling.thermo.thermo module
 Module contents
 ---------------
 
-.. automodule:: datahandling.thermo
+.. automodule:: optoanalysis.LeCroy
     :members:
     :undoc-members:
     :show-inheritance:

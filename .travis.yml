@@ -4,13 +4,13 @@ python:
 before_install:
   pip install codecov
 # command to install dependancies
-install: "pip install -e datahandling" # installs datahandling and all requirements
+install: "pip install -e optoanalysis" # installs optoanalysis and all requirements
 before_script: # configure a headless display to test plot generation
 - "export DISPLAY=:99.0"
 - "sh -e /etc/init.d/xvfb start"
 - sleep 3 # give xvfb some time to start
 # command to run tests
 script:
-  - pytest -v --cov=datahandling --mpl # runs pytest in verbose mode, reports coverage of the datahandling library and with pytest-mpl so that the figures created are compared to the baselines in tests/baseline
+  - pytest -v --cov=optoanalysis --mpl # runs pytest in verbose mode, reports coverage of the optoanalysis library and with pytest-mpl so that the figures created are compared to the baselines in tests/baseline
 after_success:
   codecov --token=2647a763-1969-41ed-98ab-a3b1e25db0cb

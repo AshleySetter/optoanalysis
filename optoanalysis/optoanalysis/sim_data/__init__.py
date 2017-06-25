@@ -1,6 +1,6 @@
 """
-datahandling.thermo
-===================
+optoanalysis.sim_data
+=====================
 
 Functions for generating simulated data.
 
@@ -8,7 +8,7 @@ Functions for generating simulated data.
 
 # init file
 
-from .thermo import *
+from .sim_data import *
 
 
 

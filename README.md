@@ -3,10 +3,10 @@
 [![Documentation Status](https://readthedocs.org/projects/datahandling/badge/?version=latest)](http://datahandling.readthedocs.org/en/latest/?badge=latest)
 [![PyPI version](https://badge.fury.io/py/datahandling.svg)](https://badge.fury.io/py/datahandling)
 
-# DataHandling
-Matterwave group data handling library
+# optoanalysis
+Matterwave group data analysis library.
 
-This is the datahandling package developed primarily by [Ashley Setter](http://cmg.soton.ac.uk/people/ajs3g11/) of the [Quantum Nanophysics and Matter Wave Interferometry group](http://phyweb.phys.soton.ac.uk/matterwave/html/index.html) headed up by Prof. Hendrik Ulbricht at Southampton University in the UK.
+This is the optoanalysis package developed primarily by [Ashley Setter](http://cmg.soton.ac.uk/people/ajs3g11/) of the [Quantum Nanophysics and Matter Wave Interferometry group](http://phyweb.phys.soton.ac.uk/matterwave/html/index.html) headed up by Prof. Hendrik Ulbricht at Southampton University in the UK.
 
 The thermo module of this package was developed mainly by [Markus Rademacher](https://www.linkedin.com/in/markusrademacher/) of the University of Vienna in Austria, who works in the [group of Markus Aspelmeyer and Nikolai Kiesel](http://aspelmeyer.quantum.at/).
 

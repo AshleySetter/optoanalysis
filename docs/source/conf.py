@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
-# datahandling documentation build configuration file, created by
+# optoanalysis documentation build configuration file, created by
 # sphinx-quickstart on Fri Apr 21 00:06:44 2017.
 #
 # This file is execfile()d with the current directory set to its
@@ -19,7 +19,7 @@
 #
 import os
 import sys
-sys.path.insert(0, os.path.abspath('../../datahandling'))
+sys.path.insert(0, os.path.abspath('../../optoanalysis'))
 
 # -- General configuration ------------------------------------------------
 numpydoc_show_class_members = False
@@ -57,7 +57,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = 'datahandling'
+project = 'optoanalysis'
 copyright = '2017, Ashley Setter'
 author = 'Ashley Setter'
 
@@ -111,7 +111,7 @@ html_static_path = ['_static']
 # -- Options for HTMLHelp output ------------------------------------------
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'datahandlingdoc'
+htmlhelp_basename = 'optoanalysisdoc'
 
 
 # -- Options for LaTeX output ---------------------------------------------
@@ -138,7 +138,7 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, 'datahandling.tex', 'datahandling Documentation',
+    (master_doc, 'optoanalysis.tex', 'optoanalysis Documentation',
      'Ashley Setter', 'manual'),
 ]
 
@@ -148,7 +148,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, 'datahandling', 'datahandling Documentation',
+    (master_doc, 'optoanalysis', 'optoanalysis Documentation',
      [author], 1)
 ]
 
@@ -159,8 +159,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, 'datahandling', 'datahandling Documentation',
-     author, 'datahandling', 'One line description of project.',
+    (master_doc, 'optoanalysis', 'optoanalysis Documentation',
+     author, 'optoanalysis', 'One line description of project.',
      'Miscellaneous'),
 ]
 

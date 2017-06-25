@@ -1,4 +1,4 @@
-import datahandling
+import optoanalysis
 import matplotlib.pyplot as _plt
 import numpy as _np
 import scipy.signal
@@ -127,16 +127,16 @@ class DataObject():
         FileExtension = self.filepath.split('.')[-1]
         if FileExtension == "raw" or FileExtension == "trc":
             with _warnings.catch_warnings(): # supress missing data warning and raise a missing
-                # data warning from datahandling with the filepath
+                # data warning from optoanalysis with the filepath
                 _warnings.simplefilter("ignore")
-                waveDescription, self.time, self.voltage, _, missingdata = datahandling.LeCroy.InterpretWaveform(raw) 
+                waveDescription, self.time, self.voltage, _, missingdata = optoanalysis.LeCroy.InterpretWaveform(raw) 
             if missingdata:
                 _warnings.warn("Waveform not of expected length. File {} may be missing data.".format(self.filepath))
             self.SampleFreq = (1 / waveDescription["HORIZ_INTERVAL"])
         elif FileExtension == "bin":
             if RelativeChannelNo == None:
                 raise ValueError("If loading a .bin file from the Saleae data logger you must enter a relative channel number to load")
-            self.time, self.voltage, SampleTime = datahandling.Saleae.interpret_waveform(raw, RelativeChannelNo)
+            self.time, self.voltage, SampleTime = optoanalysis.Saleae.interpret_waveform(raw, RelativeChannelNo)
             self.SampleFreq = 1/SampleTime
         return self.time, self.voltage
 
@@ -1002,8 +1002,8 @@ def load_data(Filepath, ObjectType="default", RelativeChannelNo=None, calcPSD=Tr
     ObjectType : string, optional
         type to load the data as, takes the value 'default' if not specified.
         Options are:
-            'default' : datahandling.DataObject
-            'thermo' : datahandling.thermo.ThermoObject
+            'default' : optoanalysis.DataObject
+            'thermo' : optoanalysis.thermo.ThermoObject
     RelativeChannelNo : int, optional
         If loading a .bin file produced by the Saneae datalogger, used to specify
         the channel number
@@ -1022,7 +1022,7 @@ def load_data(Filepath, ObjectType="default", RelativeChannelNo=None, calcPSD=Tr
     print("Loading data from {}".format(Filepath))
     ObjectTypeDict = {
         'default' : DataObject,
-        'thermo' : datahandling.thermo.ThermoObject,
+        'thermo' : optoanalysis.thermo.ThermoObject,
         }
     try:
         Object = ObjectTypeDict[ObjectType]

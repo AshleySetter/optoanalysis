@@ -1,4 +1,4 @@
-datahandling package
+optoanalysis package
 ====================
 
 Subpackages
@@ -6,18 +6,18 @@ Subpackages
 
 .. toctree::
 
-    datahandling.sim_data
-    datahandling.thermo
-    datahandling.LeCroy
-    datahandling.Saleae
+    optoanalysis.sim_data
+    optoanalysis.thermo
+    optoanalysis.LeCroy
+    optoanalysis.Saleae
 
 Submodules
 ----------
 
-datahandling.datahandling module
+optoanalysis.optoanalysis module
 --------------------------------
 
-.. automodule:: datahandling.datahandling
+.. automodule:: optoanalysis.optoanalysis
     :members:
     :undoc-members:
     :show-inheritance:
@@ -26,7 +26,7 @@ datahandling.datahandling module
 Module contents
 ---------------
 
-.. automodule:: datahandling
+.. automodule:: optoanalysis
     :members:
     :undoc-members:
     :show-inheritance:

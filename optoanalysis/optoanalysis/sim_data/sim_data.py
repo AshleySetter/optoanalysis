@@ -1,5 +1,4 @@
-from datahandling import DataObject
-from datahandling import take_closest
+from optoanalysis import DataObject, take_closest
 import numpy as _np
 import matplotlib.pyplot as _plt
 
