@@ -140,7 +140,7 @@ class DataObject():
             self.SampleFreq = 1/SampleTime
         return self.time, self.voltage
 
-    def get_time_data(self, timeStart="Default", timeEnd="Default"):
+    def get_time_data(self, timeStart=None, timeEnd=None):
         """
         Gets the time and voltage data.
 
@@ -161,10 +161,10 @@ class DataObject():
         voltage : ndarray
                         array containing the sampled voltages
         """
-        if timeStart == "Default":
+        if timeStart == None:
             timeStart = self.time[0]
             
-        if timeEnd == "Default":
+        if timeEnd == None:
             timeEnd = self.time[-1]
 
         StartIndex = _np.where(self.time == take_closest(self.time, timeStart))[0][0]
@@ -175,7 +175,7 @@ class DataObject():
 
         return self.time[StartIndex:EndIndex], self.voltage[StartIndex:EndIndex]
     
-    def plot_time_data(self, timeStart="Default", timeEnd="Default", units='s', ShowFig=True):
+    def plot_time_data(self, timeStart=None, timeEnd=None, units='s', ShowFig=True):
         """
         plot time data against voltage data.
 
@@ -202,9 +202,9 @@ class DataObject():
             The subplot object created
         """
         unit_prefix = units[:-1] # removed the last char
-        if timeStart == "Default":
+        if timeStart == None:
             timeStart = self.time[0]
-        if timeEnd == "Default":
+        if timeEnd == None:
             timeEnd = self.time[-1]
 
         StartIndex = _np.where(self.time == take_closest(self.time, timeStart))[0][0]
@@ -268,7 +268,7 @@ class DataObject():
 
         return freqs, PSD
 
-    def plot_PSD(self, xlim="Default", units="kHz", ShowFig=True, timeStart=None, timeEnd=None, *args, **kwargs):
+    def plot_PSD(self, xlim=None, units="kHz", ShowFig=True, timeStart=None, timeEnd=None, *args, **kwargs):
         """
         plot the pulse spectral density.
 
@@ -299,7 +299,7 @@ class DataObject():
             freqs, PSD = self.get_PSD(timeStart=timeStart, timeEnd=timeEnd)
             
         unit_prefix = units[:-2]
-        if xlim == "Default":
+        if xlim == None:
             xlim = [0, unit_conversion(self.SampleFreq/2, unit_prefix)]
         fig = _plt.figure(figsize=properties['default_fig_size'])
         ax = fig.add_subplot(111)
@@ -647,7 +647,7 @@ class DataObject():
 
     def filter_data(self, freq, FractionOfSampleFreq=1, PeakWidth=10000,
                   filterImplementation="filtfilt",
-                  timeStart="Default", timeEnd="Default",
+                  timeStart=None, timeEnd=None,
                     NPerSegmentPSD=1000000,
                   MakeFig=True, ShowFig=True):
         """
@@ -697,9 +697,9 @@ class DataObject():
             The axes object created showing the PSD of the filtered 
             and unfiltered signal
         """
-        if timeStart == "Default":
+        if timeStart == None:
             timeStart = self.time[0]
-        if timeEnd == "Default":
+        if timeEnd == None:
             timeEnd = self.time[-1]
     
         StartIndex = _np.where(self.time == take_closest(self.time, timeStart))[0][0]
@@ -743,7 +743,7 @@ class DataObject():
         timedata = self.time[StartIndex: EndIndex][0::FractionOfSampleFreq]
         return filteredData, timedata, fig, ax
 
-    def plot_phase_space_sns(self, freq, ConvFactor, PeakWidth=10000, FractionOfSampleFreq=1, kind="hex", timeStart="Default", timeEnd ="Default", PointsOfPadding=500, units="nm", logscale=False, cmap="Default", marginalColor="Default", gridsize=200, ShowFig=True, ShowPSD=False, alpha=0.5, *args, **kwargs):
+    def plot_phase_space_sns(self, freq, ConvFactor, PeakWidth=10000, FractionOfSampleFreq=1, kind="hex", timeStart=None, timeEnd =None, PointsOfPadding=500, units="nm", logscale=False, cmap=None, marginalColor=None, gridsize=200, ShowFig=True, ShowPSD=False, alpha=0.5, *args, **kwargs):
         """
         Plots the phase space of a peak in the PSD.
         
@@ -793,7 +793,7 @@ class DataObject():
         JP : seaborn.jointplot object
             joint plot object containing the phase space plot
         """
-        if cmap == "Default":
+        if cmap == None:
             if logscale == True:
                 cmap = properties['default_log_cmap']
             else:
@@ -819,7 +819,7 @@ class DataObject():
 
         print("Plotting Phase Space")
 
-        if marginalColor == "Default":
+        if marginalColor == None:
             try:
                 marginalColor = tuple((cmap.colors[len(cmap.colors)/2][:-1]))
             except AttributeError:
@@ -868,7 +868,7 @@ class DataObject():
             
         return fig, JP1
  
-    def plot_phase_space(self, freq, ConvFactor, PeakWidth=10000, FractionOfSampleFreq=1, timeStart="Default", timeEnd ="Default", PointsOfPadding=500, units="nm", ShowFig=True, ShowPSD=False, xlabel='', ylabel='', *args, **kwargs):
+    def plot_phase_space(self, freq, ConvFactor, PeakWidth=10000, FractionOfSampleFreq=1, timeStart=None, timeEnd =None, PointsOfPadding=500, units="nm", ShowFig=True, ShowPSD=False, xlabel='', ylabel='', *args, **kwargs):
         unit_prefix = units[:-1]
 
         xlabel = xlabel + "({})".format(units)
@@ -890,7 +890,7 @@ class DataObject():
             _plt.show()
         return fig, axscatter, axhistx, axhisty, cb
     
-    def calc_phase_space(self, freq, ConvFactor, PeakWidth=10000, FractionOfSampleFreq=1, timeStart="Default", timeEnd ="Default", PointsOfPadding=500, ShowPSD=False):
+    def calc_phase_space(self, freq, ConvFactor, PeakWidth=10000, FractionOfSampleFreq=1, timeStart=None, timeEnd =None, PointsOfPadding=500, ShowPSD=False):
         """
         Calculates the position and velocity (in m) for use in plotting the phase space distribution.
 
@@ -1566,7 +1566,7 @@ def get_ZXY_freqs(Data, zfreq, xfreq, yfreq, bandwidth=5000):
 def get_ZXY_data(Data, zf, xf, yf, FractionOfSampleFreq=1,
                  zwidth=10000, xwidth=5000, ywidth=5000,
                  filterImplementation="filtfilt",
-                 timeStart="Default", timeEnd="Default",
+                 timeStart=None, timeEnd=None,
                  NPerSegmentPSD=1000000,
                  MakeFig=True, ShowFig=True):
     """
@@ -1625,9 +1625,9 @@ def get_ZXY_data(Data, zf, xf, yf, FractionOfSampleFreq=1,
     timedata : ndarray
         Array containing the time data to go with the z, x, and y signal.
     """
-    if timeStart == "Default":
+    if timeStart == None:
         timeStart = Data.time[0]
-    if timeEnd == "Default":
+    if timeEnd == None:
         timeEnd = Data.time[-1]
 
     StartIndex = _np.where(Data.time == take_closest(Data.time, timeStart))[0][0]
@@ -1694,7 +1694,7 @@ def get_ZXY_data(Data, zf, xf, yf, FractionOfSampleFreq=1,
 
 def get_ZXY_data_IFFT(Data, zf, xf, yf,
                       zwidth=10000, xwidth=5000, ywidth=5000,
-                      timeStart="Default", timeEnd="Default",
+                      timeStart=None, timeEnd=None,
                       ShowFig=True):
     """
     Given a Data object and the frequencies of the z, x and y peaks (and some
@@ -1741,9 +1741,9 @@ def get_ZXY_data_IFFT(Data, zf, xf, yf,
     timedata : ndarray
         Array containing the time data to go with the z, x, and y signal.
     """
-    if timeStart == "Default":
+    if timeStart == None:
         timeStart = Data.time[0]
-    if timeEnd == "Default":
+    if timeEnd == None:
         timeEnd = Data.time[-1]
 
     StartIndex = _np.where(Data.time == take_closest(Data.time, timeStart))[0][0]
@@ -2575,7 +2575,7 @@ def parse_orgtable(lines):
     dataframe.set_index("RunNo")
     return dataframe
 
-def plot_3d_dist(Z, X, Y, N=1000, AxisOffset=0, Angle=-40, LowLim="Default", HighLim="Default", ShowFig=True):
+def plot_3d_dist(Z, X, Y, N=1000, AxisOffset=0, Angle=-40, LowLim=None, HighLim=None, ShowFig=True):
     """
     Plots Z, X and Y as a 3d scatter plot with heatmaps of each axis pair.
 
@@ -2619,11 +2619,11 @@ def plot_3d_dist(Z, X, Y, N=1000, AxisOffset=0, Angle=-40, LowLim="Default", Hig
     xlim = ax.get_xlim()
     ylim = ax.get_ylim()
     zlim = ax.get_zlim()
-    if LowLim != "Default":
+    if LowLim != None:
         lowLim = LowLim - AxisOffset
     else:
         lowLim = min([xlim[0], ylim[0], zlim[0]]) - AxisOffset
-    if HighLim != "Default":
+    if HighLim != None:
         highLim = HighLim + AxisOffset
     else:
         highLim = max([xlim[1], ylim[1], zlim[1]]) + AxisOffset
@@ -2662,7 +2662,7 @@ def plot_3d_dist(Z, X, Y, N=1000, AxisOffset=0, Angle=-40, LowLim="Default", Hig
         _plt.show()
     return fig, ax
 
-def multi_plot_3d_dist(ZXYData, N=1000, AxisOffset=0, Angle=-40, LowLim="Default", HighLim="Default", ColorArray=None, alphaLevel=0.3, ShowFig=True):
+def multi_plot_3d_dist(ZXYData, N=1000, AxisOffset=0, Angle=-40, LowLim=None, HighLim=None, ColorArray=None, alphaLevel=0.3, ShowFig=True):
     """
     Plots serveral Z, X and Y datasets as a 3d scatter plot with heatmaps of each axis pair in each dataset.
 
@@ -2714,11 +2714,11 @@ def multi_plot_3d_dist(ZXYData, N=1000, AxisOffset=0, Angle=-40, LowLim="Default
     xlim = ax.get_xlim()
     ylim = ax.get_ylim()
     zlim = ax.get_zlim()
-    if LowLim != "Default":
+    if LowLim != None:
         lowLim = LowLim - AxisOffset
     else:
         lowLim = min([xlim[0], ylim[0], zlim[0]]) - AxisOffset
-    if HighLim != "Default":
+    if HighLim != None:
         highLim = HighLim + AxisOffset
     else:
         highLim = max([xlim[1], ylim[1], zlim[1]]) + AxisOffset
