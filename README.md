@@ -1,7 +1,7 @@
-[![Build Status](https://travis-ci.org/AshleySetter/datahandling.png)](https://travis-ci.org/AshleySetter/datahandling)
-[![codecov](https://codecov.io/gh/AshleySetter/datahandling/branch/master/graph/badge.svg)](https://codecov.io/gh/AshleySetter/datahandling)
+[![Build Status](https://travis-ci.org/AshleySetter/optoanalysis.png)](https://travis-ci.org/AshleySetter/optoanalysis)
+[![codecov](https://codecov.io/gh/AshleySetter/optoanalysis/branch/master/graph/badge.svg)](https://codecov.io/gh/AshleySetter/optoanalysis)
 [![Documentation Status](https://readthedocs.org/projects/datahandling/badge/?version=latest)](http://datahandling.readthedocs.org/en/latest/?badge=latest)
-[![PyPI version](https://badge.fury.io/py/datahandling.svg)](https://badge.fury.io/py/datahandling)
+[![PyPI version](https://badge.fury.io/py/optoanalysis.svg)](https://badge.fury.io/py/optoanalysis)
 
 # optoanalysis
 Matterwave group data analysis library.

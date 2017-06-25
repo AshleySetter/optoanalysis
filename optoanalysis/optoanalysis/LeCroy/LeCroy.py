@@ -7,7 +7,7 @@ class HDO6104:
         def __init__(self, address='152.78.194.16'):
                 """
                 Initialises the connection to the Oscilloscope.
-
+                
                 Parameters
                 ----------
                 address : string
@@ -16,21 +16,22 @@ class HDO6104:
                 self.address = address
                 import vxi11
                 self.connection = vxi11.Instrument(address)
-
+                
                 self.write = self.connection.write
                 self.read  = self.connection.read
                 self.ask   = self.connection.ask
                 self.read_raw = self.connection.read_raw
-
+                return None
+                
         def raw(self, channel=1):
                 """
                 Reads the raw input from the oscilloscope.
-
+                
                 Parameters
                 ----------
                 channel : int
                     channel number of read
-
+                
                 Returns
                 -------
                 rawData : bytes
@@ -40,18 +41,18 @@ class HDO6104:
                 self.write('COMM_FORMAT DEF9,WORD,BIN')
                 self.write('C%u:WAVEFORM?' % channel)
                 return self.read_raw()
-        
+
         def data(self, channel=1):
                 """
                 Reads the raw input from the scope and interprets it
                 returning the header information, time, voltage and 
                 raw integers read with the ADC.
-
+                
                 Parameters
                 ----------
                 channel : int
                     channel number of read
-
+                
                 Returns
                 -------
                 WAVEDESC : dict
@@ -81,7 +82,7 @@ class HDO6104:
         def opc(self):
                 """
                 Asks the oscilloscope if it is done processing data.
-
+                
                 Returns
                 -------
                 IsDoneProcessing : bool
@@ -108,7 +109,7 @@ def InterpretWaveform(raw, integersOnly=False, headersOnly=False):
             rather than the signal in volts. Defaults to False. 
         headersOnly : bool, optional
             If True, only returns the file header. Defaults to False. 
-
+        
         Returns
         -------
         WAVEDESC : dict
@@ -120,6 +121,7 @@ def InterpretWaveform(raw, integersOnly=False, headersOnly=False):
             The array of voltage values recorded by the oscilloscope
         integers : ndarray
             The array of raw integers recorded from the ADC and stored in the binary file
+
         """
         MissingData = False
         from struct import unpack
