@@ -992,7 +992,7 @@ class ORGTableData():
         return Value 
 
     
-def load_data(Filepath, ObjectType="default", RelativeChannelNo=None, calcPSD=True, NPerSegmentPSD=1000000):
+def load_data(Filepath, ObjectType='data', RelativeChannelNo=None, calcPSD=True, NPerSegmentPSD=1000000):
     """
     Parameters
     ----------
@@ -1021,7 +1021,7 @@ def load_data(Filepath, ObjectType="default", RelativeChannelNo=None, calcPSD=Tr
     """
     print("Loading data from {}".format(Filepath))
     ObjectTypeDict = {
-        'default' : DataObject,
+        'data' : DataObject,
         'thermo' : optoanalysis.thermo.ThermoObject,
         }
     try:
@@ -2244,7 +2244,7 @@ def multi_plot_PSD(DataArray, xlim=[0, 500], units="kHz", LabelArray=[], ColorAr
     return fig, ax
 
 
-def multi_plot_time(DataArray, SubSampleN=1, units='s', xlim="default", ylim="default", LabelArray=[], ShowFig=True):
+def multi_plot_time(DataArray, SubSampleN=1, units='s', xlim=None, ylim=None, LabelArray=[], ShowFig=True):
     """
     plot the time trace for multiple data sets on the same axes.
 
@@ -2284,9 +2284,9 @@ def multi_plot_time(DataArray, SubSampleN=1, units='s', xlim="default", ylim="de
         ax.plot(unit_conversion(data.time[::SubSampleN], unit_prefix), data.voltage[::SubSampleN],
                 alpha=0.8, label=LabelArray[i])
     ax.set_xlabel("time (s)")
-    if xlim != "default":
+    if xlim != None:
         ax.set_xlim(xlim)
-    if ylim != "default":
+    if ylim != None:
         ax.set_ylim(ylim)
     ax.grid(which="major")
     legend = ax.legend(loc="best", frameon = 1)
@@ -2300,7 +2300,7 @@ def multi_plot_time(DataArray, SubSampleN=1, units='s', xlim="default", ylim="de
     return fig, ax
 
 
-def multi_subplots_time(DataArray, SubSampleN=1, units='s', xlim="default", ylim="default", LabelArray=[], ShowFig=True):
+def multi_subplots_time(DataArray, SubSampleN=1, units='s', xlim=None, ylim=None, LabelArray=[], ShowFig=True):
     """
     plot the time trace on multiple axes
 
@@ -2345,9 +2345,9 @@ def multi_subplots_time(DataArray, SubSampleN=1, units='s', xlim="default", ylim
         axs[i].grid(which="major")
         axs[i].legend(loc="best")
         axs[i].set_ylabel("voltage (V)")
-        if xlim != "default":
+        if xlim != None:
             axs[i].set_xlim(xlim)
-        if ylim != "default":
+        if ylim != None:
             axs[i].set_ylim(ylim)
     if ShowFig == True:
         _plt.show()
