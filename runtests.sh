@@ -1,1 +1,1 @@
-pytest -v --cov=datahandling --mpl
+pytest -v --cov=optoanalysis --mpl
