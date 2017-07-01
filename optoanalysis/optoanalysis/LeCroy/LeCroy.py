@@ -92,7 +92,7 @@ class HDO6104:
                 return self.ask('*OPC?')[-1] == '1'
 
 
-def InterpretWaveform(raw, integersOnly=False, headersOnly=False):
+def InterpretWaveform(raw, integersOnly=False, headersOnly=False, noTimeArray=False):
         """
         Take the raw binary from a file saved from the LeCroy, read from a file using 
         the 2 lines:
@@ -109,19 +109,23 @@ def InterpretWaveform(raw, integersOnly=False, headersOnly=False):
             rather than the signal in volts. Defaults to False. 
         headersOnly : bool, optional
             If True, only returns the file header. Defaults to False. 
-        
+        noTimeArray : bool, optional
+            If true returns timeStart, timeStop and timeStep and doesn't create the time array
+
         Returns
         -------
         WAVEDESC : dict
             dictionary containing some properties of the time trace and oscilloscope
             settings extracted from the header file.
-        x : ndarray
-            The array of time values recorded by the oscilloscope
+        x : ndarray / tuple
+            The array of time values recorded by the oscilloscope or,
+            if noTimeArray is True, returns a tuplef of (timeStart, timeStop, timeStep)
         y : ndarray
             The array of voltage values recorded by the oscilloscope
         integers : ndarray
             The array of raw integers recorded from the ADC and stored in the binary file
-
+        MissingData : bool
+            bool stating if any data was missing
         """
         MissingData = False
         from struct import unpack
@@ -225,6 +229,14 @@ def InterpretWaveform(raw, integersOnly=False, headersOnly=False):
                         
                 if integersOnly:
                         return (WAVEDESC, integers, MissingData)
+                elif noTimeArray:
+                        y = integers * WAVEDESC['VERTICAL_GAIN'] - WAVEDESC['VERTICAL_OFFSET']
+                        x = arange(len(integers)) * WAVEDESC['HORIZ_INTERVAL'] + WAVEDESC['HORIZ_OFFSET']
+                        timeStart = x[0]
+                        timeStop = x[-1] 
+                        timeStep = x[1]-x[0]
+                        return (WAVEDESC, (timeStart, timeStop, timeStep), y, integers, MissingData)
+                        
                 else:
                         y = integers * WAVEDESC['VERTICAL_GAIN'] - WAVEDESC['VERTICAL_OFFSET'] 
                         x = arange(len(integers)) * WAVEDESC['HORIZ_INTERVAL'] + WAVEDESC['HORIZ_OFFSET']
