@@ -24,6 +24,7 @@ from scipy.io.wavfile import write as _writewav
 from matplotlib import colors as _mcolors
 import qplots as _qplots
 from functools import partial as _partial
+from frange import frange
 
 _mpl.rcParams['lines.markeredgewidth'] = 1 # set default markeredgewidth to 1 overriding seaborn's default value of 0
 _sns.set_style("whitegrid")
@@ -62,8 +63,9 @@ class DataObject():
     filename : string
             filename of the file containing the data used to initialise
             this particular instance of the DataObject class
-    time : ndarray
-            Contains the time data in seconds
+    time : frange
+            Contains the time data as an frange object. Can get a generator 
+            or array of this object.
     voltage : ndarray
             Contains the voltage data in Volts
     SampleFreq : sample frequency used to sample the data (when it was
@@ -113,13 +115,10 @@ class DataObject():
         """
         Loads the time and voltage data and the wave description from the associated file.
 
-        Returns
-        -------
-        time : ndarray
-                        array containing the value of time (in seconds) at which the
-                        voltage is sampled
-        voltage : ndarray
-                        array containing the sampled voltages
+        Parameters
+        ----------
+        RelativeChannelNo : int, optional
+             Channel number for loading saleae data files
         """
         f = open(self.filepath, 'rb')
         raw = f.read()
@@ -129,16 +128,21 @@ class DataObject():
             with _warnings.catch_warnings(): # supress missing data warning and raise a missing
                 # data warning from optoanalysis with the filepath
                 _warnings.simplefilter("ignore")
-                waveDescription, self.time, self.voltage, _, missingdata = optoanalysis.LeCroy.InterpretWaveform(raw) 
+                waveDescription, timeParams, self.voltage, _, missingdata = optoanalysis.LeCroy.InterpretWaveform(raw, noTimeArray=True) 
             if missingdata:
                 _warnings.warn("Waveform not of expected length. File {} may be missing data.".format(self.filepath))
             self.SampleFreq = (1 / waveDescription["HORIZ_INTERVAL"])
         elif FileExtension == "bin":
             if RelativeChannelNo == None:
                 raise ValueError("If loading a .bin file from the Saleae data logger you must enter a relative channel number to load")
-            self.time, self.voltage, SampleTime = optoanalysis.Saleae.interpret_waveform(raw, RelativeChannelNo)
+            time, self.voltage, SampleTime = optoanalysis.Saleae.interpret_waveform(raw, RelativeChannelNo)
             self.SampleFreq = 1/SampleTime
-        return self.time, self.voltage
+        startTime, endTime, Timestep = timeParams
+        self.timeStart = startTime
+        self.timeEnd = endTime
+        self.timeStep = Timestep
+        self.time = frange(startTime, endTime+Timestep, Timestep)
+        return None
 
     def get_time_data(self, timeStart=None, timeEnd=None):
         """
@@ -162,18 +166,20 @@ class DataObject():
                         array containing the sampled voltages
         """
         if timeStart == None:
-            timeStart = self.time[0]
+            timeStart = self.timeStart
             
         if timeEnd == None:
-            timeEnd = self.time[-1]
+            timeEnd = self.timeEnd
 
-        StartIndex = _np.where(self.time == take_closest(self.time, timeStart))[0][0]
-        EndIndex = _np.where(self.time == take_closest(self.time, timeEnd))[0][0]
+        time = self.time.get_array()
+            
+        StartIndex = _np.where(time == take_closest(time, timeStart))[0][0]
+        EndIndex = _np.where(time == take_closest(time, timeEnd))[0][0]
 
-        if EndIndex == len(self.time) - 1:
+        if EndIndex == len(time) - 1:
             EndIndex = EndIndex + 1 # so that it does not remove the last element
 
-        return self.time[StartIndex:EndIndex], self.voltage[StartIndex:EndIndex]
+        return time[StartIndex:EndIndex], self.voltage[StartIndex:EndIndex]
     
     def plot_time_data(self, timeStart=None, timeEnd=None, units='s', ShowFig=True):
         """
@@ -203,16 +209,18 @@ class DataObject():
         """
         unit_prefix = units[:-1] # removed the last char
         if timeStart == None:
-            timeStart = self.time[0]
+            timeStart = self.timeStart
         if timeEnd == None:
-            timeEnd = self.time[-1]
+            timeEnd = self.timeEnd
 
-        StartIndex = _np.where(self.time == take_closest(self.time, timeStart))[0][0]
-        EndIndex = _np.where(self.time == take_closest(self.time, timeEnd))[0][0]
+        time = self.time.get_array()
+
+        StartIndex = _np.where(time == take_closest(time, timeStart))[0][0]
+        EndIndex = _np.where(time == take_closest(time, timeEnd))[0][0]
 
         fig = _plt.figure(figsize=properties['default_fig_size'])
         ax = fig.add_subplot(111)
-        ax.plot(unit_conversion(self.time[StartIndex:EndIndex], unit_prefix),
+        ax.plot(unit_conversion(time[StartIndex:EndIndex], unit_prefix),
                 self.voltage[StartIndex:EndIndex])
         ax.set_xlabel("time ({})".format(units))
         ax.set_ylabel("voltage (V)")
@@ -253,13 +261,16 @@ class DataObject():
             self.freqs = freqs
         else:
             if timeStart == None:
-                timeStart = self.time[0]
+                timeStart = self.timeStart
             if timeEnd == None:
-                timeEnd = self.time[-1]
-            StartIndex = _np.where(self.time == take_closest(self.time, timeStart))[0][0]
-            EndIndex = _np.where(self.time == take_closest(self.time, timeEnd))[0][0]
+                timeEnd = self.timeEnd
 
-            if EndIndex == len(self.time) - 1:
+            time = self.time.get_array()
+                
+            StartIndex = _np.where(time == take_closest(time, timeStart))[0][0]
+            EndIndex = _np.where(time == take_closest(time, timeEnd))[0][0]
+
+            if EndIndex == len(time) - 1:
                 EndIndex = EndIndex + 1 # so that it does not remove the last element
             freqs, PSD = calc_PSD(self.voltage[StartIndex:EndIndex], self.SampleFreq, NPerSegment=NPerSegment)
             if override == True:
@@ -698,12 +709,14 @@ class DataObject():
             and unfiltered signal
         """
         if timeStart == None:
-            timeStart = self.time[0]
+            timeStart = self.timeStart
         if timeEnd == None:
-            timeEnd = self.time[-1]
+            timeEnd = self.timeEnd
+
+        time = self.time.get_array()
     
-        StartIndex = _np.where(self.time == take_closest(self.time, timeStart))[0][0]
-        EndIndex = _np.where(self.time == take_closest(self.time, timeEnd))[0][0]
+        StartIndex = _np.where(time == take_closest(time, timeStart))[0][0]
+        EndIndex = _np.where(time == take_closest(time, timeEnd))[0][0]
     
         SAMPLEFREQ = self.SampleFreq / FractionOfSampleFreq
     
@@ -740,7 +753,7 @@ class DataObject():
             ax = None
         if ShowFig == True:
             _plt.show()
-        timedata = self.time[StartIndex: EndIndex][0::FractionOfSampleFreq]
+        timedata = time[StartIndex: EndIndex][0::FractionOfSampleFreq]
         return filteredData, timedata, fig, ax
 
     def plot_phase_space_sns(self, freq, ConvFactor, PeakWidth=10000, FractionOfSampleFreq=1, kind="hex", timeStart=None, timeEnd =None, PointsOfPadding=500, units="nm", logscale=False, cmap=None, marginalColor=None, gridsize=200, ShowFig=True, ShowPSD=False, alpha=0.5, *args, **kwargs):
@@ -1626,12 +1639,14 @@ def get_ZXY_data(Data, zf, xf, yf, FractionOfSampleFreq=1,
         Array containing the time data to go with the z, x, and y signal.
     """
     if timeStart == None:
-        timeStart = Data.time[0]
+        timeStart = Data.timeStart
     if timeEnd == None:
-        timeEnd = Data.time[-1]
+        timeEnd = Data.timeEnd
 
-    StartIndex = _np.where(Data.time == take_closest(Data.time, timeStart))[0][0]
-    EndIndex = _np.where(Data.time == take_closest(Data.time, timeEnd))[0][0]
+    time = Data.time.get_array()
+
+    StartIndex = _np.where(time == take_closest(time, timeStart))[0][0]
+    EndIndex = _np.where(time == take_closest(time, timeEnd))[0][0]
 
     SAMPLEFREQ = Data.SampleFreq / FractionOfSampleFreq
 
@@ -1688,7 +1703,7 @@ def get_ZXY_data(Data, zf, xf, yf, FractionOfSampleFreq=1,
         ax = None
     if ShowFig == True:
         _plt.show()
-    timedata = Data.time[StartIndex: EndIndex][0::FractionOfSampleFreq]
+    timedata = time[StartIndex: EndIndex][0::FractionOfSampleFreq]
     return zdata, xdata, ydata, timedata, fig, ax
 
 
@@ -1742,12 +1757,14 @@ def get_ZXY_data_IFFT(Data, zf, xf, yf,
         Array containing the time data to go with the z, x, and y signal.
     """
     if timeStart == None:
-        timeStart = Data.time[0]
+        timeStart = Data.timeStart
     if timeEnd == None:
-        timeEnd = Data.time[-1]
+        timeEnd = Data.timeEnd
 
-    StartIndex = _np.where(Data.time == take_closest(Data.time, timeStart))[0][0]
-    EndIndex = _np.where(Data.time == take_closest(Data.time, timeEnd))[0][0]
+    time = Data.time.get_array()
+
+    StartIndex = _np.where(time == take_closest(time, timeStart))[0][0]
+    EndIndex = _np.where(time == take_closest(time, timeEnd))[0][0]
 
     SAMPLEFREQ = Data.SampleFreq
 
@@ -1783,7 +1800,7 @@ def get_ZXY_data_IFFT(Data, zf, xf, yf,
         _plt.title("filepath = %s" % (Data.filepath))
         _plt.show()
 
-    timedata = Data.time[StartIndex: EndIndex]
+    timedata = time[StartIndex: EndIndex]
     return zdata, xdata, ydata, timedata
 
 
@@ -2279,9 +2296,9 @@ def multi_plot_time(DataArray, SubSampleN=1, units='s', xlim=None, ylim=None, La
                       for i in _np.arange(0, len(DataArray), 1)]
     fig = _plt.figure(figsize=properties['default_fig_size'])
     ax = fig.add_subplot(111)
-
+    
     for i, data in enumerate(DataArray):
-        ax.plot(unit_conversion(data.time[::SubSampleN], unit_prefix), data.voltage[::SubSampleN],
+        ax.plot(unit_conversion(data.time.get_array()[::SubSampleN], unit_prefix), data.voltage[::SubSampleN],
                 alpha=0.8, label=LabelArray[i])
     ax.set_xlabel("time (s)")
     if xlim != None:
@@ -2339,7 +2356,7 @@ def multi_subplots_time(DataArray, SubSampleN=1, units='s', xlim=None, ylim=None
     fig, axs = _plt.subplots(NumDataSets, 1)
 
     for i, data in enumerate(DataArray):
-        axs[i].plot(unit_conversion(data.time[::SubSampleN], unit_prefix), data.voltage[::SubSampleN],
+        axs[i].plot(unit_conversion(data.time.get_array()[::SubSampleN], unit_prefix), data.voltage[::SubSampleN],
                     alpha=0.8, label=LabelArray[i])
         axs[i].set_xlabel("time ({})".format(units))
         axs[i].grid(which="major")

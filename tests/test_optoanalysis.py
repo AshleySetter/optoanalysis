@@ -16,10 +16,12 @@ def test_load_data():
     data = optoanalysis.load_data("testData.raw")
     assert type(data) == optoanalysis.optoanalysis.DataObject
     assert data.filename == "testData.raw"
-    assert data.time[1]-data.time[0] == pytest.approx(1/data.SampleFreq, rel=float_relative_tolerance) 
+    time = data.time.get_array()
+    assert time[1]-time[0] == pytest.approx(1/data.SampleFreq, rel=float_relative_tolerance) 
     assert max(data.freqs) == pytest.approx(data.SampleFreq/2, rel=0.00001) # max freq in PSD is approx equal to Nyquist frequency
-    t, V = data.load_time_data() 
-    np.testing.assert_array_equal(t, data.time)
+    data.load_time_data()
+    t, V = data.get_time_data()
+    np.testing.assert_array_equal(t, time)
     np.testing.assert_array_equal(V, data.voltage)
     optoanalysis.load_data("testData.raw", ObjectType="thermo") #testing specifically for init of ThermoObject here
     return None
@@ -149,7 +151,8 @@ def test_multi_load_data():
     assert data[1].filename == "CH1_RUN00000036_REPEAT0000.raw"
     for dataset in data:
         assert type(dataset) == optoanalysis.optoanalysis.DataObject
-        assert dataset.time[1]-dataset.time[0] == pytest.approx(1/dataset.SampleFreq, rel=float_relative_tolerance) 
+        time = dataset.time.get_array()
+        assert time[1]-time[0] == pytest.approx(1/dataset.SampleFreq, rel=float_relative_tolerance) 
         assert max(dataset.freqs) == pytest.approx(dataset.SampleFreq/2, rel=0.00001) # max freq in PSD is approx equal to Nyquist frequency
     return None
 

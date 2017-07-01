@@ -7,6 +7,7 @@ scipy
 matplotlib
 seaborn
 qplots>=0.5
+frange>=0.0.6
 uncertainties
 pytest
 pytest-cov
