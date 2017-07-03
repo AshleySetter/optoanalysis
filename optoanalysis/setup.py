@@ -15,7 +15,7 @@ with open(os.path.join(mypackage_root_dir, 'optoanalysis/VERSION')) as version_f
     version = version_file.read().strip()
 
 extensions = [Extension(
-    name="optoanalysis.sde_solver.solve",
+    name="solve",
     sources=["optoanalysis/sde_solver/solve.pyx"],
     include_dirs=[numpy.get_include()],
     )
