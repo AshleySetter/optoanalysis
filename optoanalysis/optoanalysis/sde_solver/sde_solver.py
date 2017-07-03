@@ -66,7 +66,8 @@ class sde_solver():
 
     def generate_weiner_path(self, seed=None):
         """
-        Generates random values of dW along path.
+        Generates random values of dW along path and populates
+        self.dwArray property with values along with path.
         The values of dW are independent and identically 
         distributed normal random variables with expected 
         value 0 and variance dt. Sets the dwArray property.
@@ -110,7 +111,7 @@ class sde_solver():
         #    self.v[n+1] = v_n + self.a_v(q_n, v_n)*self.dt + self.b_v*dw
         #    self.q[n+1] = q_n + v_n*self.dt
         NumTimeSteps = len(self.tArray) - 1
-        self.q, self.v = solve_cython(self.q, self.v, self.dt, self.dwArray, self.Gamma0, self.Omega0, self.eta, self.b_v, NumTimeSteps)
+        self.q, self.v = solve_cython(self.q, self.v, float(self.dt), self.dwArray, float(self.Gamma0), float(self.Omega0), float(self.eta), float(self.b_v), NumTimeSteps)
         return self.q, self.v
 
 #def _a_v(q, v, Gamma0, Omega0, eta):
