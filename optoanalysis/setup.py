@@ -21,21 +21,21 @@ extensions = [Extension(
     )
 ]
 
-if mypackage_root_dir == "":
-    mypackage_root_dir = "." # so that if running from current directory subprocess starts in current directory
-
-def run_process(process_string):
-    popen = subprocess.Popen(process_string,
-                             cwd=mypackage_root_dir,
-                             stdout=subprocess.PIPE,
-                             universal_newlines=True,
-                             shell=True) # builds cython code
-    for stdout_line in iter(popen.stdout.readline, ""): 
-        print(stdout_line) # prints output of cython build process
-    popen.stdout.close()
-
-if argv[-1] != "--inplace": # so that it doesn't recursively call setup.py
-    run_process("python3 setup.py build_ext --inplace")
+#if mypackage_root_dir == "":
+#    mypackage_root_dir = "." # so that if running from current directory subprocess starts in current directory
+#
+#def run_process(process_string):
+#    popen = subprocess.Popen(process_string,
+#                             cwd=mypackage_root_dir,
+#                             stdout=subprocess.PIPE,
+#                             universal_newlines=True,
+#                             shell=True) # builds cython code
+#    for stdout_line in iter(popen.stdout.readline, ""): 
+#        print(stdout_line) # prints output of cython build process
+#    popen.stdout.close()
+#
+#if argv[-1] != "--inplace": # so that it doesn't recursively call setup.py
+#    run_process("python3 setup.py build_ext --inplace")
 
 setup(name='optoanalysis',
       version=version,
