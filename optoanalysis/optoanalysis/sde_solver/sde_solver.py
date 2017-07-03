@@ -1,7 +1,6 @@
 from scipy.constants import Boltzmann
 import numpy as np
-from numba import jit
-from solve import solve
+from solve import solve as solve_cython
 
 class sde_solver():
     """
@@ -82,7 +81,6 @@ class sde_solver():
         self.dwArray = np.random.normal(0, np.sqrt(self.dt), len(self.tArray))
         return None
 
-#    @jit
 #    def a_q(self, t, p, q): # replaced with just p to reduce slow python function evaluations
 #        return p
 
@@ -112,10 +110,9 @@ class sde_solver():
         #    self.v[n+1] = v_n + self.a_v(q_n, v_n)*self.dt + self.b_v*dw
         #    self.q[n+1] = q_n + v_n*self.dt
         NumTimeSteps = len(self.tArray) - 1
-        self.q, self.v = solve(self.q, self.v, self.dt, self.dwArray, self.Gamma0, self.Omega0, self.eta, self.b_v, NumTimeSteps)
+        self.q, self.v = solve_cython(self.q, self.v, self.dt, self.dwArray, self.Gamma0, self.Omega0, self.eta, self.b_v, NumTimeSteps)
         return self.q, self.v
 
-#@jit(nopython=True)
 #def _a_v(q, v, Gamma0, Omega0, eta):
 #    return -(Gamma0 - Omega0*eta*q**2)*v - Omega0**2*q
 
