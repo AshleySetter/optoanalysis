@@ -1,7 +1,7 @@
 from scipy.constants import Boltzmann
 import numpy as np
 from numba import jit
-#from solve import solve
+from solve import solve
 
 class sde_solver():
     """
