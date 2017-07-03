@@ -1,12 +1,17 @@
 from setuptools import setup
 from setuptools.extension import Extension
 import os
-import numpy 
-from Cython.Build import cythonize
-from Cython.Build import build_ext
-import subprocess
-from sys import argv
+import numpy
+try:
+    from Cython.Build import cythonize
+    from Cython.Build import build_ext
+except ModuleNotFoundError:
+    import pip
+    pip.main(['install', 'Cython'])
+    from Cython.Build import cythonize
+    from Cython.Build import build_ext
 
+    
 mypackage_root_dir = os.path.dirname(__file__)
 with open(os.path.join(mypackage_root_dir, 'requirements.txt')) as requirements_file:
     requirements = requirements_file.read().splitlines()
@@ -20,22 +25,6 @@ extensions = [Extension(
     include_dirs=[numpy.get_include()],
     )
 ]
-
-#if mypackage_root_dir == "":
-#    mypackage_root_dir = "." # so that if running from current directory subprocess starts in current directory
-#
-#def run_process(process_string):
-#    popen = subprocess.Popen(process_string,
-#                             cwd=mypackage_root_dir,
-#                             stdout=subprocess.PIPE,
-#                             universal_newlines=True,
-#                             shell=True) # builds cython code
-#    for stdout_line in iter(popen.stdout.readline, ""): 
-#        print(stdout_line) # prints output of cython build process
-#    popen.stdout.close()
-#
-#if argv[-1] != "--inplace": # so that it doesn't recursively call setup.py
-#    run_process("python3 setup.py build_ext --inplace")
 
 setup(name='optoanalysis',
       version=version,
