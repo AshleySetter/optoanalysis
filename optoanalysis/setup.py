@@ -4,6 +4,8 @@ import os
 import numpy 
 from Cython.Build import cythonize
 from Cython.Build import build_ext
+import subprocess
+from sys import argv
 
 mypackage_root_dir = os.path.dirname(__file__)
 with open(os.path.join(mypackage_root_dir, 'requirements.txt')) as requirements_file:
@@ -19,6 +21,20 @@ extensions = [Extension(
     )
 ]
 
+if mypackage_root_dir == "":
+    mypackage_root_dir = "."
+
+
+def run_process(process_string):
+    popen = subprocess.Popen(process_string, cwd=mypackage_root_dir, stdout=subprocess.PIPE, universal_newlines=True, shell=True)
+    for stdout_line in iter(popen.stdout.readline, ""):
+        print(stdout_line)
+    popen.stdout.close()
+
+if argv[-1] != "--inplace":
+    run_process("pwd")
+    run_process("ls -lrt")
+    run_process("python setup.py build_ext --inplace")
 
 setup(name='optoanalysis',
       version=version,
