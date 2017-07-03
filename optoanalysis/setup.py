@@ -24,7 +24,6 @@ extensions = [Extension(
 if mypackage_root_dir == "":
     mypackage_root_dir = "."
 
-
 def run_process(process_string):
     popen = subprocess.Popen(process_string, cwd=mypackage_root_dir, stdout=subprocess.PIPE, universal_newlines=True, shell=True)
     for stdout_line in iter(popen.stdout.readline, ""):
@@ -32,9 +31,7 @@ def run_process(process_string):
     popen.stdout.close()
 
 if argv[-1] != "--inplace":
-    run_process("pwd")
-    run_process("ls -lrt")
-    run_process("python setup.py build_ext --inplace")
+    run_process("python3 setup.py build_ext --inplace")
 
 setup(name='optoanalysis',
       version=version,

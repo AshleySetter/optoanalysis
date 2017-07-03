@@ -1,3 +1,4 @@
 include requirements.txt
 include optoanalysis/VERSION
 include LICENSE
+include optoanalysis/sde_solver/*.so
