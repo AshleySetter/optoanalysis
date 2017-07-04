@@ -945,14 +945,15 @@ class DataObject():
             freq, FractionOfSampleFreq, PeakWidth, MakeFig=ShowPSD, ShowFig=ShowPSD, timeStart=timeStart, timeEnd=timeEnd)
 
         Pos = Pos[PointsOfPadding : -PointsOfPadding+1]
-                
+        time = self.time.get_array()[::FractionOfSampleFreq][PointsOfPadding : -PointsOfPadding+1]
+        
         if type(ConvFactor) == _uncertainties.core.Variable:
             conv = ConvFactor.n
         else:
             conv = ConvFactor
         PosArray = Pos / conv # converts V to m
         VelArray = _np.diff(PosArray) * (self.SampleFreq / FractionOfSampleFreq) # calcs velocity (in m/s) by differtiating position
-        return PosArray, VelArray
+        return time, PosArray, VelArray
         
         
 class ORGTableData():
