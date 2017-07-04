@@ -936,6 +936,8 @@ class DataObject():
 
         Returns
         -------
+        time : ndarray
+            time corresponding to position and velocity
         PosArray : ndarray
             Array of position of the particle in time
         VelArray : ndarray
