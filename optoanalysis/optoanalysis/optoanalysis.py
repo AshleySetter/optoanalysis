@@ -1881,7 +1881,7 @@ def animate(zdata, xdata, ydata,
         print("Frame: {}".format(i), end="\r")
         ax.clear()
         ax.view_init(20, -30)
-        ax.set_title("{} us".format(timedata[i] * 1000000))
+        ax.set_title("{} us".format(int(timedata[i] * 1000000)))
         ax.set_xlabel('X (nm)')
         ax.set_xlim([XBoxStart, XBoxEnd])
         ax.set_ylabel('Y (nm)')
