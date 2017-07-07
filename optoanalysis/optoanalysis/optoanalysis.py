@@ -1808,7 +1808,7 @@ def get_ZXY_data_IFFT(Data, zf, xf, yf,
 
 
 def animate(zdata, xdata, ydata,
-            conversionFactor, timedata,
+            conversionFactorArray, timedata,
             BoxSize,
             timeSteps=100, filename="particle"):
     """
@@ -1823,8 +1823,8 @@ def animate(zdata, xdata, ydata,
         Array containing the x signal in volts with time.
     ydata : ndarray
         Array containing the y signal in volts with time.
-    conversionFactor : float
-        conversion factor (in units of Volts/Metre)
+    conversionFactorArray : ndarray
+        Array of 3 values of conversion factors for z, x and y (in units of Volts/Metre)
     timedata : ndarray
         Array containing the time data in seconds.
     BoxSize : float
@@ -1838,8 +1838,10 @@ def animate(zdata, xdata, ydata,
     timePerFrame = 0.203
     print("This will take ~ {} minutes".format(timePerFrame * timeSteps / 60))
 
-    conv = conversionFactor * 1e-9
-
+    convZ = conversionFactor[0] * 1e-9
+    convX = conversionFactor[1] * 1e-9
+    convY = conversionFactor[2] * 1e-9
+    
     ZBoxStart = -BoxSize  # 1/conv*(_np.mean(zdata)-0.06)
     ZBoxEnd = BoxSize  # 1/conv*(_np.mean(zdata)+0.06)
     XBoxStart = -BoxSize  # 1/conv*(_np.mean(xdata)-0.06)
@@ -1868,9 +1870,9 @@ def animate(zdata, xdata, ydata,
     #ax.view_init(0, 0)
 
     def setup_plot():
-        XArray = 1 / conv * xdata[0]
-        YArray = 1 / conv * ydata[0]
-        ZArray = 1 / conv * zdata[0]
+        XArray = 1 / convX * xdata[0]
+        YArray = 1 / convY * ydata[0]
+        ZArray = 1 / convZ * zdata[0]
         scatter = ax.scatter(XArray, YArray, ZArray)
         return scatter,
 
@@ -1886,9 +1888,9 @@ def animate(zdata, xdata, ydata,
         ax.set_ylim([YBoxStart, YBoxEnd])
         ax.set_zlabel('Z (nm)')
         ax.set_zlim([ZBoxStart, ZBoxEnd])
-        XArray = 1 / conv * xdata[i]
-        YArray = 1 / conv * ydata[i]
-        ZArray = 1 / conv * zdata[i]
+        XArray = 1 / convX * xdata[i]
+        YArray = 1 / convY * ydata[i]
+        ZArray = 1 / convZ * zdata[i]
         scatter = ax.scatter(XArray, YArray, ZArray)
         ax.scatter([XArray], [0], [-ZBoxEnd], c='k', alpha=0.9)
         ax.scatter([-XBoxEnd], [YArray], [0], c='k', alpha=0.9)
@@ -1898,9 +1900,9 @@ def animate(zdata, xdata, ydata,
 
         for j in range(0, 30):
 
-            Xlast = 1 / conv * xdata[i - j]
-            Ylast = 1 / conv * ydata[i - j]
-            Zlast = 1 / conv * zdata[i - j]
+            Xlast = 1 / convX * xdata[i - j]
+            Ylast = 1 / convY * ydata[i - j]
+            Zlast = 1 / convZ * zdata[i - j]
 
             Alpha = 0.5 - 0.05 * j
             if Alpha > 0:
@@ -1924,9 +1926,9 @@ def animate(zdata, xdata, ydata,
                 Zz.append(Zlast)
 
             if j < 15:
-                XCur = 1 / conv * xdata[i - j + 1]
-                YCur = 1 / conv * ydata[i - j + 1]
-                ZCur = 1 / conv * zdata[i - j + 1]
+                XCur = 1 / convX * xdata[i - j + 1]
+                YCur = 1 / convY * ydata[i - j + 1]
+                ZCur = 1 / convZ * zdata[i - j + 1]
                 ax.plot([Xlast, XCur], [Ylast, YCur], [Zlast, ZCur], alpha=0.4)
 
         ax.plot_wireframe(Xx, Yx, Zx, color='grey')
