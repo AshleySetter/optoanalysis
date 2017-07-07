@@ -1,149 +1,152 @@
-from optoanalysis import DataObject, take_closest
+from optoanalysis import DataObject
+from optoanalysis.sde_solver import sde_solver
 import numpy as _np
-import matplotlib.pyplot as _plt
+from multiprocessing import Pool as _Pool
+from frange import frange
 
 class SimData(DataObject):
     """
-    Creates an object containing some simulated data and all it's properties.
-    
+    Simualtes a particle by solving the SDE for a single degree of freedom for each 
+    trap frequency value in TrapFreqArray (and values of eta [modulation depth] in 
+    etaArray and using the values specified by the other parameters to this object 
+    and then convolving the signals from each by addition in time-space along with 
+    addition of white noise produced by numpy.random.normal with a std deviation
+    given by NoiseStdDev. 
+
     Attributes
     ----------
-        SampleFreq : float
-                The sample frequency used in generating the data.
-        time : ndarray
-                Contains the time data in seconds
-        voltage : ndarray
-                Contains the voltage data in Volts - with noise and clean signals
-                all added together
-        SampleFreq : sample frequency used to sample the data (when it was
-                taken by the oscilloscope)
-        freqs : ndarray
-                Contains the frequencies corresponding to the PSD (Pulse Spectral
-                Density)
-        PSD : ndarray
-                Contains the values for the PSD (Pulse Spectral Density) as calculated
-                at each frequency contained in freqs    
-        SignalFreqs : ndarray
-                Contains the frequencies of the signals present in the signal
-        Amplitudes : ndarray
-                Contains the amplitudes of the signals present in the signal
-        NoiseStdDev : float
-                The standard deviation of the noise present in the signal
-        Noise : ndarray
-                The array containing the noise signal with time
-        TimeTuple : tuple
-                The start and stop time of the generated data 
-        TrueSignals : dict
-                Dictionary containing the clean signals. The keys are the frequencies
-                of the signals and the values are the ndarrays containing the signal 
-                values with time.
+    q0 : float
         
+    v0 : float
+        
+    TimeTuple : tuple
+        
+    timeStart : float
+        
+    timeEnd : float
+        
+    SampleFreq : float
+        
+    TrapFreqArray
+        
+    Gamma0 : float
+        Enviromental damping
+    mass : float
+        mass of nanoparticle (in Kg)
+    ConvFactor : float
+        
+    NoiseStdDev : float
+        
+    T0 : float
+        
+    etaArray : ndarray
+        
+    dt : float
+        
+    seed : float
+        random seed for generating the weiner paths for SDE solving
+        defaults to None i.e. no seeding of random numbers
+        sets the seed prior to initialising the SDE solvers such
+        that the data is repeatable but that each solver uses
+        different random numbers
+    dtSample : float
+        
+    DownSampleAmount : int
+        
+    timeStep : float
+        
+    time : ndarray
+        
+    simtime : frange
+        
+    Noise : ndarray
+        
+    voltage : ndarray
+        
+    TrueSignals : ndarray
+        
+
+
+
+    Omega0 : float
+        Trapping frequency
+    Gamma0 : float
+        Enviromental damping
+    mass : float
+
+    eta : float, optional
+        modulation depth (as a fraction), defaults to 0
+    T0 : float, optional
+        Temperature of the environment, defaults to 300
+    q0 : float, optional
+        initial position, defaults to 0
+    v0 : float, optional
+        intial velocity, defaults to 0
+    TimeTuple : tuple, optional
+        tuple of start and stop time for simulation / solver
+    dt : float, optional
+        time interval for simulation / solver
+    seed : float, optional
+        random seed for generate_weiner_path, defaults to None
+        i.e. no seeding of random numbers
+
     """
-    def __init__(self, SampleFreq, SignalFreqs, Amplitudes, NoiseStdDev, TimeTuple, MeanFreeTime):
+    def __init__(self, TimeTuple, SampleFreq, TrapFreqArray, Gamma0, mass, ConvFactor, NoiseStdDev, T0=300.0, etaArray=None, dt=1e-9, seed=None, NPerSegmentPSD=1000000):
         """
-        Initialises the object by generating the data and calculating the PSD.
+        
         """
-        self.SampleFreq = SampleFreq
-        self.SignalFreqs = _np.array(SignalFreqs)
-        self.Amplitudes = _np.array(Amplitudes)
-        self.NoiseStdDev = NoiseStdDev
+        self.q0 = 0.0
+        self.v0 = 0.0
         self.TimeTuple = (TimeTuple[0], TimeTuple[1])
-        self.MeanFreeTime = MeanFreeTime
-        self.generate_simulated_data()
-        self.get_PSD()
+        self.timeStart = TimeTuple[0]
+        self.timeEnd = TimeTuple[1]
+        self.SampleFreq = SampleFreq
+        self.TrapFreqArray = _np.array(TrapFreqArray)
+        self.Gamma0 = Gamma0
+        self.mass = mass
+        self.ConvFactor = ConvFactor
+        self.NoiseStdDev = NoiseStdDev
+        self.T0 = T0
+        if etaArray == None:
+            self.etaArray = _np.zeros_like(TrapFreqArray)
+        self.dt = dt
+        self.seed = seed        
+        dtSample = 1/SampleFreq
+        self.DownSampleAmount = round(dtSample/dt)
+        self.timeStep = dtSample/dt
+        if _np.isclose(dtSample/dt, self.DownSampleAmount, atol=1e-6) == False:
+            raise ValueError("The sample rate {} has a time interval between samples of {}, this is not a multiple of the simualted time interval {}. dtSample/dt = {}".format(SampleFreq, dtSample, dt, self.timeStep))
+        self.generate_simulated_data() # solves SDE for each frequency and eta value specified
+        # along requested time interval
+        self.time = frange(TimeTuple[0], TimeTuple[1], self.DownSampleAmount*dt)
+        self.simtime = frange(TimeTuple[0], TimeTuple[1], dt)
+        self.Noise = _np.random.normal(0, self.NoiseStdDev, len(self.time))
+        self.voltage = _np.copy(self.Noise)
+        self.TrueSignals = []
+        for sdesolver in self.sde_solvers:
+            self.TrueSignals.append(_np.array([sdesolver.q, sdesolver.v]))
+            self.voltage += ConvFactor*sdesolver.q[::self.DownSampleAmount]
+        self.TrueSignals = _np.array(self.TrueSignals)
+        self.get_PSD(NPerSegmentPSD)
+        del(self.sde_solvers)
         return None
-
-    def get_time_data(self):
-        """ 
-        Returns the time and voltage data.
-
-        Returns
-        -------
-        time : ndarray
-                Contains the time data in seconds
-        voltage : ndarray
-                Contains the voltage data in Volts - with noise and clean signals
-                all added together
-        """
-        return self.time, self.voltage
 
     def generate_simulated_data(self):
-        if self.MeanFreeTime == None:
-            self.generate_simulated_data_no_phase_noise()
-        else:
-            self.generate_simulated_data_with_phase_noise()
-    
-    def generate_simulated_data_no_phase_noise(self):
-        """
-        Generates the simulated data (several sine waves with noise).
-        """
-        Ts = 1/self.SampleFreq
-        self.time = _np.arange(self.TimeTuple[0], self.TimeTuple[1], Ts)
-        self.TrueSignals = {}
-        for Freq in self.SignalFreqs:
-            w = 2*_np.pi*Freq
-            self.TrueSignals[Freq] = _np.sin(w*self.time)
-        self.Noise = _np.random.normal(0, self.NoiseStdDev, len(self.time))
-        self.voltage = _np.copy(self.Noise)
-        for signal in [self.TrueSignals[key] for key in self.TrueSignals]:
-            self.voltage += signal
+        self.sde_solvers = []
+        if self.seed != None:
+            _np.random.seed(self.seed)
+        for i, freq in enumerate(self.TrapFreqArray):
+            TrapOmega = freq*2*_np.pi
+            solver = sde_solver(TrapOmega, self.Gamma0, self.mass, eta=self.etaArray[i], T0=self.T0, q0=self.q0, v0=self.v0, TimeTuple=self.TimeTuple, dt=self.dt)
+            self.sde_solvers.append(solver)
+        #workerPool = _Pool()
+        #workerPool.map(run_solve, self.sde_solvers)
+        for solver in self.sde_solvers:
+            print('solving...')
+            solver.solve()
         return None
 
-    def generate_simulated_data_with_phase_noise(self):
-        """
-        Generates the simulated data (several sine waves with noise)
-        with phase noise.
-        """
-        Ts = 1/self.SampleFreq
-        self.time = _np.arange(self.TimeTuple[0], self.TimeTuple[1], Ts)
-        self.TrueSignals = {}
-        for FreqIndex, Freq in enumerate(self.SignalFreqs):
-            w = 2*_np.pi*Freq
-            TrueSignal = []
-            Phase = 0
-            TSinceLastPhaseChange = 0
-            TimeForNextPhaseChange = self.MeanFreeTime + _np.random.normal(0, self.MeanFreeTime/2.0)
-            for t in self.time:
-                if TSinceLastPhaseChange > TimeForNextPhaseChange:
-                    Phase = _np.random.uniform(-180, 180)
-                    TSinceLastPhaseChange = 0
-                    TimeForNextPhaseChange = self.MeanFreeTime + _np.random.normal(0, self.MeanFreeTime/2.0)
-                TrueSignal.append(self.Amplitudes[FreqIndex]*_np.sin(w*t+Phase))
-                TSinceLastPhaseChange += Ts
-            self.TrueSignals[Freq] = _np.array(TrueSignal)
-        self.Noise = _np.random.normal(0, self.NoiseStdDev, len(self.time))
-        self.voltage = _np.copy(self.Noise)
-        for signal in [self.TrueSignals[key] for key in self.TrueSignals]:
-            self.voltage += signal
-        return None
-
-    
-    def sim_multi_plot(self, timeLimits="Default", ShowFig=True):
-        """
-        Plots the full signal, noise signal, and each true signal in 1 figure
-        inside of subplots.
-        """
-        if timeLimits == "Default":
-            timeLimits = [self.time[0], self.time[-1]]
-        lowerIndex = self.time.tolist().index(takeClosest(self.time, timeLimits[0]))
-        upperIndex = self.time.tolist().index(takeClosest(self.time, timeLimits[1]))
-        fig = _plt.figure()
-        NumPlots = len(self.TrueSignals) + 2
-        axList = []
-        ax = fig.add_subplot('{}1{}'.format(NumPlots, 0))
-        ax.plot(self.time[lowerIndex:upperIndex], self.voltage[lowerIndex:upperIndex])
-        ax.set_title("Total Data")
-        axList.append(ax)        
-        ax = fig.add_subplot('{}1{}'.format(NumPlots, 1))
-        ax.plot(self.time[lowerIndex:upperIndex], self.Noise[lowerIndex:upperIndex])
-        ax.set_title("Noise Data")
-        axList.append(ax)
-        for i, freq in enumerate(self.TrueSignals):
-            ax = fig.add_subplot('{}1{}'.format(NumPlots, i+2))
-            ax.plot(self.time[lowerIndex:upperIndex], self.TrueSignals[freq][lowerIndex:upperIndex])
-            ax.set_title("Data for {} Hz".format(freq))
-            axList.append(ax)
-        if ShowFig == True:
-            _plt.show()
-        return fig, ax
-
+def run_solve(sde_solver):
+    print('solving...')
+    sde_solver.q, sde_solver.v = sde_solver.solve()
+    return None

@@ -21,3 +21,5 @@ from .optoanalysis import *
 import optoanalysis.thermo
 import optoanalysis.LeCroy
 import optoanalysis.Saleae
+import optoanalysis.sim_data
+import optoanalysis.sde_solver
