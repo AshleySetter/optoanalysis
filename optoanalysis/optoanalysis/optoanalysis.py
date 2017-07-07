@@ -1838,9 +1838,9 @@ def animate(zdata, xdata, ydata,
     timePerFrame = 0.203
     print("This will take ~ {} minutes".format(timePerFrame * timeSteps / 60))
 
-    convZ = conversionFactor[0] * 1e-9
-    convX = conversionFactor[1] * 1e-9
-    convY = conversionFactor[2] * 1e-9
+    convZ = conversionFactorArray[0] * 1e-9
+    convX = conversionFactorArray[1] * 1e-9
+    convY = conversionFactorArray[2] * 1e-9
     
     ZBoxStart = -BoxSize  # 1/conv*(_np.mean(zdata)-0.06)
     ZBoxEnd = BoxSize  # 1/conv*(_np.mean(zdata)+0.06)
