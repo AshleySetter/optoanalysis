@@ -1,6 +1,8 @@
 from scipy.constants import Boltzmann
 import numpy as np
-from solve import solve as solve_cython
+import os
+if 'READTHEDOCS' not in os.environ:
+    from solve import solve as solve_cython
 from frange import frange
 
 class sde_solver():
