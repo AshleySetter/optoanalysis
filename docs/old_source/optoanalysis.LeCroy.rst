@@ -1,11 +1,9 @@
 optoanalysis.LeCroy package
 ===========================
 
-Submodules
-----------
 
-optoanalysis.LeCroy.LeCroy module
----------------------------------
+optoanalysis.LeCroy module
+--------------------------
 
 .. automodule:: optoanalysis.LeCroy.LeCroy
     :members:
@@ -17,6 +15,6 @@ Module contents
 ---------------
 
 .. automodule:: optoanalysis.LeCroy
-    :members:
-    :undoc-members:
-    :show-inheritance:
+      :members:
+      :undoc-members:
+      :show-inheritance:

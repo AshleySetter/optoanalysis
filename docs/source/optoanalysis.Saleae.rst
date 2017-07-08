@@ -1,8 +1,11 @@
 optoanalysis.Saleae package
 ===========================
 
-optoanalysis.Saleae module
---------------------------
+Submodules
+----------
+
+optoanalysis.Saleae.Saleae module
+---------------------------------
 
 .. automodule:: optoanalysis.Saleae.Saleae
     :members:
@@ -10,3 +13,10 @@ optoanalysis.Saleae module
     :show-inheritance:
 
 
+Module contents
+---------------
+
+.. automodule:: optoanalysis.Saleae
+    :members:
+    :undoc-members:
+    :show-inheritance:

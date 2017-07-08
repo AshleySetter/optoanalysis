@@ -6,24 +6,36 @@ Subpackages
 
 .. toctree::
 
-   optoanalysis.sim_data
-   optoanalysis.sde_solver
-   optoanalysis.thermo
-   optoanalysis.LeCroy
-   optoanalysis.Saleae
+    optoanalysis.LeCroy
+    optoanalysis.Saleae
+    optoanalysis.sde_solver
+    optoanalysis.sim_data
+    optoanalysis.thermo
 
-optoanalysis module
--------------------
+Submodules
+----------
+
+optoanalysis.optoanalysis module
+--------------------------------
 
 .. automodule:: optoanalysis.optoanalysis
     :members:
     :undoc-members:
     :show-inheritance:
 
+optoanalysis.widgetmultiplot module
+-----------------------------------
+
+.. automodule:: optoanalysis.widgetmultiplot
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 Module contents
 ---------------
 
 .. automodule:: optoanalysis
-   :members:
-   :undoc-members:
-   :show-inheritance:
+    :members:
+    :undoc-members:
+    :show-inheritance:
