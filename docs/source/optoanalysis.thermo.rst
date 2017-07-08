@@ -1,9 +1,6 @@
 optoanalysis.thermo package
 ===========================
 
-Submodules
-----------
-
 optoanalysis.thermo.thermo module
 ---------------------------------
 
@@ -13,10 +10,3 @@ optoanalysis.thermo.thermo module
     :show-inheritance:
 
 
-Module contents
----------------
-
-.. automodule:: optoanalysis.thermo
-    :members:
-    :undoc-members:
-    :show-inheritance:

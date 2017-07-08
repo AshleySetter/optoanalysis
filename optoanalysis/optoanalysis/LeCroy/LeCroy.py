@@ -97,7 +97,7 @@ def InterpretWaveform(raw, integersOnly=False, headersOnly=False, noTimeArray=Fa
         Take the raw binary from a file saved from the LeCroy, read from a file using 
         the 2 lines:
         with open(filename, "rb") as file:
-            raw = file.read()
+        raw = file.read()
         And extracts various properties of the saved time trace.
         
         Parameters
@@ -126,6 +126,7 @@ def InterpretWaveform(raw, integersOnly=False, headersOnly=False, noTimeArray=Fa
             The array of raw integers recorded from the ADC and stored in the binary file
         MissingData : bool
             bool stating if any data was missing
+
 
         """
         MissingData = False
