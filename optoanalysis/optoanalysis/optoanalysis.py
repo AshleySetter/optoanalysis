@@ -384,24 +384,25 @@ class DataObject():
             Fitting constant A
             A = γ**2*Γ_0*(K_b*T_0)/(π*m)
             where:
-                γ = conversionFactor
-                Γ_0 = Damping factor due to environment
-                π = pi
+            γ = conversionFactor
+            Γ_0 = Damping factor due to environment
+            π = pi
         OmegaTrap : uncertainties.ufloat
             The trapping frequency in the z axis (in angular frequency)
         Gamma : uncertainties.ufloat
             The damping factor Gamma = Γ = Γ_0 + δΓ
             where:
-                Γ_0 = Damping factor due to environment
-                δΓ = extra damping due to feedback or other effects
+            Γ_0 = Damping factor due to environment
+            δΓ = extra damping due to feedback or other effects
         fig : matplotlib.figure.Figure object
             figure object containing the plot
         ax : matplotlib.axes.Axes object
             axes with the data plotted of the:
-                - initial data
-                - smoothed data
-                - initial fit
-                - final fit
+            - initial data
+            - smoothed data
+            - initial fit
+            - final fit
+
         """
         if MakeFig == True:
             Params, ParamsErr, fig, ax = fit_PSD(
@@ -578,7 +579,7 @@ class DataObject():
 
     def extract_parameters(self, P_mbar, P_Error):
         """
-        Extracts the Radius  mass and Conversion factor for a particle.
+        Extracts the Radius, mass and Conversion factor for a particle.
 
         Parameters
         ----------
@@ -595,6 +596,7 @@ class DataObject():
             The mass of the particle in kg
         ConvFactor : uncertainties.ufloat
             The conversion factor between volts/m
+
         """
 
         [R, M, ConvFactor], [RErr, MErr, ConvFactorErr] = \
@@ -1018,8 +1020,8 @@ def load_data(Filepath, ObjectType='data', RelativeChannelNo=None, calcPSD=True,
     ObjectType : string, optional
         type to load the data as, takes the value 'default' if not specified.
         Options are:
-            'default' : optoanalysis.DataObject
-            'thermo' : optoanalysis.thermo.ThermoObject
+        'default' : optoanalysis.DataObject
+        'thermo' : optoanalysis.thermo.ThermoObject
     RelativeChannelNo : int, optional
         If loading a .bin file produced by the Saneae datalogger, used to specify
         the channel number
@@ -1031,9 +1033,10 @@ def load_data(Filepath, ObjectType='data', RelativeChannelNo=None, calcPSD=True,
 
     Returns
     -------
-        Data : DataObject
-            An instance of the DataObject class contaning the data
-            that you requested to be loaded.
+    Data : DataObject
+        An instance of the DataObject class contaning the data
+        that you requested to be loaded.
+
     """
     print("Loading data from {}".format(Filepath))
     ObjectTypeDict = {
@@ -1221,7 +1224,7 @@ def fit_curvefit(p0, datax, datay, function, **kwargs):
     -------
     pfit_curvefit : array
         Optimal values for the parameters so that the sum of
-        the squared residuals of f(xdata, *popt) - ydata is minimized
+        the squared residuals of ydata is minimized
     perr_curvefit : array
         One standard deviation errors in the optimal values for
         the parameters
@@ -1496,9 +1499,9 @@ def extract_parameters(Pressure, PressureErr, A, AErr, Gamma0, Gamma0Err):
         Fitting constant A
         A = γ**2*Γ_0*(K_b*T_0)/(π*m)
         where:
-            γ = conversionFactor
-            Γ_0 = Damping factor due to environment
-            π = pi
+        γ = conversionFactor
+        Γ_0 = Damping factor due to environment
+        π = pi
     AErr : float
         Error in Fitting constant A
     Gamma0 : float

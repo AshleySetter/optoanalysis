@@ -126,6 +126,7 @@ def InterpretWaveform(raw, integersOnly=False, headersOnly=False, noTimeArray=Fa
             The array of raw integers recorded from the ADC and stored in the binary file
         MissingData : bool
             bool stating if any data was missing
+
         """
         MissingData = False
         from struct import unpack
