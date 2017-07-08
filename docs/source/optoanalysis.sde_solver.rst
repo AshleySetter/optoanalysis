@@ -1,10 +1,10 @@
-optoanalysis.sim_data package
+optoanalysis.sde_solver package
 =============================
 
-optoanalysis.sim_data module
+optoanalysis.sde_solver module
 ----------------------------
 
-.. automodule:: optoanalysis.sim_data.sim_data
+.. automodule:: optoanalysis.sde_solver.sde_solver
     :members:
     :undoc-members:
     :show-inheritance:
