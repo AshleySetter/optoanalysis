@@ -11,3 +11,10 @@ optoanalysis.LeCroy module
     :show-inheritance:
 
 
+Module contents
+---------------
+
+.. automodule:: optoanalysis.LeCroy
+      :members:
+      :undoc-members:
+      :show-inheritance:
