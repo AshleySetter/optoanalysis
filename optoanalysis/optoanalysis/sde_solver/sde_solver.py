@@ -1,6 +1,7 @@
 from scipy.constants import Boltzmann
 import numpy as np
 from solve import solve as solve_cython
+from frange import frange
 
 class sde_solver():
     """
@@ -19,7 +20,7 @@ class sde_solver():
     η is the modulation depth of the cooling signal ???
     W(t) is the Wiener process
     """
-    def __init__(self, Omega0, Gamma0, mass, eta=0, T0=300, q0=0, v0=0, TimeTuple=[0, 100e-6], dt=1e-10, seed=None):
+    def __init__(self, Omega0, Gamma0, mass, eta=0, T0=300, q0=0, v0=0, TimeTuple=[0, 100e-6], dt=1e-9, seed=None):
         """
         Initialises the sde_solver instance.
 
@@ -60,7 +61,7 @@ class sde_solver():
         self.TimeTuple = TimeTuple
         self.b_v = np.sqrt(2*self.Gamma0*self.k_B*self.T0/self.mass) # a constant
         self.dt = dt
-        self.tArray = np.arange(TimeTuple[0], TimeTuple[1], dt)
+        self.tArray = frange(TimeTuple[0], TimeTuple[1], dt)
         self.generate_weiner_path(seed)
         return None
 
@@ -99,8 +100,8 @@ class sde_solver():
         self.v : ndarray
             array of velocities with time
         """
-        self.q = np.zeros_like(self.tArray)
-        self.v = np.zeros_like(self.tArray)
+        self.q = np.zeros(len(self.tArray))
+        self.v = np.zeros(len(self.tArray))
         self.q[0] = self.q0
         self.v[0] = self.v0
             
