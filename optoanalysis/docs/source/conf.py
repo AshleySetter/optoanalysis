@@ -19,7 +19,7 @@
 #
 import os
 import sys
-sys.path.insert(0, os.path.abspath('../../optoanalysis'))
+sys.path.insert(0, os.path.abspath('../../'))
 
 # -- General configuration ------------------------------------------------
 numpydoc_show_class_members = False
@@ -62,18 +62,13 @@ copyright = '2017, Ashley Setter'
 author = 'Ashley Setter'
 
 mypackage_root_dir = os.path.dirname(__file__)
-with open(os.path.join(mypackage_root_dir, '../../optoanalysis/optoanalysis/VERSION')) as version_file:
+with open(os.path.join(mypackage_root_dir, '../../optoanalysis/VERSION')) as version_file:
     version = version_file.read().strip()
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
 # built documents.
 
-mypackage_root_dir = os.path.dirname(__file__)
-with open(os.path.join(mypackage_root_dir, '../../optoanalysis/optoanalysis/VERSION')) as version_file:
-    version = version_file.read().strip()
-
-    
 # The short X.Y version.
 version = version
 # The full version, including alpha/beta/rc tags.
