@@ -61,6 +61,10 @@ project = 'optoanalysis'
 copyright = '2017, Ashley Setter'
 author = 'Ashley Setter'
 
+mypackage_root_dir = os.path.dirname(__file__)
+with open(os.path.join(mypackage_root_dir, '../../optoanalysis/optoanalysis/VERSION')) as version_file:
+    version = version_file.read().strip()
+
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
 # built documents.
