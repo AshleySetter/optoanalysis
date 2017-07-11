@@ -109,6 +109,10 @@ class SimData(DataObject):
         self.T0 = T0
         if etaArray == None:
             self.etaArray = _np.zeros_like(TrapFreqArray)
+        else:
+            if len(etaArray) != len(TrapFreqArray):
+                raise ValueError("etaArray and TrapFreqArray must have same length")
+            self.etaArray = etaArray
         self.dt = dt
         self.seed = seed        
         dtSample = 1/SampleFreq
