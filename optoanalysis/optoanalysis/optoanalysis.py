@@ -1202,6 +1202,37 @@ def calc_temp(Data_ref, Data):
     Data.T = T
     return T
 
+def calc_gamma_components(Data_ref, Data):
+    """
+    Calculates the components of Gamma (Gamma0 and delta_Gamma), 
+    assuming that the Data_ref is uncooled data (ideally at 3mbar
+    for best fitting). It uses the fact that A_prime=A/Gamma0 should 
+    be constant for a particular particle under changes in pressure
+    and therefore uses the reference save to calculate A_prime (assuming
+    the Gamma value found for the uncooled data is actually equal to Gamma0
+    since only collisions should be causing the damping. Therefore for
+    the cooled data Gamma0 should equal A/A_prime and therefore we
+    can extract Gamma0 and delta_Gamma.
+
+    Parameters
+    ----------
+    Data_ref : DataObject
+        Reference data set, assumed to be 300K
+    Data : DataObject
+        Data object to have the temperature calculated for
+
+    Returns
+    -------
+    Gamma0 : uncertainties.ufloat
+        Damping due to the environment
+    delta_Gamma : uncertainties.ufloat
+        Damping due to other effects (e.g. feedback cooling)
+    
+    """
+    A_prime = Data_ref.A/Data_ref.Gamma
+    Gamma0 = Data.A/A_prime
+    delta_Gamma = Data.Gamma - Gamma0
+    return Gamma0, delta_Gamma
 
 def fit_curvefit(p0, datax, datay, function, **kwargs):
     """
@@ -1527,6 +1558,8 @@ def extract_parameters(Pressure, PressureErr, A, AErr, Gamma0, Gamma0Err):
 
     radius = (0.169 * 9 * _np.pi * eta * dm**2) / \
         (_np.sqrt(2) * rho * kB * T0) * (Pressure) / (Gamma0)
+    # see section 4.1.1 of Muddassar Rashid's 2016 Thesis for
+    # derivation of this 
     err_radius = radius * \
         _np.sqrt(((PressureErr * Pressure) / Pressure)
                  ** 2 + (Gamma0Err / Gamma0)**2)
