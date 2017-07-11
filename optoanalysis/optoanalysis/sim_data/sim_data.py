@@ -28,7 +28,7 @@ class SimData(DataObject):
         
     SampleFreq : float
         
-    TrapFreqArray
+    TrapFreqArray : ndarray
         
     Gamma0 : float
         Enviromental damping
@@ -40,19 +40,19 @@ class SimData(DataObject):
         
     T0 : float, optional
         
-    deltaGammaArray : ndarray, optional
+    deltaGammaArray : ndarray
         array containing the additional damping on each degree of freedom 
         due to other effects (e.g. feedback cooling)
 
-    dt : float, optional
+    dt : float
         
-    seed : float, optional
+    seed : float
         random seed for generating the weiner paths for SDE solving
         defaults to None i.e. no seeding of random numbers
         sets the seed prior to initialising the SDE solvers such
         that the data is repeatable but that each solver uses
         different random numbers
-    dtSample : float, optional
+    dtSample : float
         
 
 
@@ -90,8 +90,7 @@ class SimData(DataObject):
         initial position, defaults to 0
     v0 : float, optional
         intial velocity, defaults to 0
-    TimeTuple : tuple, optional
-        tuple of start and stop time for simulation / solver
+
     dt : float, optional
         time interval for simulation / solver
     seed : float, optional
@@ -99,9 +98,43 @@ class SimData(DataObject):
         i.e. no seeding of random numbers
 
     """
-    def __init__(self, TimeTuple, SampleFreq, TrapFreqArray, Gamma0, mass, ConvFactor, NoiseStdDev, T0=300.0, deltaGammaArray=None, dt=1e-9, seed=None, NPerSegmentPSD=1000000):
+    def __init__(self, TimeTuple, SampleFreq, TrapFreqArray, Gamma0, mass, ConvFactorArray, NoiseStdDev, T0=300.0, deltaGammaArray=None, dt=1e-9, seed=None, NPerSegmentPSD=1000000):
         """
-        
+        Parameters
+        ----------
+        TimeTuple : tuple, optional
+            tuple of start and stop time for simulation / solver
+        SampleFreq : float
+            Sample freq to downsample data to (Hz)
+        TrapFreqArray : ndarray
+            Array of trap frequencies of Z, X and Y motion (Hz).
+        Gamma0 : float
+            Damping due to the enviroment (radians/second)
+        mass : float
+            mass of the nanoparticle (kg)
+        ConvFactorArray : ndarray
+            Conversion factors to use to go from motion in nms
+            to signal in volts for each degree of freedom
+        NoiseStdDev : float
+            std deviation of white noise applied to particle signal
+            after generation from SDE solving.
+        T0 : float, optional
+            Temperature of the environment
+        deltaGammaArray : ndarray, optional
+            array containing the additional damping on each degree of freedom 
+            due to other effects (e.g. feedback cooling)
+        dt : float, optional
+            time step for SDE solver
+        seed : float, optional
+            random seed for generating the weiner paths for SDE solving
+            defaults to None i.e. no seeding of random numbers
+            sets the seed prior to initialising the SDE solvers such
+            that the data is repeatable but that each solver uses
+            different random numbers. No seed by default.
+        NPerSegnmentPSD : int, optional
+            number of points per segment to use in calculating the PSD
+
+
         """
         self.q0 = 0.0
         self.v0 = 0.0
@@ -118,7 +151,7 @@ class SimData(DataObject):
                 raise("deltaGammaArray should be the same length as TrapFreqArray")
             self.deltaGammaArray = deltaGammaArray
         self.mass = mass
-        self.ConvFactor = ConvFactor
+        self.ConvFactorArray = ConvFactorArray
         self.NoiseStdDev = NoiseStdDev
         self.T0 = T0
         self.dt = dt
@@ -135,9 +168,9 @@ class SimData(DataObject):
         self.Noise = _np.random.normal(0, self.NoiseStdDev, len(self.time))
         self.voltage = _np.copy(self.Noise)
         self.TrueSignals = []
-        for sdesolver in self.sde_solvers:
+        for i, sdesolver in enumerate(self.sde_solvers):
             self.TrueSignals.append(_np.array([sdesolver.q, sdesolver.v]))
-            self.voltage += ConvFactor*sdesolver.q[::self.DownSampleAmount]
+            self.voltage += ConvFactorArray[i]*sdesolver.q[::self.DownSampleAmount]
         self.TrueSignals = _np.array(self.TrueSignals)
         self.get_PSD(NPerSegmentPSD)
         del(self.sde_solvers)
