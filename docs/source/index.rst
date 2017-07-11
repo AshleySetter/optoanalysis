@@ -24,12 +24,12 @@ If you use this package in any academic work it would be very appretiated if you
 
    optoanalysis
    optoanalysis.sim_data
+   optoanalysis.sde_solver
    optoanalysis.thermo
    optoanalysis.LeCroy
    optoanalysis.Saleae
 
-Indices and tables
-==================
+-------------------------------
 
 * :ref:`genindex`
 * :ref:`modindex`
