@@ -10,8 +10,8 @@ cpdef solve(np.ndarray[double, ndim=1] q,
             double dt,
             np.ndarray[double, ndim=1] dwArray,
             double Gamma0,
+            double deltaGamma,
             double Omega0,
-            double eta,
             double b_v,
             int N ):
     """
@@ -29,6 +29,8 @@ cpdef solve(np.ndarray[double, ndim=1] q,
         random values to use for Weiner process
     Gamma0 : float
         Enviromental damping parameter (angular frequency - radians/s)
+    deltaGamma : float
+        damping due to other effects (e.g. feedback cooling) (radians/s)
     Omega0 : float
         Trapping frequency (angular frequency - radians/s)
     eta : float
@@ -48,7 +50,7 @@ cpdef solve(np.ndarray[double, ndim=1] q,
     """
     cdef int n
     for n in range(N): # had enumerate here - it took ~3.5 seconds!! now ~110ms
-        v[n+1] = v[n] + (-(Gamma0 - Omega0*eta*q[n]**2)*v[n] - Omega0**2*q[n])*dt + b_v*dwArray[n]
+        v[n+1] = v[n] + (-(Gamma0 + deltaGamma)*v[n] - Omega0**2*q[n])*dt + b_v*dwArray[n]
         q[n+1] = q[n] + v[n]*dt
     return q, v
 

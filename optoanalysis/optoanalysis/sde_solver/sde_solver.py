@@ -22,7 +22,7 @@ class sde_solver():
     η is the modulation depth of the cooling signal ???
     W(t) is the Wiener process
     """
-    def __init__(self, Omega0, Gamma0, mass, eta=0, T0=300, q0=0, v0=0, TimeTuple=[0, 100e-6], dt=1e-9, seed=None):
+    def __init__(self, Omega0, Gamma0, deltaGamma, mass, T0=300, q0=0, v0=0, TimeTuple=[0, 100e-6], dt=1e-9, seed=None):
         """
         Initialises the sde_solver instance.
 
@@ -32,10 +32,10 @@ class sde_solver():
             Trapping frequency
         Gamma0 : float
             Enviromental damping
+        deltaGamma : float
+            damping due to other effects (e.g. feedback cooling)
         mass : float
             mass of nanoparticle (in Kg)
-        eta : float, optional
-            modulation depth (as a fraction), defaults to 0
         T0 : float, optional
             Temperature of the environment, defaults to 300
         q0 : float, optional
@@ -57,8 +57,8 @@ class sde_solver():
         self.v0 = v0
         self.Omega0 = Omega0
         self.Gamma0 = Gamma0
+        self.deltaGamma = deltaGamma
         self.mass = mass
-        self.eta = eta
         self.T0 = T0
         self.TimeTuple = TimeTuple
         self.b_v = np.sqrt(2*self.Gamma0*self.k_B*self.T0/self.mass) # a constant
@@ -114,9 +114,9 @@ class sde_solver():
         #    self.v[n+1] = v_n + self.a_v(q_n, v_n)*self.dt + self.b_v*dw
         #    self.q[n+1] = q_n + v_n*self.dt
         NumTimeSteps = len(self.tArray) - 1
-        self.q, self.v = solve_cython(self.q, self.v, float(self.dt), self.dwArray, float(self.Gamma0), float(self.Omega0), float(self.eta), float(self.b_v), NumTimeSteps)
+        self.q, self.v = solve_cython(self.q, self.v, float(self.dt), self.dwArray, float(self.Gamma0),float(self.deltaGamma), float(self.Omega0), float(self.b_v), NumTimeSteps)
         return self.q, self.v
 
 #def _a_v(q, v, Gamma0, Omega0, eta):
-#    return -(Gamma0 - Omega0*eta*q**2)*v - Omega0**2*q
+#    return -(Gamma0 + deltaGamma)*v - Omega0**2*q
 
