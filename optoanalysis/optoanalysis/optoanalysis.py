@@ -25,6 +25,7 @@ from matplotlib import colors as _mcolors
 import qplots as _qplots
 from functools import partial as _partial
 from frange import frange
+from scipy.constants import Boltzmann
 
 _mpl.rcParams['lines.markeredgewidth'] = 1 # set default markeredgewidth to 1 overriding seaborn's default value of 0
 _sns.set_style("whitegrid")
@@ -382,7 +383,7 @@ class DataObject():
         -------
         A : uncertainties.ufloat
             Fitting constant A
-            A = γ**2*Γ_0*(K_b*T_0)/(π*m)
+            A = γ**2*2*Γ_0*(K_b*T_0)/(π*m)
             where:
             γ = conversionFactor
             Γ_0 = Damping factor due to environment
@@ -1214,6 +1215,8 @@ def calc_gamma_components(Data_ref, Data):
     the cooled data Gamma0 should equal A/A_prime and therefore we
     can extract Gamma0 and delta_Gamma.
 
+    A_prime = ConvFactor**2 * (2*k_B*T0/(pi*m))
+
     Parameters
     ----------
     Data_ref : DataObject
@@ -1528,7 +1531,7 @@ def extract_parameters(Pressure, PressureErr, A, AErr, Gamma0, Gamma0Err):
         Error in the Pressure as a decimal (e.g. 15% error is 0.15) 
     A : float
         Fitting constant A
-        A = γ**2*Γ_0*(K_b*T_0)/(π*m)
+        A = γ**2*2*Γ_0*(K_b*T_0)/(π*m)
         where:
         γ = conversionFactor
         Γ_0 = Damping factor due to environment
@@ -1550,22 +1553,23 @@ def extract_parameters(Pressure, PressureErr, A, AErr, Gamma0, Gamma0Err):
     """
     Pressure = 100 * Pressure  # conversion to Pascals
 
-    rho = 2200  # kgm^3
-    dm = 0.372e-9  # m I'Hanlon, 2003
+    rho = 2200 # could be 2650  # kgm^3
+    dm = 0.372e-9  # m O'Hanlon, 2003
     T0 = 300  # kelvin
-    kB = 1.38e-23  # m^2 kg s^-2 K-1
+    kB = Boltzmann  # m^2 kg s^-2 K-1
     eta = 18.27e-6  # Pa s, viscosity of air
 
-    radius = (0.169 * 9 * _np.pi * eta * dm**2) / \
+    radius = (0.619 * 9 * _np.pi * eta * dm**2) / \
         (_np.sqrt(2) * rho * kB * T0) * (Pressure) / (Gamma0)
     # see section 4.1.1 of Muddassar Rashid's 2016 Thesis for
-    # derivation of this 
+    # derivation of this
+    # see also page 132 of Jan Giesler's Thesis
     err_radius = radius * \
         _np.sqrt(((PressureErr * Pressure) / Pressure)
                  ** 2 + (Gamma0Err / Gamma0)**2)
     mass = rho * ((4 * _np.pi * radius**3) / 3)
     err_mass = mass * 2 * err_radius / radius
-    conversionFactor = _np.sqrt(A * _np.pi * mass / (kB * T0 * Gamma0))
+    conversionFactor = _np.sqrt(A * _np.pi * mass / (2 * kB * T0 * Gamma0))
     err_conversionFactor = conversionFactor * \
         _np.sqrt((AErr / A)**2 + (err_mass / mass)
                  ** 2 + (Gamma0Err / Gamma0)**2)
@@ -1980,6 +1984,48 @@ def animate(zdata, xdata, ydata,
     mywriter = _animation.FFMpegWriter(fps=myFPS, bitrate=myBitrate)
     # , fps = myFPS, bitrate = myBitrate)
     anim.save('{}.mp4'.format(filename), writer=mywriter)
+    return None
+
+def animate_2Dscatter(x, y, NumAnimatedPoints=50, NTrailPoints=20, 
+    xlabel="", ylabel="",
+    xlims=None, ylims=None, filename="testAnim.mp4", 
+    bitrate=1e5, dpi=5e2, fps=30, figsize = [6, 6]):
+    fig, ax = _plt.subplots(figsize = figsize)
+
+    alphas = _np.linspace(0.1, 1, NTrailPoints)
+    rgba_colors = _np.zeros((NTrailPoints,4))
+    # for red the first column needs to be one
+    rgba_colors[:,0] = 1.0
+    # the fourth column needs to be your alphas
+    rgba_colors[:, 3] = alphas
+
+
+    scatter = ax.scatter(x[0:NTrailPoints], y[0:NTrailPoints], color=rgba_colors)
+
+    if xlims == None:
+        xlims = (min(x), max(x))
+    if ylims == None:
+        ylims = (min(y), max(y))
+
+    ax.set_xlim(xlims)
+    ax.set_ylim(ylims)
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+
+    def animate(i, scatter):
+        scatter.axes.clear() # clear old scatter object
+        scatter = ax.scatter(x[i:i+NTrailPoints], y[i:i+NTrailPoints], color=rgba_colors) 
+        # create new scatter with updated data
+        ax.set_xlim(xlims)
+        ax.set_ylim(ylims)
+        ax.set_xlabel(xlabel)
+        ax.set_ylabel(ylabel)
+        return scatter,
+
+
+    ani = _animation.FuncAnimation(fig, animate, _np.arange(1, NumAnimatedPoints),
+                                  interval=25, blit=True, fargs=[scatter])
+    ani.save(filename, bitrate=bitrate, dpi=dpi, fps=fps)
     return None
 
 def IFFT_filter(Signal, SampleFreq, lowerFreq, upperFreq):
