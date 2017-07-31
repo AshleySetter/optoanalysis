@@ -1,9 +1,8 @@
 #
 ####### requirements.txt for optoanalysis #######
-#
-###### Requirements without Version Specifiers ######
 numpy
 scipy
+llvmlite
 matplotlib
 seaborn
 qplots>=0.5
@@ -14,7 +13,5 @@ pytest-cov
 pytest-mpl
 numpydoc
 sphinx_rtd_theme
-numba
-llvmlite
 Cython
 #
