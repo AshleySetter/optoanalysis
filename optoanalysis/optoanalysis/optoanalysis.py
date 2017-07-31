@@ -1100,7 +1100,7 @@ def multi_load_data(Channel, RunNos, RepeatNos, directoryPath='.', calcPSD=True,
     data = workerPool.map(load_data_partial, files_CorrectRepeatNo)
     return data
 
-def multi_load_data_custom(Channel, TraceTitle, RunNos, directoryPath='.', NPerSegmentPSD=1000000):
+def multi_load_data_custom(Channel, TraceTitle, RunNos, directoryPath='.', calcPSD=True, NPerSegmentPSD=1000000):
     """
     Lets you load multiple datasets named with the LeCroy's custom naming scheme at once.
 
@@ -1140,7 +1140,7 @@ def multi_load_data_custom(Channel, TraceTitle, RunNos, directoryPath='.', NPerS
     #    print(filepath)
     #    data.append(load_data(filepath))
     load_data_partial = _partial(load_data, calcPSD=calcPSD, NPerSegmentPSD=NPerSegmentPSD)
-    data = workerPool.map(load_data_partial, files_CorrectRepeatNo)
+    data = workerPool.map(load_data_partial, files_CorrectRunNo)
     return data
 
 def search_data_custom(Channel, TraceTitle, RunNos, directoryPath='.'):
