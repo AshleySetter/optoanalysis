@@ -26,6 +26,7 @@ import qplots as _qplots
 from functools import partial as _partial
 from frange import frange
 from scipy.constants import Boltzmann
+from os.path import exists as _does_file_exist
 
 _mpl.rcParams['lines.markeredgewidth'] = 1 # set default markeredgewidth to 1 overriding seaborn's default value of 0
 _sns.set_style("whitegrid")
@@ -1048,7 +1049,26 @@ def load_data(Filepath, ObjectType='data', RelativeChannelNo=None, calcPSD=True,
         Object = ObjectTypeDict[ObjectType]
     except KeyError:
         raise ValueError("You entered {}, this is not a valid object type".format(ObjectType))
-    return Object(Filepath, RelativeChannelNo, calcPSD, NPerSegmentPSD)
+    data = Object(Filepath, RelativeChannelNo, calcPSD, NPerSegmentPSD)
+    try:
+        channel_number, run_number, repeat_number = [int(val) for val in re.findall('\d+', data.filename)]
+        data.channel_number = channel_number
+        data.run_number = run_number
+        data.repeat_number = repeat_number
+        if _does_file_exist(data.filepath.replace(data.filename, '') + "pressure.log"):
+            print("pressure.log file exists")
+            for line in open(data.filepath.replace(data.filename, '') + "pressure.log", 'r'):
+                run_number, repeat_number, pressure = line.split(',')[1:]
+                run_number = int(run_number)
+                repeat_number = int(repeat_number)
+                pressure = float(pressure)
+                if (run_number == data.run_number) and (repeat_number == data.repeat_number):
+                    data.pmbar = pressure
+    except ValueError:
+        pass    
+    return data
+
+
 
 
 def multi_load_data(Channel, RunNos, RepeatNos, directoryPath='.', calcPSD=True, NPerSegmentPSD=1000000):
