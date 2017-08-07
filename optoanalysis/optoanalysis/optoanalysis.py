@@ -1368,7 +1368,7 @@ def _PSD_fitting_eqn(A, OmegaTrap, gamma, omega):
     ----------
     A : float
         Fitting constant A
-        A = γ**2*Γ_0*(K_b*T_0)/(π*m)
+        A = γ**2*Γ_0*(2*K_b*T_0)/(π*m)
         where:
             γ = conversionFactor
             Γ_0 = Damping factor due to environment
