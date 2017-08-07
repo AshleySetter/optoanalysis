@@ -348,7 +348,7 @@ class DataObject():
         AreaUnderPSD = sum(self.PSD[index_startAreaPSD: index_endAreaPSD])
         return AreaUnderPSD
 
-    def get_fit(self, TrapFreq, WidthOfPeakToFit, A_Initial=0.1e10, Gamma_Initial=400, NMovAveToFit=1, Silent=False, MakeFig=True, ShowFig=True):
+    def get_fit(self, TrapFreq, WidthOfPeakToFit, A_Initial=0.1e10, Gamma_Initial=400, Silent=False, MakeFig=True, ShowFig=True):
         """
         Function that fits to a peak to the PSD to extract the 
         frequency, A factor and Gamma (damping) factor.
@@ -366,10 +366,6 @@ class DataObject():
             The initial value of the A parameter to use in fitting
         Gamma_Initial : float, optional
             The initial value of the Gamma parameter to use in fitting
-        NMovAveToFit : int, optional
-            The number of point of moving average filter to perform
-            before fitting in order to smooth out the peak.
-            defaults to 1.
         Silent : bool, optional
             Whether to print any output when running this function
             defaults to False
@@ -408,10 +404,10 @@ class DataObject():
         """
         if MakeFig == True:
             Params, ParamsErr, fig, ax = fit_PSD(
-                self, WidthOfPeakToFit, NMovAveToFit, TrapFreq, A_Initial, Gamma_Initial, MakeFig=MakeFig, ShowFig=ShowFig)
+                self, WidthOfPeakToFit, TrapFreq, A_Initial, Gamma_Initial, MakeFig=MakeFig, ShowFig=ShowFig)
         else:
             Params, ParamsErr, _ , _ = fit_PSD(
-                self, WidthOfPeakToFit, NMovAveToFit, TrapFreq, A_Initial, Gamma_Initial, MakeFig=MakeFig, ShowFig=ShowFig)
+                self, WidthOfPeakToFit, TrapFreq, A_Initial, Gamma_Initial, MakeFig=MakeFig, ShowFig=ShowFig)
 
         if Silent == False:
             print("\n")
@@ -507,8 +503,14 @@ class DataObject():
 
         approx_Gamma = FWHM/4
         try:
-            A, OmegaTrap, Gamma, fig, ax = self.get_fit(CentralFreq, (upperLimit-lowerLimit)/2, 
-                         A_Initial=approx_A, Gamma_Initial=approx_Gamma, Silent=Silent, MakeFig=MakeFig, ShowFig=ShowFig)
+            A, OmegaTrap, Gamma, fig, ax \
+                = self.get_fit(CentralFreq,
+                               (upperLimit-lowerLimit)/2, 
+                               A_Initial=approx_A,
+                               Gamma_Initial=approx_Gamma,
+                               Silent=Silent,
+                               MakeFig=MakeFig,
+                               ShowFig=ShowFig)
         except (TypeError, ValueError) as e: 
             _warnings.warn("range is too small to fit, returning NaN", UserWarning)
             val = _uncertainties.ufloat(_np.NaN, _np.NaN)
@@ -553,8 +555,13 @@ class DataObject():
         MinTotalSumSquaredError = _np.infty
         for Width in _np.arange(MaxWidth, MinWidth - WidthIntervals, -WidthIntervals):
             try:
-                OmegaTrap, A, Gamma,_ , _ = self.get_fit_from_peak(
-                    CentralFreq - Width / 2, CentralFreq + Width / 2, Silent=True, MakeFig=False, ShowFig=False)
+                OmegaTrap, A, Gamma,_ , _ \
+                    = self.get_fit_from_peak(
+                        CentralFreq - Width / 2,
+                        CentralFreq + Width / 2,
+                        Silent=True,
+                        MakeFig=False,
+                        ShowFig=False)
             except RuntimeError:
                 _warnings.warn("Couldn't find good fit with width {}".format(
                     Width), RuntimeWarning)
@@ -570,8 +577,11 @@ class DataObject():
                 BestWidth = Width
         print("found best")
         try:
-            OmegaTrap, A, Gamma, fig, ax = self.get_fit_from_peak(CentralFreq - BestWidth / 2,
-                                                                  CentralFreq + BestWidth / 2, MakeFig=MakeFig, ShowFig=ShowFig)
+            OmegaTrap, A, Gamma, fig, ax \
+                = self.get_fit_from_peak(CentralFreq - BestWidth / 2,
+                                         CentralFreq + BestWidth / 2,
+                                         MakeFig=MakeFig,
+                                         ShowFig=ShowFig)
         except UnboundLocalError:
             raise ValueError("A best width was not found, try increasing the number of widths tried by either decreasing WidthIntervals or MinWidth or increasing MaxWidth")
         OmegaTrap = self.OmegaTrap
@@ -1380,10 +1390,10 @@ def _PSD_fitting_eqn(A, OmegaTrap, gamma, omega):
     Value : float
         The value of the fitting equation
     """
-    return A / ((OmegaTrap**2 - omega**2)**2 + (omega * gamma)**2)
+    return A / ((OmegaTrap**2 - omega**2)**2 + omega**2 * (gamma)**2)
 
 
-def fit_PSD(Data, bandwidth, NMovAve, TrapFreqGuess, AGuess=0.1e10, GammaGuess=400, MakeFig=True, ShowFig=True):
+def fit_PSD(Data, bandwidth, TrapFreqGuess, AGuess=0.1e10, GammaGuess=400, MakeFig=True, ShowFig=True):
     """
     Fits theory PSD to Data. Assumes highest point of PSD is the
     trapping frequency.
@@ -1395,8 +1405,6 @@ def fit_PSD(Data, bandwidth, NMovAve, TrapFreqGuess, AGuess=0.1e10, GammaGuess=4
     bandwidth : float
          bandwidth around trapping frequency peak to
          fit the theory PSD to
-    NMovAve : integer
-         amount of moving averages to take before the fitting
     TrapFreqGuess : float
         The approximate trapping frequency to use initially
         as the centre of the peak
@@ -1422,7 +1430,6 @@ def fit_PSD(Data, bandwidth, NMovAve, TrapFreqGuess, AGuess=0.1e10, GammaGuess=4
     ax : matplotlib.axes.Axes object
         axes with the data plotted of the:
             - initial data
-            - smoothed data
             - initial fit
             - final fit
     """
@@ -1462,10 +1469,7 @@ def fit_PSD(Data, bandwidth, NMovAve, TrapFreqGuess, AGuess=0.1e10, GammaGuess=4
     indx_fit_lower = int(_np.where(AngFreqs == f_fit_lower)[0][0])
     indx_fit_upper = int(_np.where(AngFreqs == f_fit_upper)[0][0])
 
-    PSD_smoothed = moving_average(Data.PSD, NMovAve)
-    freqs_smoothed = moving_average(AngFreqs, NMovAve)
-
-    logPSD_smoothed = 10 * _np.log10(PSD_smoothed)
+    logPSD = 10 * _np.log10(Data.PSD)
 
     def calc_theory_PSD_curve_fit(freqs, A, TrapFreq, BigGamma):
         Theory_PSD = 10 * \
@@ -1475,13 +1479,15 @@ def fit_PSD(Data, bandwidth, NMovAve, TrapFreqGuess, AGuess=0.1e10, GammaGuess=4
         else:
             return Theory_PSD
 
-    datax = freqs_smoothed[indx_fit_lower:indx_fit_upper]
-    datay = logPSD_smoothed[indx_fit_lower:indx_fit_upper]
+    datax = AngFreqs[indx_fit_lower:indx_fit_upper]
+    datay = logPSD[indx_fit_lower:indx_fit_upper]
 
     p0 = _np.array([AGuess, OmegaTrap, GammaGuess])
 
     Params_Fit, Params_Fit_Err = fit_curvefit(p0,
-                                              datax, datay, calc_theory_PSD_curve_fit)
+                                              datax,
+                                              datay,
+                                              calc_theory_PSD_curve_fit)
 
     if MakeFig == True:
         fig = _plt.figure(figsize=properties["default_fig_size"])
@@ -1489,31 +1495,29 @@ def fit_PSD(Data, bandwidth, NMovAve, TrapFreqGuess, AGuess=0.1e10, GammaGuess=4
 
         PSDTheory_fit_initial = 10 * _np.log10(
             _PSD_fitting_eqn(p0[0], p0[1],
-                             p0[2], freqs_smoothed))
+                             p0[2], AngFreqs))
 
         PSDTheory_fit = 10 * _np.log10(
             _PSD_fitting_eqn(Params_Fit[0],
                              Params_Fit[1],
                              Params_Fit[2],
-                             freqs_smoothed))
+                             AngFreqs))
 
         ax.plot(AngFreqs / (2 * _np.pi), Data.PSD,
                 color="darkblue", label="Raw PSD Data", alpha=0.5)
-        ax.plot(freqs_smoothed / (2 * _np.pi), 10**(logPSD_smoothed / 10),
-                color='blue', label="smoothed", linewidth=1.5)
-        ax.plot(freqs_smoothed / (2 * _np.pi), 10**(PSDTheory_fit_initial / 10),
+        ax.plot(AngFreqs / (2 * _np.pi), 10**(PSDTheory_fit_initial / 10),
                 '--', alpha=0.7, color="purple", label="initial vals")
-        ax.plot(freqs_smoothed / (2 * _np.pi), 10**(PSDTheory_fit / 10),
+        ax.plot(AngFreqs / (2 * _np.pi), 10**(PSDTheory_fit / 10),
                 color="red", label="fitted vals")
         ax.set_xlim([(OmegaTrap - 5 * Angbandwidth) / (2 * _np.pi),
                      (OmegaTrap + 5 * Angbandwidth) / (2 * _np.pi)])
         ax.plot([(OmegaTrap - Angbandwidth) / (2 * _np.pi), (OmegaTrap - Angbandwidth) / (2 * _np.pi)],
-                [min(10**(logPSD_smoothed / 10)),
-                 max(10**(logPSD_smoothed / 10))], '--',
+                [min(10**(logPSD / 10)),
+                 max(10**(logPSD / 10))], '--',
                 color="grey")
         ax.plot([(OmegaTrap + Angbandwidth) / (2 * _np.pi), (OmegaTrap + Angbandwidth) / (2 * _np.pi)],
-                [min(10**(logPSD_smoothed / 10)),
-                 max(10**(logPSD_smoothed / 10))], '--',
+                [min(10**(logPSD / 10)),
+                 max(10**(logPSD / 10))], '--',
                 color="grey")
         ax.semilogy()
         legend = ax.legend(loc="best", frameon = 1)
