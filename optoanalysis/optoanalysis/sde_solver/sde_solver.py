@@ -65,6 +65,12 @@ class sde_solver():
         self.dt = dt
         self.tArray = frange(TimeTuple[0], TimeTuple[1], dt)
         self.generate_weiner_path(seed)
+        
+        self.q = np.zeros(len(self.tArray)) # initialises position array, q
+        self.v = np.zeros(len(self.tArray)) # initialises velocity array, v
+        self.q[0] = self.q0 # sets initial position to q0
+        self.v[0] = self.v0 # sets initial position to v0
+        self.SqueezingPulseArray = np.ones(len(self.tArray)) # initialises squeezing pulse array such that there is no squeezing
         return None
 
     def generate_weiner_path(self, seed=None):
@@ -91,10 +97,17 @@ class sde_solver():
     def a_v(self, q, v):
         return _a_v(q, v, self.Gamma0, self.Omega0, self.eta)
         
-    def solve(self):
+    def solve(self, NumTimeSteps=None, startIndex=0):
         """
         Solves the SDE from timeTuple[0] to timeTuple[1]
         
+        Parameters
+        ----------
+        NumTimeSteps : int, optional
+            number of time steps to solve for
+        startIndex : int, optional
+            array index (of q and v) at which to start solving the SDE
+
         Returns
         -------
         self.q : ndarray
@@ -102,19 +115,9 @@ class sde_solver():
         self.v : ndarray
             array of velocities with time
         """
-        self.q = np.zeros(len(self.tArray))
-        self.v = np.zeros(len(self.tArray))
-        self.q[0] = self.q0
-        self.v[0] = self.v0
-            
-        #for n, t in enumerate(self.tArray[:-1]):
-        #    dw = self.dwArray[n]
-        #    q_n = self.q[n]
-        #    v_n = self.v[n]
-        #    self.v[n+1] = v_n + self.a_v(q_n, v_n)*self.dt + self.b_v*dw
-        #    self.q[n+1] = q_n + v_n*self.dt
-        NumTimeSteps = len(self.tArray) - 1
-        self.q, self.v = solve_cython(self.q, self.v, float(self.dt), self.dwArray, float(self.Gamma0),float(self.deltaGamma), float(self.Omega0), float(self.b_v), NumTimeSteps)
+        if NumTimeSteps == None:
+            NumTimeSteps = (len(self.tArray) - 1) - startIndex
+        self.q, self.v = solve_cython(self.q, self.v, float(self.dt), self.dwArray, float(self.Gamma0),float(self.deltaGamma), float(self.Omega0), float(self.b_v), SqueezingPulseArray=self.SqueezingPulseArray, startIndex=startIndex, NumTimeSteps=NumTimeSteps)
         return self.q, self.v
 
 #def _a_v(q, v, Gamma0, Omega0, eta):
