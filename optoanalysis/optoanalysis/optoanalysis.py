@@ -551,6 +551,13 @@ class DataObject():
             A parameter
         Gamma : ufloat
             Gamma, the damping parameter
+        fig : matplotlib.figure.Figure object
+            The figure object created showing the PSD of the data 
+            with the fit
+        ax : matplotlib.axes.Axes object
+            The axes object created showing the PSD of the data 
+            with the fit
+
         """
         MinTotalSumSquaredError = _np.infty
         for Width in _np.arange(MaxWidth, MinWidth - WidthIntervals, -WidthIntervals):
@@ -1299,7 +1306,7 @@ def fit_curvefit(p0, datax, datay, function, **kwargs):
     error = []
     for i in range(len(pfit)):
         try:
-            error.append(_np.absolute(pcov[i][i])**0.5)
+            error.append(_np.sqrt(_np.diag(pcov)))
         except:
             error.append(_np.NaN)
     pfit_curvefit = pfit
