@@ -596,7 +596,7 @@ class DataObject():
         Gamma = self.Gamma
         return OmegaTrap, A, Gamma, fig, ax
 
-    def extract_parameters(self, P_mbar, P_Error):
+    def extract_parameters(self, P_mbar, P_Error, method="rashid"):
         """
         Extracts the Radius, mass and Conversion factor for a particle.
 
@@ -621,7 +621,8 @@ class DataObject():
         [R, M, ConvFactor], [RErr, MErr, ConvFactorErr] = \
             extract_parameters(P_mbar, P_Error,
                                self.A.n, self.A.std_dev,
-                               self.Gamma.n, self.Gamma.std_dev)
+                               self.Gamma.n, self.Gamma.std_dev
+                               method = method)
         self.Radius = _uncertainties.ufloat(R, RErr)
         self.Mass = _uncertainties.ufloat(M, MErr)
         self.ConvFactor = _uncertainties.ufloat(ConvFactor, ConvFactorErr)
@@ -1540,7 +1541,7 @@ def fit_PSD(Data, bandwidth, TrapFreqGuess, AGuess=0.1e10, GammaGuess=400, MakeF
         return Params_Fit, Params_Fit_Err, None, None
 
 
-def extract_parameters(Pressure, PressureErr, A, AErr, Gamma0, Gamma0Err):
+def extract_parameters(Pressure, PressureErr, A, AErr, Gamma0, Gamma0Err, method="rashid"):
     """
     Calculates the radius, mass and conversion factor and thier uncertainties.
     For values to be correct data must have been taken with feedback off and
@@ -1584,14 +1585,23 @@ def extract_parameters(Pressure, PressureErr, A, AErr, Gamma0, Gamma0Err):
     """
     Pressure = 100 * Pressure  # conversion to Pascals
 
-    rho = 2200 # could be 2650  # kgm^3
+    rho = 1800 # as quoted by Microspheres and Nanospheres  # kgm^3
     dm = 0.372e-9  # m O'Hanlon, 2003
     T0 = 300  # kelvin
     kB = Boltzmann  # m^2 kg s^-2 K-1
     eta = 18.27e-6  # Pa s, viscosity of air
 
-    radius = (0.619 * 9 * _np.pi * eta * dm**2) / \
-        (_np.sqrt(2) * rho * kB * T0) * (Pressure) / (Gamma0)
+    method = method.lower()
+    if method == "rashid":
+        radius = (0.619 * 9 * _np.pi * eta * dm**2) / \
+                 (_np.sqrt(2) * rho * kB * T0) * (Pressure/Gamma0)
+        
+    m_air = 4.81e-26 # molecular mass of air is 28.97 g/mol and Avogadro's Number 6.0221409^23
+    if method == "chang":
+        vbar = (8*kB*T0/(_np.pi*m_air))**0.5
+        radius = 8*/(rho*_np.pi*vbar)*(Pressure/Gamma0)
+
+    
     # see section 4.1.1 of Muddassar Rashid's 2016 Thesis for
     # derivation of this
     # see also page 132 of Jan Giesler's Thesis
