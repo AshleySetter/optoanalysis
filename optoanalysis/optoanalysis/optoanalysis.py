@@ -621,7 +621,7 @@ class DataObject():
         [R, M, ConvFactor], [RErr, MErr, ConvFactorErr] = \
             extract_parameters(P_mbar, P_Error,
                                self.A.n, self.A.std_dev,
-                               self.Gamma.n, self.Gamma.std_dev
+                               self.Gamma.n, self.Gamma.std_dev,
                                method = method)
         self.Radius = _uncertainties.ufloat(R, RErr)
         self.Mass = _uncertainties.ufloat(M, MErr)
@@ -1599,7 +1599,7 @@ def extract_parameters(Pressure, PressureErr, A, AErr, Gamma0, Gamma0Err, method
     m_air = 4.81e-26 # molecular mass of air is 28.97 g/mol and Avogadro's Number 6.0221409^23
     if method == "chang":
         vbar = (8*kB*T0/(pi*m_air))**0.5
-        radius = 8*/(rho*pi*vbar)*(Pressure/Gamma0)
+        radius = 8/(rho*pi*vbar)*(Pressure/Gamma0) # is this DEFINITELY CORRECT???????????????
     # see section 4.1.1 of Muddassar Rashid's 2016 Thesis for
     # derivation of this
     # see also page 132 of Jan Giesler's Thesis
@@ -2912,6 +2912,325 @@ def multi_plot_3d_dist(ZXYData, N=1000, AxisOffset=0, Angle=-40, LowLim=None, Hi
     if ShowFig == True:
         _plt.show()
     return fig, ax
+
+# ------ Functions for extracting mass via potential comparision ---------------
+
+def steady_state_potential(xdata,HistBins=100):
+    """ 
+    Calculates the steady state potential. Used in 
+    fit_radius_from_potentials.
+
+    Parameters
+    ----------
+    xdata : ndarray
+        Position data for a degree of freedom
+    HistBins : int
+        Number of bins to use for histogram
+        of xdata. Number of position points
+        at which the potential is calculated.
+
+    Returns
+    -------
+    position : ndarray
+        positions at which potential has been 
+        calculated
+    potential : ndarray
+        value of potential at the positions above
+    
+    """  
+    import numpy as _np
+    
+    pops=_np.histogram(xdata,HistBins)[0]
+    bins=_np.histogram(xdata,HistBins)[1]
+    bins=bins[0:-1]
+    bins=bins+_np.mean(_np.diff(bins))
+    
+    #normalise pops
+    pops=pops/float(_np.sum(pops))
+    
+    return bins,-_np.log(pops)
+
+def dynamical_potential(xdata, dt, order=3):
+    """
+    Computes potential from spring function
+
+    Parameters
+    ----------
+    xdata : ndarray
+        Position data for a degree of freedom,
+        at which to calculate potential
+    dt : float
+        time between measurements
+    order : int
+        order of polynomial to fit
+
+    Returns
+    -------
+    Potential : ndarray
+        valued of potential at positions in
+        xdata
+
+    """
+    import numpy as _np
+    adata = calc_acceleration(xdata, dt)
+    xdata = xdata[2:] # removes first 2 values as differentiating twice means
+    # we have acceleration[n] corresponds to position[n-2]
+    
+    z=_np.polyfit(xdata,adata,order)
+    p=_np.poly1d(z)
+    spring_pot=_np.polyint(p)
+    return -spring_pot
+
+def calc_acceleration(xdata, dt):
+    """
+    Calculates the acceleration from the position
+    
+    Parameters
+    ----------
+    xdata : ndarray
+        Position data
+    dt : float
+        time between measurements
+
+    Returns
+    -------
+    acceleration : ndarray
+        values of acceleration from position 
+        2 to N.
+
+    """
+    acceleration = _np.diff(_np.diff(xdata))/dt**2
+    return acceleration
+
+def fit_radius_from_potentials(z, SampleFreq, Damping, HistBins=100, ShowFig=False):
+    """
+    Fits the dynamical potential to the Steady 
+    State Potential by varying the Radius.
+    
+    z : ndarray
+        Position data
+    SampleFreq : float
+        frequency at which the position data was 
+        sampled
+    Damping : float
+        value of damping (in radians/second)
+    HistBins : int
+        number of values at which to evaluate 
+        the steady state potential / perform
+        the fitting to the dynamical potential
+
+    Returns
+    -------
+    Radius : float
+        Radius of the nanoparticle
+    RadiusError : float
+        One Standard Deviation Error in the Radius from the Fit
+        (doesn't take into account possible error in damping)
+    fig : plt.figure
+        figure showing fitted dynamical potential and stationary potential
+    ax : plt.axes
+        axes for above figure
+    """
+    dt = 1/SampleFreq
+    boltzmann=Boltzmann
+    temp=300 # why halved??
+    density=1800
+    SteadyStatePotnl = list(steady_state_potential(z, HistBins=HistBins))
+    yoffset=min(SteadyStatePotnl[1])
+    SteadyStatePotnl[1] -= yoffset
+
+    SpringPotnlFunc = dynamical_potential(z, dt)
+    SpringPotnl = SpringPotnlFunc(z)
+    kBT_Gamma = temp*boltzmann*1/Damping
+    
+    DynamicPotentialFunc = make_dynamical_potential_func(kBT_Gamma, density, SpringPotnlFunc)
+    FitSoln = _curve_fit(DynamicPotentialFunc, SteadyStatePotnl[0], SteadyStatePotnl[1], p0 = 50)
+    print(FitSoln)
+    popt, pcov = FitSoln
+    perr = _np.sqrt(_np.diag(pcov))
+    Radius, RadiusError = popt[0], perr[0]
+
+    mass=((4/3)*pi*((Radius*10**-9)**3))*density
+    yfit=(kBT_Gamma/mass)
+    Y = yfit*SpringPotnl
+    
+    fig, ax = _plt.subplots()
+    ax.plot(SteadyStatePotnl[0], SteadyStatePotnl[1], 'bo', label="Steady State Potential")
+    _plt.plot(z,Y, 'r-', label="Dynamical Potential")
+    ax.legend(loc='best')
+    ax.set_ylabel('U ($k_{B} T $ Joules)')
+    ax.set_xlabel('Distance (mV)')
+    _plt.tight_layout()
+    if ShowFig == True:
+        _plt.show()
+    return Radius*1e-9, RadiusError*1e-9, fig, ax
+
+def make_dynamical_potential_func(kBT_Gamma, density, SpringPotnlFunc):
+    """
+    Creates the function that calculates the potential given
+    the position (in volts) and the radius of the particle. 
+
+    Parameters
+    ----------
+    kBT_Gamma : float
+        Value of kB*T/Gamma
+    density : float
+        density of the nanoparticle
+    SpringPotnlFunc : function
+        Function which takes the value of position (in volts)
+        and returns the spring potential
+    
+    Returns
+    -------
+    PotentialFunc : function
+        function that calculates the potential given
+        the position (in volts) and the radius of the 
+        particle.
+
+    """
+    def PotentialFunc(xdata, Radius):
+        """
+        calculates the potential given the position (in volts) 
+        and the radius of the particle.
+
+        Parameters
+        ----------
+        xdata : ndarray
+            Positon data (in volts)
+        Radius : float
+            Radius in units of nm
+
+        Returns
+        -------
+        Potential : ndarray
+            Dynamical Spring Potential at positions given by xdata
+        """
+        mass = ((4/3)*pi*((Radius*10**-9)**3))*density
+        yfit=(kBT_Gamma/mass)
+        Y = yfit*SpringPotnlFunc(xdata)
+        return Y
+    return PotentialFunc
+
+# ------------------------------------------------------------
+
+def calc_mean_amp(signal):
+    """
+    calculates the mean amplitude by calculating the RMS
+    of the signal and then multiplying it by √2.
+    
+    Parameters
+    ----------
+    signal : ndarray
+    array of floats containing an AC signal
+    
+    Returns
+    -------
+    mean_amplitude : float
+        the mean amplitude of the signal
+    """
+    return _np.sqrt(2)*_np.sqrt(_np.mean(signal**2))
+
+def calc_z0_and_conv_factor_from_ratio_of_harmonics(z, z2, NA=0.999):
+    """
+    Calculates the Conversion Factor and physical amplitude of motion in nms 
+    by comparison of the ratio of the heights of the z signal and 
+    second harmonic of z.
+
+    Parameters
+    ----------
+    z : ndarray
+        array containing z signal in volts
+    z2 : ndarray
+        array containing second harmonic of z signal in volts
+    NA : float
+        NA of mirror used in experiment
+
+    Returns
+    -------
+    z0 : float
+        Physical average amplitude of motion in nms
+    ConvFactor : float
+        Conversion Factor between volts and nms
+    """
+    V1 = calc_mean_amp(z)
+    V2 = calc_mean_amp(z2)
+    ratio = V2/V1
+    beta = 4*ratio
+    laserWavelength = 1550e-9 # in m
+    k0 = (2*pi)/(laserWavelength)
+    WaistSize = laserWavelength/(pi*NA)
+    Zr = pi*WaistSize**2/laserWavelength
+    z0 = beta/(k0 - 1/Zr)
+    ConvFactor = V1/z0
+    T0 = 300
+    return z0, ConvFactor
+
+def calc_mass_from_z0(z0, w0):
+    """
+    Calculates the mass of the particle using the equipartition
+    from the angular frequency of the z signal and the average
+    amplitude of the z signal in nms.
+
+    Parameters
+    ----------
+    z0 : float
+        Physical average amplitude of motion in nms
+    w0 : float
+        Angular Frequency of z motion
+
+    Returns
+    -------
+    mass : float
+        mass in kgs
+    """
+    T0 = 300
+    mFromEquipartition = Boltzmann*T0/(w0**2 * z0**2)
+    return mFromEquipartition
+
+def calc_mass_from_fit_and_conv_factor(A, Damping, ConvFactor):
+    """
+    Calculates mass from the A parameter from fitting, the damping from 
+    fitting in angular units and the Conversion factor calculated from 
+    comparing the ratio of the z signal and first harmonic of z.
+
+    Parameters
+    ----------
+    A : float
+        A factor calculated from fitting
+    Damping : float
+        damping in radians/second calcualted from fitting
+    ConvFactor : float
+        conversion factor between volts and nms
+
+    Returns
+    -------
+    mass : float
+        mass in kgs
+    """
+    T0 = 300
+    mFromA = 2*Boltzmann*T0/(pi*A) * ConvFactor**2 * Damping
+    return mFromA
+
+def calc_radius_from_mass(Mass):
+    """
+    Given the mass of a particle calculates the 
+    radius, assuming a 1800 kg/m**3 density.
+
+    Parameters
+    ----------
+    Mass : float
+        mass in kgs
+   
+    Returns
+    -------
+    Radius : float
+        radius in ms
+    """
+    density = 1800
+    Radius = (3*Mass/(4*pi*density))**(1/3)
+    return Radius
+    
+# ------------------------------------------------------------
 
 def unit_conversion(array, unit_prefix, current_prefix=""):
     """
