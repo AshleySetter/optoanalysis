@@ -25,7 +25,7 @@ from matplotlib import colors as _mcolors
 import qplots as _qplots
 from functools import partial as _partial
 from frange import frange
-from scipy.constants import Boltzmann
+from scipy.constants import Boltzmann, pi
 from os.path import exists as _does_file_exist
 
 _mpl.rcParams['lines.markeredgewidth'] = 1 # set default markeredgewidth to 1 overriding seaborn's default value of 0
@@ -519,7 +519,7 @@ class DataObject():
         A = self.A
         Gamma = self.Gamma
 
-        omegaArray = 2 * _np.pi * \
+        omegaArray = 2 * pi * \
             self.freqs[LeftSideOfPeakIndex:RightSideOfPeakIndex]
         PSDArray = self.PSD[LeftSideOfPeakIndex:RightSideOfPeakIndex]
 
@@ -847,10 +847,10 @@ class DataObject():
         VarVel = _np.var(VelArray)
         MaxPos = _np.max(PosArray)
         MaxVel = _np.max(VelArray)
-        if MaxPos > MaxVel / (2 * _np.pi * freq):
+        if MaxPos > MaxVel / (2 * pi * freq):
             _plotlimit = MaxPos * 1.1
         else:
-            _plotlimit = MaxVel / (2 * _np.pi * freq) * 1.1
+            _plotlimit = MaxVel / (2 * pi * freq) * 1.1
 
         print("Plotting Phase Space")
 
@@ -865,7 +865,7 @@ class DataObject():
 
         if kind == "hex":    # gridsize can only be passed if kind="hex"
             JP1 = _sns.jointplot(_pd.Series(PosArray[1:], name="$z$ ({}) \n filepath=%s".format(units) % (self.filepath)),
-                                 _pd.Series(VelArray / (2 * _np.pi * freq), name="$v_z$/$\omega$ ({})".format(units)),
+                                 _pd.Series(VelArray / (2 * pi * freq), name="$v_z$/$\omega$ ({})".format(units)),
                                  stat_func=None,
                                  xlim=[-_plotlimit, _plotlimit],
                                  ylim=[-_plotlimit, _plotlimit],
@@ -881,7 +881,7 @@ class DataObject():
             )
         else:
             JP1 = _sns.jointplot(_pd.Series(PosArray[1:], name="$z$ ({}) \n filepath=%s".format(units) % (self.filepath)),
-                                     _pd.Series(VelArray / (2 * _np.pi * freq), name="$v_z$/$\omega$ ({})".format(units)),
+                                     _pd.Series(VelArray / (2 * pi * freq), name="$v_z$/$\omega$ ({})".format(units)),
                                  stat_func=None,
                                  xlim=[-_plotlimit, _plotlimit],
                                  ylim=[-_plotlimit, _plotlimit],
@@ -914,7 +914,7 @@ class DataObject():
         PosArray = unit_conversion(PosArray, unit_prefix) # converts m to units required (nm by default)
         VelArray = unit_conversion(VelArray, unit_prefix) # converts m/s to units required (nm/s by default)
 
-        VelArray = VelArray/(2*_np.pi*freq) # converst nm/s to nm/radian
+        VelArray = VelArray/(2*pi*freq) # converst nm/s to nm/radian
         PosArray = PosArray[1:]
 
         fig, axscatter, axhistx, axhisty, cb = _qplots.joint_plot(PosArray, VelArray, *args, **kwargs)
@@ -1366,10 +1366,10 @@ def take_closest(myList, myNumber):
         return before
 
 
-def _PSD_fitting_eqn(A, OmegaTrap, gamma, omega):
+def _PSD_fitting_eqn(A, OmegaTrap, Gamma, omega):
     """
     The value of the fitting equation:
-    A / ((OmegaTrap**2 - omega**2)**2 + (omega * gamma)**2)
+    A / ((OmegaTrap**2 - omega**2)**2 + (omega * Gamma)**2)
     to be fit to the PSD
 
     Parameters
@@ -1398,7 +1398,7 @@ def _PSD_fitting_eqn(A, OmegaTrap, gamma, omega):
     Value : float
         The value of the fitting equation
     """
-    return A / ((OmegaTrap**2 - omega**2)**2 + omega**2 * (gamma)**2)
+    return A / ((OmegaTrap**2 - omega**2)**2 + omega**2 * (Gamma)**2)
 
 
 def fit_PSD(Data, bandwidth, TrapFreqGuess, AGuess=0.1e10, GammaGuess=400, MakeFig=True, ShowFig=True):
@@ -1441,9 +1441,9 @@ def fit_PSD(Data, bandwidth, TrapFreqGuess, AGuess=0.1e10, GammaGuess=400, MakeF
             - initial fit
             - final fit
     """
-    AngFreqs = 2 * _np.pi * Data.freqs
-    Angbandwidth = 2 * _np.pi * bandwidth
-    AngTrapFreqGuess = 2 * _np.pi * TrapFreqGuess
+    AngFreqs = 2 * pi * Data.freqs
+    Angbandwidth = 2 * pi * bandwidth
+    AngTrapFreqGuess = 2 * pi * TrapFreqGuess
 
     ClosestToAngTrapFreqGuess = take_closest(AngFreqs, AngTrapFreqGuess)
     index_OmegaTrap = _np.where(AngFreqs == ClosestToAngTrapFreqGuess)[0][0]
@@ -1477,11 +1477,11 @@ def fit_PSD(Data, bandwidth, TrapFreqGuess, AGuess=0.1e10, GammaGuess=400, MakeF
     indx_fit_lower = int(_np.where(AngFreqs == f_fit_lower)[0][0])
     indx_fit_upper = int(_np.where(AngFreqs == f_fit_upper)[0][0])
 
-    logPSD = 10 * _np.log10(Data.PSD)
+    logPSD = 10 * _np.log10(Data.PSD) # putting PSD in dB
 
     def calc_theory_PSD_curve_fit(freqs, A, TrapFreq, BigGamma):
         Theory_PSD = 10 * \
-            _np.log10(_PSD_fitting_eqn(A, TrapFreq, BigGamma, freqs))
+            _np.log10(_PSD_fitting_eqn(A, TrapFreq, BigGamma, freqs)) # PSD in dB
         if A < 0 or TrapFreq < 0 or BigGamma < 0:
             return 1e9
         else:
@@ -1511,19 +1511,19 @@ def fit_PSD(Data, bandwidth, TrapFreqGuess, AGuess=0.1e10, GammaGuess=400, MakeF
                              Params_Fit[2],
                              AngFreqs))
 
-        ax.plot(AngFreqs / (2 * _np.pi), Data.PSD,
+        ax.plot(AngFreqs / (2 * pi), Data.PSD,
                 color="darkblue", label="Raw PSD Data", alpha=0.5)
-        ax.plot(AngFreqs / (2 * _np.pi), 10**(PSDTheory_fit_initial / 10),
+        ax.plot(AngFreqs / (2 * pi), 10**(PSDTheory_fit_initial / 10),
                 '--', alpha=0.7, color="purple", label="initial vals")
-        ax.plot(AngFreqs / (2 * _np.pi), 10**(PSDTheory_fit / 10),
+        ax.plot(AngFreqs / (2 * pi), 10**(PSDTheory_fit / 10),
                 color="red", label="fitted vals")
-        ax.set_xlim([(OmegaTrap - 5 * Angbandwidth) / (2 * _np.pi),
-                     (OmegaTrap + 5 * Angbandwidth) / (2 * _np.pi)])
-        ax.plot([(OmegaTrap - Angbandwidth) / (2 * _np.pi), (OmegaTrap - Angbandwidth) / (2 * _np.pi)],
+        ax.set_xlim([(OmegaTrap - 5 * Angbandwidth) / (2 * pi),
+                     (OmegaTrap + 5 * Angbandwidth) / (2 * pi)])
+        ax.plot([(OmegaTrap - Angbandwidth) / (2 * pi), (OmegaTrap - Angbandwidth) / (2 * pi)],
                 [min(10**(logPSD / 10)),
                  max(10**(logPSD / 10))], '--',
                 color="grey")
-        ax.plot([(OmegaTrap + Angbandwidth) / (2 * _np.pi), (OmegaTrap + Angbandwidth) / (2 * _np.pi)],
+        ax.plot([(OmegaTrap + Angbandwidth) / (2 * pi), (OmegaTrap + Angbandwidth) / (2 * pi)],
                 [min(10**(logPSD / 10)),
                  max(10**(logPSD / 10))], '--',
                 color="grey")
@@ -1593,24 +1593,22 @@ def extract_parameters(Pressure, PressureErr, A, AErr, Gamma0, Gamma0Err, method
 
     method = method.lower()
     if method == "rashid":
-        radius = (0.619 * 9 * _np.pi * eta * dm**2) / \
+        radius = (0.619 * 9 * pi * eta * dm**2) / \
                  (_np.sqrt(2) * rho * kB * T0) * (Pressure/Gamma0)
         
     m_air = 4.81e-26 # molecular mass of air is 28.97 g/mol and Avogadro's Number 6.0221409^23
     if method == "chang":
-        vbar = (8*kB*T0/(_np.pi*m_air))**0.5
-        radius = 8*/(rho*_np.pi*vbar)*(Pressure/Gamma0)
-
-    
+        vbar = (8*kB*T0/(pi*m_air))**0.5
+        radius = 8*/(rho*pi*vbar)*(Pressure/Gamma0)
     # see section 4.1.1 of Muddassar Rashid's 2016 Thesis for
     # derivation of this
     # see also page 132 of Jan Giesler's Thesis
     err_radius = radius * \
         _np.sqrt(((PressureErr * Pressure) / Pressure)
                  ** 2 + (Gamma0Err / Gamma0)**2)
-    mass = rho * ((4 * _np.pi * radius**3) / 3)
+    mass = rho * ((4 * pi * radius**3) / 3)
     err_mass = mass * 2 * err_radius / radius
-    conversionFactor = _np.sqrt(A * _np.pi * mass / (2 * kB * T0 * Gamma0))
+    conversionFactor = _np.sqrt(A * pi * mass / (2 * kB * T0 * Gamma0))
     err_conversionFactor = conversionFactor * \
         _np.sqrt((AErr / A)**2 + (err_mass / mass)
                  ** 2 + (Gamma0Err / Gamma0)**2)
@@ -2241,7 +2239,7 @@ def IIR_filter_design(CentralFreq, bandwidth, transitionWidth, SampleFreq, GainS
     b, a = scipy.signal.iirdesign(bandpass, bandstop, GainPass, GainStop)
     return b, a
 
-def get_freq_response(a, b, ShowFig=True, SampleFreq=(2 * _np.pi), NumOfFreqs=500, whole=False):
+def get_freq_response(a, b, ShowFig=True, SampleFreq=(2 * pi), NumOfFreqs=500, whole=False):
     """
     This function takes an array of coefficients and finds the frequency
     response of the filter using scipy.signal.freqz.
@@ -2285,7 +2283,7 @@ def get_freq_response(a, b, ShowFig=True, SampleFreq=(2 * _np.pi), NumOfFreqs=50
         different frequencies
     """
     w, h = scipy.signal.freqz(b=b, a=a, worN=NumOfFreqs, whole=whole)
-    freqList = w / (_np.pi) * SampleFreq / 2.0
+    freqList = w / (pi) * SampleFreq / 2.0
     himag = _np.array([hi.imag for hi in h])
     GainArray = 20 * _np.log10(_np.abs(h))
     PhaseDiffArray = _np.unwrap(_np.arctan2(_np.imag(h), _np.real(h)))
@@ -2294,7 +2292,7 @@ def get_freq_response(a, b, ShowFig=True, SampleFreq=(2 * _np.pi), NumOfFreqs=50
     ax1 = fig1.add_subplot(111)
     ax1.plot(freqList, GainArray, '-', label="Specified Filter")
     ax1.set_title("Frequency Response")
-    if SampleFreq == 2 * _np.pi:
+    if SampleFreq == 2 * pi:
         ax1.set_xlabel(("$\Omega$ - Normalized frequency "
                        "($\pi$=Nyquist Frequency)"))
     else:
@@ -2307,7 +2305,7 @@ def get_freq_response(a, b, ShowFig=True, SampleFreq=(2 * _np.pi), NumOfFreqs=50
     ax2 = fig2.add_subplot(111)
     ax2.plot(freqList, PhaseDiffArray, '-', label="Specified Filter")
     ax2.set_title("Phase Response")
-    if SampleFreq == 2 * _np.pi:
+    if SampleFreq == 2 * pi:
         ax2.set_xlabel(("$\Omega$ - Normalized frequency "
                        "($\pi$=Nyquist Frequency)"))
     else:
