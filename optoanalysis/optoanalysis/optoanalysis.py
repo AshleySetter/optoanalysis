@@ -1308,7 +1308,6 @@ def fit_curvefit(p0, datax, datay, function, **kwargs):
     for i in range(len(pfit)):
         try:
             error.append(_np.absolute(pcov[i][i])**0.5)
-            #error.append(_np.sqrt(_np.diag(pcov)))
         except:
             error.append(_np.NaN)
     pfit_curvefit = pfit
