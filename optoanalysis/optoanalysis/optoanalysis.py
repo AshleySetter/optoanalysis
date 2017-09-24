@@ -1358,10 +1358,10 @@ def take_closest(myList, myNumber):
         return before
 
 
-def _PSD_fitting_eqn(A, OmegaTrap, gamma, omega):
+def _PSD_fitting_eqn(A, OmegaTrap, Gamma, omega):
     """
     The value of the fitting equation:
-    A / ((OmegaTrap**2 - omega**2)**2 + (omega * gamma)**2)
+    A / ((OmegaTrap**2 - omega**2)**2 + (omega * Gamma)**2)
     to be fit to the PSD
 
     Parameters
@@ -1390,7 +1390,7 @@ def _PSD_fitting_eqn(A, OmegaTrap, gamma, omega):
     Value : float
         The value of the fitting equation
     """
-    return A / ((OmegaTrap**2 - omega**2)**2 + omega**2 * (gamma)**2)
+    return A / ((OmegaTrap**2 - omega**2)**2 + omega**2 * (Gamma)**2)
 
 
 def fit_PSD(Data, bandwidth, TrapFreqGuess, AGuess=0.1e10, GammaGuess=400, MakeFig=True, ShowFig=True):
@@ -1469,11 +1469,11 @@ def fit_PSD(Data, bandwidth, TrapFreqGuess, AGuess=0.1e10, GammaGuess=400, MakeF
     indx_fit_lower = int(_np.where(AngFreqs == f_fit_lower)[0][0])
     indx_fit_upper = int(_np.where(AngFreqs == f_fit_upper)[0][0])
 
-    logPSD = 10 * _np.log10(Data.PSD)
+    logPSD = 10 * _np.log10(Data.PSD) # putting PSD in dB
 
     def calc_theory_PSD_curve_fit(freqs, A, TrapFreq, BigGamma):
         Theory_PSD = 10 * \
-            _np.log10(_PSD_fitting_eqn(A, TrapFreq, BigGamma, freqs))
+            _np.log10(_PSD_fitting_eqn(A, TrapFreq, BigGamma, freqs)) # PSD in dB
         if A < 0 or TrapFreq < 0 or BigGamma < 0:
             return 1e9
         else:
