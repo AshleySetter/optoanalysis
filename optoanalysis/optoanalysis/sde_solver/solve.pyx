@@ -13,7 +13,9 @@ cpdef solve(np.ndarray[double, ndim=1] q,
             double deltaGamma,
             double Omega0,
             double b_v,
-            int N ):
+            np.ndarray[double, ndim=1] SqueezingPulseArray,
+            int startIndex,
+            int NumTimeSteps ):
     """
     Solves the SDE specified in sde_solver.py using cythonized python code.
     
@@ -37,7 +39,11 @@ cpdef solve(np.ndarray[double, ndim=1] q,
         modulation depth (as a fraction)
     b_v : float
         term multiplying the Weiner process in the SDE sqrt(2*Γ0*kB*T0/m)
-    N : int
+    SqueezingPulseArray : ndarray
+        Array of values containing modulation depth of squeezing pulses (as a decimal i.e. 1 = 100%)
+    startIndex : int
+        array index (of q and v) at which to start solving the SDE
+    NumTimeSteps : int
         The length of the time array minus 1 (number of time points over which
         to solve the SDE)
 
@@ -49,8 +55,8 @@ cpdef solve(np.ndarray[double, ndim=1] q,
         array of velocities with time found from solving the SDE
     """
     cdef int n
-    for n in range(N): # had enumerate here - it took ~3.5 seconds!! now ~110ms
-        v[n+1] = v[n] + (-(Gamma0 + deltaGamma)*v[n] - Omega0**2*q[n])*dt + b_v*dwArray[n]
+    for n in range(startIndex, NumTimeSteps+startIndex):
+        v[n+1] = v[n] + (-(Gamma0 + deltaGamma)*v[n] - SqueezingPulseArray[n]*Omega0**2*q[n])*dt + b_v*dwArray[n]
         q[n+1] = q[n] + v[n]*dt
     return q, v
 
