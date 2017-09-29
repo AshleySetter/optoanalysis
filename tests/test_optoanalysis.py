@@ -52,24 +52,24 @@ def test_get_fit():
     
     return fig
 
-def test_extract_parameters():
-    """
-    Tests that DataObject.extract_parameters works and returns the correct values.
-    """
-    with open("testDataPressure.dat", 'r') as file:
-        for line in file:
-            pressure = float(line.split("mbar")[0])
-    R, M, ConvFactor = GlobalData.extract_parameters(pressure, 0.15)
-
-    assert R.n == pytest.approx(3.27536e-8, rel=float_relative_tolerance)
-    assert M.n == pytest.approx(3.23808e-19, rel=float_relative_tolerance)
-    assert ConvFactor.n == pytest.approx(190629, rel=float_relative_tolerance)
-    
-    assert R.std_dev == pytest.approx(4.97914e-9, rel=float_relative_tolerance)    
-    assert M.std_dev == pytest.approx(9.84496e-20, rel=float_relative_tolerance)     
-    assert ConvFactor.std_dev == pytest.approx(58179.9, rel=float_relative_tolerance)
-
-    return None
+#def test_extract_parameters():
+#    """
+#    Tests that DataObject.extract_parameters works and returns the correct values.
+#    """
+#    with open("testDataPressure.dat", 'r') as file:
+#        for line in file:
+#            pressure = float(line.split("mbar")[0])
+#    R, M, ConvFactor = GlobalData.extract_parameters(pressure, 0.15)
+#
+#    assert R.n == pytest.approx(3.27536e-8, rel=float_relative_tolerance)
+#    assert M.n == pytest.approx(3.23808e-19, rel=float_relative_tolerance)
+#    assert ConvFactor.n == pytest.approx(190629, rel=float_relative_tolerance)
+#    
+#    assert R.std_dev == pytest.approx(4.97914e-9, rel=float_relative_tolerance)    
+#    assert M.std_dev == pytest.approx(9.84496e-20, rel=float_relative_tolerance)     
+#    assert ConvFactor.std_dev == pytest.approx(58179.9, rel=float_relative_tolerance)
+#
+#    return None
 
 def test_get_time_data():
     """
