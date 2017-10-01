@@ -2088,9 +2088,9 @@ def animate_2Dscatter_slices(x, y, NumAnimatedPoints=50,
     scatter = ax.scatter(x[0], y[0])
 
     if xlims == None:
-        xlims = (np.min(x), np.max(x))
+        xlims = (_np.min(x), _np.max(x))
     if ylims == None:
-        ylims = (np.min(y), np.max(y))
+        ylims = (_np.min(y), _np.max(y))
 
     ax.set_xlim(xlims)
     ax.set_ylim(ylims)
