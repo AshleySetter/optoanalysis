@@ -594,6 +594,7 @@ class DataObject():
         OmegaTrap = self.OmegaTrap
         A = self.A
         Gamma = self.Gamma
+        self.FTrap = OmegaTrap/(2*pi)
         return OmegaTrap, A, Gamma, fig, ax
 
     def extract_parameters(self, P_mbar, P_Error, method="rashid"):
@@ -719,10 +720,10 @@ class DataObject():
     
         Returns
         -------
-        FiletedData : ndarray
-            Array containing the filtered signal in volts with time.
         timedata : ndarray
             Array containing the time data
+        FiletedData : ndarray
+            Array containing the filtered signal in volts with time.
         fig : matplotlib.figure.Figure object
             The figure object created showing the PSD of the filtered 
             and unfiltered signal
@@ -776,7 +777,7 @@ class DataObject():
         if ShowFig == True:
             _plt.show()
         timedata = time[StartIndex: EndIndex][0::FractionOfSampleFreq]
-        return filteredData, timedata, fig, ax
+        return timedata, filteredData, fig, ax
 
     def plot_phase_space_sns(self, freq, ConvFactor, PeakWidth=10000, FractionOfSampleFreq=1, kind="hex", timeStart=None, timeEnd =None, PointsOfPadding=500, units="nm", logscale=False, cmap=None, marginalColor=None, gridsize=200, ShowFig=True, ShowPSD=False, alpha=0.5, *args, **kwargs):
         """
@@ -3211,6 +3212,57 @@ def calc_mass_from_fit_and_conv_factor(A, Damping, ConvFactor):
     mFromA = 2*Boltzmann*T0/(pi*A) * ConvFactor**2 * Damping
     return mFromA
 
+# -----------------------------------------------------------------------------
+
+def get_time_slice(time, z, zdot=None, timeStart=None, timeEnd=None):
+    """
+    Get slice of time, z and (if provided) zdot from timeStart to timeEnd.
+
+    Parameters
+    ----------
+    time : ndarray
+        array of time values 
+    z : ndarray
+        array of z values
+    zdot : ndarray, optional
+        array of zdot (velocity) values.
+    timeStart : float, optional
+        time at which to start the slice.
+        Defaults to beginnging of time trace
+    timeEnd : float, optional
+        time at which to end the slide.
+        Defaults to end of time trace
+
+    Returns
+    -------
+    time_sliced : ndarray
+        array of time values from timeStart to timeEnd
+    z_sliced : ndarray
+        array of z values from timeStart to timeEnd
+    zdot_sliced : ndarray
+        array of zdot values from timeStart to timeEnd.
+        None if zdot not provided
+
+    """
+    if timeStart == None:
+        timeStart = time[0]
+    if timeEnd == None:
+        timeEnd = time[-1]
+
+    StartIndex = _np.where(time == take_closest(time, timeStart))[0][0]
+    EndIndex = _np.where(time == take_closest(time, timeEnd))[0][0]
+
+    time_sliced = time[StartIndex:EndIndex]
+    z_sliced = z[StartIndex:EndIndex]
+
+    if zdot != None:
+        zdot_sliced = zdot[StartIndex:EndIndex]
+    else:
+        zdot_sliced = None    
+    
+    return time_sliced, z_sliced, zdot_sliced
+
+    
 def calc_radius_from_mass(Mass):
     """
     Given the mass of a particle calculates the 
