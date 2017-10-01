@@ -2030,6 +2030,12 @@ def animate_2Dscatter(x, y, NumAnimatedPoints=50, NTrailPoints=20,
     xlabel="", ylabel="",
     xlims=None, ylims=None, filename="testAnim.mp4", 
     bitrate=1e5, dpi=5e2, fps=30, figsize = [6, 6]):
+    """
+    Animates x and y - where x and y are 1d arrays of x and y 
+    positions and it plots x[i:i+NTrailPoints] and y[i:i+NTrailPoints]
+    against each other and iterates through i. 
+
+    """
     fig, ax = _plt.subplots(figsize = figsize)
 
     alphas = _np.linspace(0.1, 1, NTrailPoints)
@@ -2067,6 +2073,46 @@ def animate_2Dscatter(x, y, NumAnimatedPoints=50, NTrailPoints=20,
                                   interval=25, blit=True, fargs=[scatter])
     ani.save(filename, bitrate=bitrate, dpi=dpi, fps=fps)
     return None
+
+def animate_2Dscatter_slices(x, y, NumAnimatedPoints=50, 
+    xlabel="", ylabel="",
+    xlims=None, ylims=None, filename="testAnim.mp4", 
+    bitrate=1e5, dpi=5e2, fps=30, figsize = [6, 6]):
+    """
+    Animates x and y - where x and y are both 2d arrays of x and y 
+    positions and it plots x[i] against y[i] and iterates through i. 
+
+    """
+    fig, ax = _plt.subplots(figsize = figsize)
+
+    scatter = ax.scatter(x[0], y[0])
+
+    if xlims == None:
+        xlims = (np.min(x), np.max(x))
+    if ylims == None:
+        ylims = (np.min(y), np.max(y))
+
+    ax.set_xlim(xlims)
+    ax.set_ylim(ylims)
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+
+    def animate(i, scatter):
+        scatter.axes.clear() # clear old scatter object
+        scatter = ax.scatter(x[i], y[i])
+        # create new scatter with updated data
+        ax.set_xlim(xlims)
+        ax.set_ylim(ylims)
+        ax.set_xlabel(xlabel)
+        ax.set_ylabel(ylabel)
+        return scatter,
+
+
+    ani = _animation.FuncAnimation(fig, animate, _np.arange(1, NumAnimatedPoints),
+                                  interval=25, blit=True, fargs=[scatter])
+    ani.save(filename, bitrate=bitrate, dpi=dpi, fps=fps)
+    return None
+
 
 def IFFT_filter(Signal, SampleFreq, lowerFreq, upperFreq):
     """
