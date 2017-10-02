@@ -966,7 +966,7 @@ class DataObject():
         VelArray : ndarray
             Array of velocity of the particle in time
         """
-        Pos, _, fig, ax = self.filter_data(
+        _, Pos, fig, ax = self.filter_data(
             freq, FractionOfSampleFreq, PeakWidth, MakeFig=ShowPSD, ShowFig=ShowPSD, timeStart=timeStart, timeEnd=timeEnd)
 
         Pos = Pos[PointsOfPadding : -PointsOfPadding+1]
