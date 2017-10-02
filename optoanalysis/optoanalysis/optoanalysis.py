@@ -1088,8 +1088,6 @@ def load_data(Filepath, ObjectType='data', RelativeChannelNo=None, calcPSD=True,
     return data
 
 
-
-
 def multi_load_data(Channel, RunNos, RepeatNos, directoryPath='.', calcPSD=True, NPerSegmentPSD=1000000):
     """
     Lets you load multiple datasets at once assuming they have a 
