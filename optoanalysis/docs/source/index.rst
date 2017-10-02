@@ -23,8 +23,6 @@ If you use this package in any academic work it would be very appretiated if you
    :caption: Documentation:
 
    optoanalysis
-   optoanalysis.sim_data
-   optoanalysis.sde_solver
    optoanalysis.thermo
    optoanalysis.LeCroy
    optoanalysis.Saleae
