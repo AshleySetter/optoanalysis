@@ -27,6 +27,10 @@ from functools import partial as _partial
 from frange import frange
 from scipy.constants import Boltzmann, pi
 from os.path import exists as _does_file_exist
+import gc
+
+#cpu_count = _cpu_count()
+#workerPool = _Pool(cpu_count)
 
 _mpl.rcParams['lines.markeredgewidth'] = 1 # set default markeredgewidth to 1 overriding seaborn's default value of 0
 _sns.set_style("whitegrid")
@@ -1128,13 +1132,14 @@ def multi_load_data(Channel, RunNos, RepeatNos, directoryPath='.', calcPSD=True,
             files_CorrectRunNo, '*REPEAT*0{}.*'.format(RepeatNo))
         for file_ in files_match:
             files_CorrectRepeatNo.append(file_)
-    cpu_count = _cpu_count()
-    workerPool = _Pool(cpu_count)
-    # for filepath in files_CorrectRepeatNo:
-    #    print(filepath)
-    #    data.append(load_data(filepath))
-    load_data_partial = _partial(load_data, calcPSD=calcPSD, NPerSegmentPSD=NPerSegmentPSD)
-    data = workerPool.map(load_data_partial, files_CorrectRepeatNo)
+
+    data = []
+    for filepath in files_CorrectRepeatNo:
+        data.append(load_data(filepath, calcPSD=calcPSD, NPerSegmentPSD=NPerSegmentPSD))
+       
+    #with _Pool(cpu_count) as workerPool:
+        #load_data_partial = _partial(load_data, calcPSD=calcPSD, NPerSegmentPSD=NPerSegmentPSD)
+        #data = workerPool.map(load_data_partial, files_CorrectRepeatNo)
     return data
 
 def multi_load_data_custom(Channel, TraceTitle, RunNos, directoryPath='.', calcPSD=True, NPerSegmentPSD=1000000):
@@ -1178,6 +1183,9 @@ def multi_load_data_custom(Channel, TraceTitle, RunNos, directoryPath='.', calcP
     #    data.append(load_data(filepath))
     load_data_partial = _partial(load_data, calcPSD=calcPSD, NPerSegmentPSD=NPerSegmentPSD)
     data = workerPool.map(load_data_partial, files_CorrectRunNo)
+    workerPool.close()
+    workerPool.terminate()
+    workerPool.join()
     return data
 
 def search_data_custom(Channel, TraceTitle, RunNos, directoryPath='.'):
@@ -2058,7 +2066,7 @@ def animate_2Dscatter(x, y, NumAnimatedPoints=50, NTrailPoints=20,
 
     def animate(i, scatter):
         scatter.axes.clear() # clear old scatter object
-        scatter = ax.scatter(x[i:i+NTrailPoints], y[i:i+NTrailPoints], color=rgba_colors) 
+        scatter = ax.scatter(x[i:i+NTrailPoints], y[i:i+NTrailPoints], color=rgba_colors, animated=True) 
         # create new scatter with updated data
         ax.set_xlim(xlims)
         ax.set_ylim(ylims)
@@ -2097,7 +2105,7 @@ def animate_2Dscatter_slices(x, y, NumAnimatedPoints=50,
 
     def animate(i, scatter):
         scatter.axes.clear() # clear old scatter object
-        scatter = ax.scatter(x[i], y[i])
+        scatter = ax.scatter(x[i], y[i], animated=True)
         # create new scatter with updated data
         ax.set_xlim(xlims)
         ax.set_ylim(ylims)
