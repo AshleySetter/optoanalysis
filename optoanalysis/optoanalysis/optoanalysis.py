@@ -3589,7 +3589,7 @@ def get_wigner(z, freq, sample_freq, histbins=200, show_plot=False):
 
     return iradon_output, bin_centres
 
-def plot_wigner3d(iradon_output, bin_centres, bin_centre_units="", cmap=_cm.cubehelix_r, view=(10, -45)):
+def plot_wigner3d(iradon_output, bin_centres, bin_centre_units="", cmap=_cm.cubehelix_r, view=(10, -45), figsize=(10, 10)):
     """
     Plots the wigner space representation as a 3D surface plot.
 
@@ -3605,6 +3605,8 @@ def plot_wigner3d(iradon_output, bin_centres, bin_centre_units="", cmap=_cm.cube
         color map to use for Wigner
     view : tuple, optional (default=(10, -45))
         view angle for 3d wigner plot
+    figsize : tuple, optional (default=(10, 10))
+        tuple defining size of figure created
 
     Returns
     -------
@@ -3614,7 +3616,7 @@ def plot_wigner3d(iradon_output, bin_centres, bin_centre_units="", cmap=_cm.cube
         axes containing the object
 
     """
-    fig = _plt.figure(figsize=[15, 15])
+    fig = _plt.figure(figsize=figsize)
     ax = fig.add_subplot(111, projection='3d')
 
     resid1 = iradon_output.sum(axis=0)
@@ -3650,7 +3652,7 @@ def plot_wigner3d(iradon_output, bin_centres, bin_centre_units="", cmap=_cm.cube
     return fig, ax
 
 
-def plot_wigner2d(iradon_output, bin_centres, cmap=_cm.cubehelix_r):
+def plot_wigner2d(iradon_output, bin_centres, cmap=_cm.cubehelix_r, figsize=(6, 6)):
     """
     Plots the wigner space representation as a 2D heatmap.
 
@@ -3662,6 +3664,8 @@ def plot_wigner2d(iradon_output, bin_centres, cmap=_cm.cubehelix_r):
         positions of the bin centres
     cmap : matplotlib.cm.cmap, optional (default=cm.cubehelix_r)
         color map to use for Wigner
+    figsize : tuple, optional (default=(6, 6))
+        tuple defining size of figure created
 
     Returns
     -------
@@ -3687,7 +3691,7 @@ def plot_wigner2d(iradon_output, bin_centres, cmap=_cm.cubehelix_r):
     rect_histy = [left_h, bottom, 0.2, height]
 
     # start with a rectangular Figure
-    fig = _plt.figure(figsize=[6, 6])
+    fig = _plt.figure(figsize=figsize)
 
     axWigner = _plt.axes(rect_wigner)
     axHistx = _plt.axes(rect_histx)
