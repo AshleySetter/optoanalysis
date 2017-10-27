@@ -3694,8 +3694,9 @@ def plot_wigner2d(iradon_output, bin_centres, cmap=_cm.cubehelix_r):
     axHisty = _plt.axes(rect_histy)
 
     pcol = axWigner.pcolor(xx, yy, iradon_output, cmap=cmap)
-    axHistx.bar(bin_centres, resid2)
-    axHisty.bar(resid1, bin_centres)
+    binwidth = bin_centres[1] - bin_centres[0]
+    axHistx.bar(bin_centres, resid2, binwidth)
+    axHisty.barh(bin_centres, resid1, binwidth)
 
     _plt.setp(axHistx.get_xticklabels(), visible=False) # sets x ticks to be invisible while keeping gridlines
     _plt.setp(axHisty.get_yticklabels(), visible=False) # sets x ticks to be invisible while keeping gridlines
