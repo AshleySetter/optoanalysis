@@ -3542,7 +3542,7 @@ def histogram_phase(phase_slices, phase, histbins=200, show_plot=False):
 
     return counts_array_transposed, bin_edges
 
-def get_wigner(z, freq, sample_freq, histbins=200):
+def get_wigner(z, freq, sample_freq, histbins=200, show_plot=False):
     """
     Calculates an approximation to the wigner quasi-probability distribution
     by splitting the z position array into slices of the length of one period
@@ -3563,6 +3563,8 @@ def get_wigner(z, freq, sample_freq, histbins=200):
         sample frequency of the z array
     histbins : int, optional (default=200)
         number of bins to use in histogramming data for each phase
+    show_plot : bool, optional (default=False)
+        Whether or not to plot the phase distribution
 
     Returns
     -------
@@ -3575,21 +3577,21 @@ def get_wigner(z, freq, sample_freq, histbins=200):
 
     phase, phase_slices = extract_slices(z, freq, sample_freq, show_plot=False)
 
-    counts_array, bin_edges = histogram_phase(phase_slices, phase, histbins, show_plot=True)
+    counts_array, bin_edges = histogram_phase(phase_slices, phase, histbins, show_plot=show_plot)
 
     diff = bin_edges[1] - bin_edges[0]
     bin_centres = bin_edges[:-1] + diff
 
     iradon_output = _iradon_sart(counts_array, theta=phase)
 
-    _plt.imshow(iradon_output, extent=[bin_centres[0], bin_centres[-1], bin_centres[0], bin_centres[-1]])
-    _plt.show()
+    #_plt.imshow(iradon_output, extent=[bin_centres[0], bin_centres[-1], bin_centres[0], bin_centres[-1]])
+    #_plt.show()
 
     return iradon_output, bin_centres
 
-def plot_wigner(iradon_output, bin_centres, bin_centre_units="", cmap=_cm.cubehelix_r, view=[10, -45]):
+def plot_wigner3d(iradon_output, bin_centres, bin_centre_units="", cmap=_cm.cubehelix_r, view=(10, -45)):
     """
-    Plots the wigner space representation.
+    Plots the wigner space representation as a 3D surface plot.
 
     Parameters
     ----------
@@ -3599,6 +3601,10 @@ def plot_wigner(iradon_output, bin_centres, bin_centre_units="", cmap=_cm.cubehe
         positions of the bin centres
     bin_centre_units : string, optional (default="")
         Units in which the bin_centres are given
+    cmap : matplotlib.cm.cmap, optional (default=cm.cubehelix_r)
+        color map to use for Wigner
+    view : tuple, optional (default=(10, -45))
+        view angle for 3d wigner plot
 
     Returns
     -------
@@ -3642,3 +3648,74 @@ def plot_wigner(iradon_output, bin_centres, bin_centre_units="", cmap=_cm.cubehe
     ax.view_init(view[0], view[1])
 
     return fig, ax
+
+
+def plot_wigner2d(iradon_output, bin_centres, cmap=_cm.cubehelix_r):
+    """
+    Plots the wigner space representation as a 2D heatmap.
+
+    Parameters
+    ----------
+    iradon_output : ndarray
+        2d array of size (histbins x histbins)
+    bin_centres : ndarray
+        positions of the bin centres
+    cmap : matplotlib.cm.cmap, optional (default=cm.cubehelix_r)
+        color map to use for Wigner
+
+    Returns
+    -------
+    fig : matplotlib.figure.Figure object
+        figure showing the wigner function
+    ax : matplotlib.axes.Axes object
+        axes containing the object
+
+    """
+    xx, yy = _np.meshgrid(bin_centres, bin_centres)
+    resid1 = iradon_output.sum(axis=0)
+    resid2 = iradon_output.sum(axis=1)
+    
+    wigner_marginal_seperation = 0.001
+    left, width = 0.2, 0.65-0.1 # left = left side of hexbin and hist_x
+    bottom, height = 0.1, 0.65-0.1 # bottom = bottom of hexbin and hist_y
+    bottom_h = height + bottom + wigner_marginal_seperation
+    left_h = width + left + wigner_marginal_seperation
+    cbar_pos = [0.03, bottom, 0.05, 0.02+width]
+
+    rect_wigner = [left, bottom, width, height]
+    rect_histx = [left, bottom_h, width, 0.2]
+    rect_histy = [left_h, bottom, 0.2, height]
+
+    # start with a rectangular Figure
+    fig = _plt.figure(figsize=[6, 6])
+
+    axWigner = _plt.axes(rect_wigner)
+    axHistx = _plt.axes(rect_histx)
+    axHisty = _plt.axes(rect_histy)
+
+    pcol = axWigner.pcolor(xx, yy, iradon_output, cmap=cmap)
+    axHistx.bar(bin_centres, resid2)
+    axHisty.bar(resid1, bin_centres)
+
+    _plt.setp(axHistx.get_xticklabels(), visible=False) # sets x ticks to be invisible while keeping gridlines
+    _plt.setp(axHisty.get_yticklabels(), visible=False) # sets x ticks to be invisible while keeping gridlines
+    for tick in axHisty.get_xticklabels():
+        tick.set_rotation(-90)
+
+
+    cbaraxes = fig.add_axes(cbar_pos)  # This is the position for the colorbar
+    #cbar = _plt.colorbar(axp, cax = cbaraxes)
+    cbar = fig.colorbar(pcol, cax = cbaraxes, drawedges=False) #, orientation="horizontal"
+    cbar.solids.set_edgecolor("face")
+    cbar.solids.set_rasterized(True)
+    cbar.ax.set_yticklabels(cbar.ax.yaxis.get_ticklabels(), y=0, rotation=45)
+    #cbar.set_label(cbarlabel, labelpad=-25, y=1.05, rotation=0)
+
+    plotlimits = _np.max(_np.abs(bin_centres))
+    axWigner.axis((-plotlimits, plotlimits, -plotlimits, plotlimits))
+    axHistx.set_xlim(axWigner.get_xlim())
+    axHisty.set_ylim(axWigner.get_ylim())
+
+    return fig, axWigner, axHistx, axHisty, cbar
+
+
