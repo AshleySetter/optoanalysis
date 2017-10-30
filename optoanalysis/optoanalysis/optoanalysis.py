@@ -3574,7 +3574,8 @@ def get_wigner(z, freq, sample_freq, histbins=200, show_plot=False):
         positions of the bin centres
 
     """
-
+    _warnings.warn("Wigner function is only correct/valid for a system under free evolution!", UserWarning)
+    
     phase, phase_slices = extract_slices(z, freq, sample_freq, show_plot=False)
 
     counts_array, bin_edges = histogram_phase(phase_slices, phase, histbins, show_plot=show_plot)
