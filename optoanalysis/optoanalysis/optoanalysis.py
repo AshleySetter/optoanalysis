@@ -326,7 +326,7 @@ class DataObject():
         ax.set_xlabel("Frequency ({})".format(units))
         ax.set_xlim(xlim)
         ax.grid(which="major")
-        ax.set_ylabel("$S_{xx}$ ($v^2/Hz$)")
+        ax.set_ylabel("$S_{xx}$ ($V^2/Hz$)")
         if show_fig == True:
             _plt.show()
         return fig, ax
