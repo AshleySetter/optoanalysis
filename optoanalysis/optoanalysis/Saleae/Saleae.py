@@ -119,4 +119,4 @@ def interpret_waveform(fileContent, RelativeChannelNo):
 
     time = _np.arange(0, SampleTime*LenOf1Channel, SampleTime)
 
-    return time, data, SampleTime
+    return (0,SampleTime*LenOf1Channel,SampleTime), data
