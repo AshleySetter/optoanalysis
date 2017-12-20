@@ -2597,6 +2597,52 @@ def multi_subplots_time(DataArray, SubSampleN=1, units='s', xlim=None, ylim=None
         _plt.show()
     return fig, axs
 
+def arrange_plots_on_A4(FigureAxTupleArray, title='', SubtitleArray = [], show_fig=True):
+    """
+    Arranges plots, given in an array of tuples consisting of fig and axs, 
+    onto a subplot-figure with a landscape-A4 format
+
+    Parameters
+    ----------
+    FigureAxTupleArray : array-like
+        array of Tuples(fig, axs) outputted from the other plotting funtions 
+        inside optoanalysis
+    title : string, optional
+        string for the global title of the overall combined figure 
+    SubtitleArray : array-like, optional
+        array of titles for each figure-set to be plotted, i.e. subplots 
+    show_fig : bool, optional
+       If True runs plt.show() before returning figure
+       if False it just returns the figure object.
+       (the default is True, it shows the figure) 
+
+    Returns
+    -------
+    fig : matplotlib.figure.Figure object
+        The figure object created
+    axs : list of matplotlib.axes.Axes objects
+        The list of axes object created
+    """
+    if SubtitleArray == []:
+        SubtitleArray = ["DataSet {}".format(i)
+                      for i in _np.arange(0, len(FigureAxTupleArray), 1)]
+    combinedFig=_plt.figure(figsize=(11.69,8.27))
+    for index in range(len(FigureAxTupleArray)):
+        individualPlot = FigureAxTupleArray[index]
+        individualPlot[0].set_size_inches((11.69,8.27))
+        ax = individualPlot[1]
+        ax.set_title('')
+        ax.remove()
+        ax.figure = combinedFig
+        ax.change_geometry(round(len(FigureAxTupleArray)/2),2,1+index)
+        combinedFig.axes.append(ax)
+        combinedFig.add_axes(ax)
+        #_plt.close(individualPlot[0])
+    combinedFig.subplots_adjust(hspace=.5)
+    combinedFig.suptitle(title)
+    if show_fig == True:
+        _plt.show()
+    return combinedFig
 
 def calc_PSD(Signal, SampleFreq, NPerSegment=1000000, window="hann"):
     """
