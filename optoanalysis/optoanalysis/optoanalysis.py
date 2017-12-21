@@ -2597,10 +2597,11 @@ def multi_subplots_time(DataArray, SubSampleN=1, units='s', xlim=None, ylim=None
         _plt.show()
     return fig, axs
 
-def arrange_plots_on_A4(FigureAxTupleArray, title='', SubtitleArray = [], show_fig=True):
+def arrange_plots_on_one_canvas(FigureAxTupleArray, title='', SubtitleArray = [], show_fig=True):
     """
     Arranges plots, given in an array of tuples consisting of fig and axs, 
-    onto a subplot-figure with a landscape-A4 format
+    onto a subplot-figure consisting of 2 horizontal times the lenght of the
+    passed (fig,axs)-array divided by 2 vertical subplots 
 
     Parameters
     ----------
@@ -2624,21 +2625,22 @@ def arrange_plots_on_A4(FigureAxTupleArray, title='', SubtitleArray = [], show_f
         The list of axes object created
     """
     if SubtitleArray == []:
-        SubtitleArray = ["DataSet {}".format(i)
+        SubtitleArray = ["Plot {}".format(i)
                       for i in _np.arange(0, len(FigureAxTupleArray), 1)]
-    combinedFig=_plt.figure(figsize=(11.69,8.27))
+    SingleFigSize = FigureAxTupleArray[0][0].get_size_inches()
+    combinedFig=_plt.figure(figsize=(2*SingleFigSize[0],_np.ceil(len(FigureAxTupleArray)/2)*SingleFigSize[1]))
     for index in range(len(FigureAxTupleArray)):
         individualPlot = FigureAxTupleArray[index]
-        individualPlot[0].set_size_inches((11.69,8.27))
+        individualPlot[0].set_size_inches((2*SingleFigSize[0],_np.ceil(len(FigureAxTupleArray)/2)*SingleFigSize[1]))
         ax = individualPlot[1]
-        ax.set_title('')
+        ax.set_title(SubtitleArray[index])
         ax.remove()
         ax.figure = combinedFig
-        ax.change_geometry(round(len(FigureAxTupleArray)/2),2,1+index)
+        ax.change_geometry(int(_np.ceil(len(FigureAxTupleArray)/2)),2,1+index)
         combinedFig.axes.append(ax)
         combinedFig.add_axes(ax)
         #_plt.close(individualPlot[0])
-    combinedFig.subplots_adjust(hspace=.5)
+    combinedFig.subplots_adjust(hspace=.4)
     combinedFig.suptitle(title)
     if show_fig == True:
         _plt.show()
