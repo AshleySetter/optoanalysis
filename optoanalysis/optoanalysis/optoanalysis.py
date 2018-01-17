@@ -22,11 +22,17 @@ from scipy.signal import hilbert as _hilbert
 import matplotlib as _mpl
 from scipy.io.wavfile import write as _writewav
 from matplotlib import colors as _mcolors
+from matplotlib import cm as _cm
 import qplots as _qplots
 from functools import partial as _partial
 from frange import frange
 from scipy.constants import Boltzmann, pi
 from os.path import exists as _does_file_exist
+from skimage.transform import iradon_sart as _iradon_sart
+import gc
+
+#cpu_count = _cpu_count()
+#workerPool = _Pool(cpu_count)
 
 _mpl.rcParams['lines.markeredgewidth'] = 1 # set default markeredgewidth to 1 overriding seaborn's default value of 0
 _sns.set_style("whitegrid")
@@ -183,7 +189,7 @@ class DataObject():
 
         return time[StartIndex:EndIndex], self.voltage[StartIndex:EndIndex]
     
-    def plot_time_data(self, timeStart=None, timeEnd=None, units='s', ShowFig=True):
+    def plot_time_data(self, timeStart=None, timeEnd=None, units='s', show_fig=True):
         """
         plot time data against voltage data.
 
@@ -197,16 +203,16 @@ class DataObject():
             By default it uses the last time point
         units : string, optional
             units of time to plot on the x axis - defaults to s
-        ShowFig : bool, optional
+        show_fig : bool, optional
             If True runs plt.show() before returning figure
             if False it just returns the figure object.
             (the default is True, it shows the figure)
 
         Returns
         -------
-        fig : plt.figure
+        fig : matplotlib.figure.Figure object
             The figure object created
-        ax : fig.add_subplot(111)
+        ax : matplotlib.axes.Axes object
             The subplot object created
         """
         unit_prefix = units[:-1] # removed the last char
@@ -227,7 +233,7 @@ class DataObject():
         ax.set_xlabel("time ({})".format(units))
         ax.set_ylabel("voltage (V)")
         ax.set_xlim([timeStart, timeEnd])
-        if ShowFig == True:
+        if show_fig == True:
             _plt.show()
         return fig, ax
 
@@ -281,7 +287,7 @@ class DataObject():
 
         return freqs, PSD
 
-    def plot_PSD(self, xlim=None, units="kHz", ShowFig=True, timeStart=None, timeEnd=None, *args, **kwargs):
+    def plot_PSD(self, xlim=None, units="kHz", show_fig=True, timeStart=None, timeEnd=None, *args, **kwargs):
         """
         plot the pulse spectral density.
 
@@ -292,16 +298,16 @@ class DataObject():
             Default value is [0, SampleFreq/2]
         units : string, optional
             Units of frequency to plot on the x axis - defaults to kHz
-        ShowFig : bool, optional
+        show_fig : bool, optional
             If True runs plt.show() before returning figure
             if False it just returns the figure object.
             (the default is True, it shows the figure)
 
         Returns
         -------
-        fig : plt.figure
+        fig : matplotlib.figure.Figure object
             The figure object created
-        ax : fig.add_subplot(111)
+        ax : matplotlib.axes.Axes object
             The subplot object created
         """
         #        self.get_PSD()
@@ -320,8 +326,8 @@ class DataObject():
         ax.set_xlabel("Frequency ({})".format(units))
         ax.set_xlim(xlim)
         ax.grid(which="major")
-        ax.set_ylabel("$S_{xx}$ ($v^2/Hz$)")
-        if ShowFig == True:
+        ax.set_ylabel("$S_{xx}$ ($V^2/Hz$)")
+        if show_fig == True:
             _plt.show()
         return fig, ax
 
@@ -348,7 +354,7 @@ class DataObject():
         AreaUnderPSD = sum(self.PSD[index_startAreaPSD: index_endAreaPSD])
         return AreaUnderPSD
 
-    def get_fit(self, TrapFreq, WidthOfPeakToFit, A_Initial=0.1e10, Gamma_Initial=400, Silent=False, MakeFig=True, ShowFig=True):
+    def get_fit(self, TrapFreq, WidthOfPeakToFit, A_Initial=0.1e10, Gamma_Initial=400, Silent=False, MakeFig=True, show_fig=True):
         """
         Function that fits to a peak to the PSD to extract the 
         frequency, A factor and Gamma (damping) factor.
@@ -372,7 +378,7 @@ class DataObject():
         MakeFig : bool, optional
             Whether to construct and return the figure object showing
             the fitting. defaults to True
-        ShowFig : bool, optional
+        show_fig : bool, optional
             Whether to show the figure object when it has been created.
             defaults to True
 
@@ -404,10 +410,10 @@ class DataObject():
         """
         if MakeFig == True:
             Params, ParamsErr, fig, ax = fit_PSD(
-                self, WidthOfPeakToFit, TrapFreq, A_Initial, Gamma_Initial, MakeFig=MakeFig, ShowFig=ShowFig)
+                self, WidthOfPeakToFit, TrapFreq, A_Initial, Gamma_Initial, MakeFig=MakeFig, show_fig=show_fig)
         else:
             Params, ParamsErr, _ , _ = fit_PSD(
-                self, WidthOfPeakToFit, TrapFreq, A_Initial, Gamma_Initial, MakeFig=MakeFig, ShowFig=ShowFig)
+                self, WidthOfPeakToFit, TrapFreq, A_Initial, Gamma_Initial, MakeFig=MakeFig, show_fig=show_fig)
 
         if Silent == False:
             print("\n")
@@ -428,7 +434,7 @@ class DataObject():
         else:
             return self.A, self.OmegaTrap, self.Gamma, None, None
 
-    def get_fit_from_peak(self, lowerLimit, upperLimit, NumPointsSmoothing=1, Silent=False, MakeFig=True, ShowFig=True):
+    def get_fit_from_peak(self, lowerLimit, upperLimit, NumPointsSmoothing=1, Silent=False, MakeFig=True, show_fig=True):
         """
         Finds approximate values for the peaks central frequency, height, 
         and FWHM by looking for the heighest peak in the frequency range defined 
@@ -447,7 +453,7 @@ class DataObject():
             peak.
         Silent : bool, optional
             Whether it prints the values fitted or is silent.
-        ShowFig : bool, optional
+        show_fig : bool, optional
             Whether it makes and shows the figure object or not.
 
         Returns
@@ -510,7 +516,7 @@ class DataObject():
                                Gamma_Initial=approx_Gamma,
                                Silent=Silent,
                                MakeFig=MakeFig,
-                               ShowFig=ShowFig)
+                               show_fig=show_fig)
         except (TypeError, ValueError) as e: 
             _warnings.warn("range is too small to fit, returning NaN", UserWarning)
             val = _uncertainties.ufloat(_np.NaN, _np.NaN)
@@ -525,7 +531,7 @@ class DataObject():
 
         return OmegaTrap, A, Gamma, fig, ax 
 
-    def get_fit_auto(self, CentralFreq, MaxWidth=15000, MinWidth=500, WidthIntervals=500, MakeFig=True, ShowFig=True):
+    def get_fit_auto(self, CentralFreq, MaxWidth=15000, MinWidth=500, WidthIntervals=500, MakeFig=True, show_fig=True):
         """
         Tries a range of regions to search for peaks and runs the one with the least error
         and returns the parameters with the least errors.
@@ -540,7 +546,7 @@ class DataObject():
             The minimum bandwidth to use for the fitting of the peaks.
         WidthIntervals : float, optional
             The intervals to use in going between the MaxWidth and MinWidth.
-        ShowFig : bool, optional
+        show_fig : bool, optional
             Whether to plot and show the final (best) fitting or not.
 
         Returns
@@ -568,7 +574,7 @@ class DataObject():
                         CentralFreq + Width / 2,
                         Silent=True,
                         MakeFig=False,
-                        ShowFig=False)
+                        show_fig=False)
             except RuntimeError:
                 _warnings.warn("Couldn't find good fit with width {}".format(
                     Width), RuntimeWarning)
@@ -588,7 +594,7 @@ class DataObject():
                 = self.get_fit_from_peak(CentralFreq - BestWidth / 2,
                                          CentralFreq + BestWidth / 2,
                                          MakeFig=MakeFig,
-                                         ShowFig=ShowFig)
+                                         show_fig=show_fig)
         except UnboundLocalError:
             raise ValueError("A best width was not found, try increasing the number of widths tried by either decreasing WidthIntervals or MinWidth or increasing MaxWidth")
         OmegaTrap = self.OmegaTrap
@@ -630,7 +636,7 @@ class DataObject():
 
         return self.Radius, self.Mass, self.ConvFactor
 
-    def extract_ZXY_motion(self, ApproxZXYFreqs, uncertaintyInFreqs, ZXYPeakWidths, subSampleFraction=1, NPerSegmentPSD=1000000, MakeFig=True, ShowFig=True):
+    def extract_ZXY_motion(self, ApproxZXYFreqs, uncertaintyInFreqs, ZXYPeakWidths, subSampleFraction=1, NPerSegmentPSD=1000000, MakeFig=True, show_fig=True):
         """
         Extracts the x, y and z signals (in volts) from the voltage signal. Does this by finding the highest peaks in the signal about the approximate frequencies, using the uncertaintyinfreqs parameter as the width it searches. It then uses the ZXYPeakWidths to construct bandpass IIR filters for each frequency and filtering them. If too high a sample frequency has been used to collect the data scipy may not be able to construct a filter good enough, in this case increasing the subSampleFraction may be nessesary.
         
@@ -650,7 +656,7 @@ class DataObject():
             fraction.
         NPerSegmentPSD : int, optional
             NPerSegment to pass to scipy.signal.welch to calculate the PSD
-        ShowFig : bool, optional
+        show_fig : bool, optional
             Whether to show the figures produced of the PSD of
             the original signal along with the filtered x, y and z.
 
@@ -676,14 +682,14 @@ class DataObject():
             self, zf, xf, yf, bandwidth=uncertaintyInFreqs)
         [zwidth, xwidth, ywidth] = ZXYPeakWidths
         self.zVolts, self.xVolts, self.yVolts, time, fig, ax = get_ZXY_data(
-            self, zf, xf, yf, subSampleFraction, zwidth, xwidth, ywidth, MakeFig=MakeFig, ShowFig=ShowFig, NPerSegmentPSD=NPerSegmentPSD)
+            self, zf, xf, yf, subSampleFraction, zwidth, xwidth, ywidth, MakeFig=MakeFig, show_fig=show_fig, NPerSegmentPSD=NPerSegmentPSD)
         return self.zVolts, self.xVolts, self.yVolts, time, fig, ax
 
     def filter_data(self, freq, FractionOfSampleFreq=1, PeakWidth=10000,
                   filterImplementation="filtfilt",
                   timeStart=None, timeEnd=None,
                     NPerSegmentPSD=1000000,
-                  MakeFig=True, ShowFig=True):
+                  MakeFig=True, show_fig=True):
         """
         filter out data about a central frequency with some bandwidth using an IIR filter.
     
@@ -714,7 +720,7 @@ class DataObject():
         MakeFig : bool, optional
             If True - generate figure showing filtered and unfiltered PSD
             Defaults to True.
-        ShowFig : bool, optional
+        show_fig : bool, optional
             If True - plot unfiltered and filtered PSD
             Defaults to True.
     
@@ -774,12 +780,12 @@ class DataObject():
         else:
             fig = None
             ax = None
-        if ShowFig == True:
+        if show_fig == True:
             _plt.show()
         timedata = time[StartIndex: EndIndex][0::FractionOfSampleFreq]
         return timedata, filteredData, fig, ax
 
-    def plot_phase_space_sns(self, freq, ConvFactor, PeakWidth=10000, FractionOfSampleFreq=1, kind="hex", timeStart=None, timeEnd =None, PointsOfPadding=500, units="nm", logscale=False, cmap=None, marginalColor=None, gridsize=200, ShowFig=True, ShowPSD=False, alpha=0.5, *args, **kwargs):
+    def plot_phase_space_sns(self, freq, ConvFactor, PeakWidth=10000, FractionOfSampleFreq=1, kind="hex", timeStart=None, timeEnd =None, PointsOfPadding=500, units="nm", logscale=False, cmap=None, marginalColor=None, gridsize=200, show_fig=True, ShowPSD=False, alpha=0.5, *args, **kwargs):
         """
         Plots the phase space of a peak in the PSD.
         
@@ -813,14 +819,13 @@ class DataObject():
             color to use for marginal plots
         gridsize : int, optional
             size of the grid to use with kind="hex"
-        ShowFig : bool, optional
+        show_fig : bool, optional
             Whether to show the figure before exiting the function
             Defaults to True.
         ShowPSD : bool, optional
             Where to show the PSD of the unfiltered and the 
             filtered signal used to make the phase space
             plot. Defaults to False.
-        
 
         Returns
         -------
@@ -898,13 +903,13 @@ class DataObject():
 
         fig = JP1.fig
         
-        if ShowFig == True:
+        if show_fig == True:
             print("Showing Phase Space")
             _plt.show()
             
         return fig, JP1
  
-    def plot_phase_space(self, freq, ConvFactor, PeakWidth=10000, FractionOfSampleFreq=1, timeStart=None, timeEnd =None, PointsOfPadding=500, units="nm", ShowFig=True, ShowPSD=False, xlabel='', ylabel='', *args, **kwargs):
+    def plot_phase_space(self, freq, ConvFactor, PeakWidth=10000, FractionOfSampleFreq=1, timeStart=None, timeEnd =None, PointsOfPadding=500, units="nm", show_fig=True, ShowPSD=False, xlabel='', ylabel='', *args, **kwargs):
         unit_prefix = units[:-1]
 
         xlabel = xlabel + "({})".format(units)
@@ -922,7 +927,7 @@ class DataObject():
         axscatter.set_xlabel(xlabel)
         axscatter.set_ylabel(ylabel)
 
-        if ShowFig == True:
+        if show_fig == True:
             _plt.show()
         return fig, axscatter, axhistx, axhisty, cb
     
@@ -967,7 +972,7 @@ class DataObject():
             Array of velocity of the particle in time
         """
         _, Pos, fig, ax = self.filter_data(
-            freq, FractionOfSampleFreq, PeakWidth, MakeFig=ShowPSD, ShowFig=ShowPSD, timeStart=timeStart, timeEnd=timeEnd)
+            freq, FractionOfSampleFreq, PeakWidth, MakeFig=ShowPSD, show_fig=ShowPSD, timeStart=timeStart, timeEnd=timeEnd)
 
         Pos = Pos[PointsOfPadding : -PointsOfPadding+1]
         time = self.time.get_array()[::FractionOfSampleFreq][PointsOfPadding : -PointsOfPadding+1]
@@ -1087,6 +1092,47 @@ def load_data(Filepath, ObjectType='data', RelativeChannelNo=None, calcPSD=True,
         pass    
     return data
 
+def search_data_std(Channel, RunNos, RepeatNos, directoryPath='.'):
+    """
+    Lets you find multiple datasets at once assuming they have a 
+    filename which contains a pattern of the form:
+    CH<ChannelNo>_RUN00...<RunNo>_REPEAT00...<RepeatNo>    
+
+    Parameters
+    ----------
+    Channel : int
+        The channel you want to load
+    RunNos : sequence
+        Sequence of run numbers you want to load
+    RepeatNos : sequence
+        Sequence of repeat numbers you want to load
+    directoryPath : string, optional
+        The path to the directory housing the data
+        The default is the current directory
+
+    Returns
+    -------
+    Data_filepaths : list
+        A list containing the filepaths to the matching files
+    """
+    files = glob('{}/*'.format(directoryPath))
+    files_CorrectChannel = []
+    for file_ in files:
+        if 'CH{}'.format(Channel) in file_:
+            files_CorrectChannel.append(file_)
+    files_CorrectRunNo = []
+    for RunNo in RunNos:
+        files_match = _fnmatch.filter(
+            files_CorrectChannel, '*RUN*0{}_*'.format(RunNo))
+        for file_ in files_match:
+            files_CorrectRunNo.append(file_)
+    files_CorrectRepeatNo = []
+    for RepeatNo in RepeatNos:
+        files_match = _fnmatch.filter(
+            files_CorrectRunNo, '*REPEAT*0{}.*'.format(RepeatNo))
+        for file_ in files_match:
+            files_CorrectRepeatNo.append(file_)
+    return files_CorrectRepeatNo
 
 def multi_load_data(Channel, RunNos, RepeatNos, directoryPath='.', calcPSD=True, NPerSegmentPSD=1000000):
     """
@@ -1111,30 +1157,22 @@ def multi_load_data(Channel, RunNos, RepeatNos, directoryPath='.', calcPSD=True,
     Data : list
         A list containing the DataObjects that were loaded. 
     """
-    files = glob('{}/*'.format(directoryPath))
-    files_CorrectChannel = []
-    for file_ in files:
-        if 'CH{}'.format(Channel) in file_:
-            files_CorrectChannel.append(file_)
-    files_CorrectRunNo = []
-    for RunNo in RunNos:
-        files_match = _fnmatch.filter(
-            files_CorrectChannel, '*RUN*0{}_*'.format(RunNo))
-        for file_ in files_match:
-            files_CorrectRunNo.append(file_)
-    files_CorrectRepeatNo = []
-    for RepeatNo in RepeatNos:
-        files_match = _fnmatch.filter(
-            files_CorrectRunNo, '*REPEAT*0{}.*'.format(RepeatNo))
-        for file_ in files_match:
-            files_CorrectRepeatNo.append(file_)
+    matching_files = search_data_std(Channel=Channel, RunNos=RunNos, RepeatNos=RepeatNos, directoryPath=directoryPath)
+    #data = []
+    #for filepath in matching_files_:
+    #    data.append(load_data(filepath, calcPSD=calcPSD, NPerSegmentPSD=NPerSegmentPSD))
+
     cpu_count = _cpu_count()
     workerPool = _Pool(cpu_count)
-    # for filepath in files_CorrectRepeatNo:
-    #    print(filepath)
-    #    data.append(load_data(filepath))
     load_data_partial = _partial(load_data, calcPSD=calcPSD, NPerSegmentPSD=NPerSegmentPSD)
-    data = workerPool.map(load_data_partial, files_CorrectRepeatNo)
+    data = workerPool.map(load_data_partial, matching_files)
+    workerPool.close()
+    workerPool.terminate()
+    workerPool.join()
+       
+    #with _Pool(cpu_count) as workerPool:
+        #load_data_partial = _partial(load_data, calcPSD=calcPSD, NPerSegmentPSD=NPerSegmentPSD)
+        #data = workerPool.map(load_data_partial, files_CorrectRepeatNo)
     return data
 
 def multi_load_data_custom(Channel, TraceTitle, RunNos, directoryPath='.', calcPSD=True, NPerSegmentPSD=1000000):
@@ -1160,24 +1198,28 @@ def multi_load_data_custom(Channel, TraceTitle, RunNos, directoryPath='.', calcP
     Data : list
         A list containing the DataObjects that were loaded. 
     """
-    files = glob('{}/*'.format(directoryPath))
-    files_CorrectChannel = []
-    for file_ in files:
-        if 'C{}'.format(Channel) in file_:
-            files_CorrectChannel.append(file_)
-    files_CorrectRunNo = []
-    for RunNo in RunNos:
-        files_match = _fnmatch.filter(
-            files_CorrectChannel, '*C{}'.format(Channel)+TraceTitle+str(RunNo).zfill(5)+'.*')
-        for file_ in files_match:
-            files_CorrectRunNo.append(file_)
+#    files = glob('{}/*'.format(directoryPath))
+#    files_CorrectChannel = []
+#    for file_ in files:
+#        if 'C{}'.format(Channel) in file_:
+#           files_CorrectChannel.append(file_)
+#    files_CorrectRunNo = []
+#    for RunNo in RunNos:
+#        files_match = _fnmatch.filter(
+#            files_CorrectChannel, '*C{}'.format(Channel)+TraceTitle+str(RunNo).zfill(5)+'.*')
+#        for file_ in files_match:
+#            files_CorrectRunNo.append(file_)
+    matching_files = search_data_custom(Channel, TraceTitle, RunNos, directoryPath)
     cpu_count = _cpu_count()
     workerPool = _Pool(cpu_count)
     # for filepath in files_CorrectRepeatNo:
     #    print(filepath)
     #    data.append(load_data(filepath))
     load_data_partial = _partial(load_data, calcPSD=calcPSD, NPerSegmentPSD=NPerSegmentPSD)
-    data = workerPool.map(load_data_partial, files_CorrectRunNo)
+    data = workerPool.map(load_data_partial, matching_files)
+    workerPool.close()
+    workerPool.terminate()
+    workerPool.join()
     return data
 
 def search_data_custom(Channel, TraceTitle, RunNos, directoryPath='.'):
@@ -1400,7 +1442,7 @@ def _PSD_fitting_eqn(A, OmegaTrap, Gamma, omega):
     return A / ((OmegaTrap**2 - omega**2)**2 + omega**2 * (Gamma)**2)
 
 
-def fit_PSD(Data, bandwidth, TrapFreqGuess, AGuess=0.1e10, GammaGuess=400, MakeFig=True, ShowFig=True):
+def fit_PSD(Data, bandwidth, TrapFreqGuess, AGuess=0.1e10, GammaGuess=400, MakeFig=True, show_fig=True):
     """
     Fits theory PSD to Data. Assumes highest point of PSD is the
     trapping frequency.
@@ -1422,7 +1464,7 @@ def fit_PSD(Data, bandwidth, TrapFreqGuess, AGuess=0.1e10, GammaGuess=400, MakeF
     MakeFig : bool, optional
         Whether to construct and return the figure object showing
         the fitting. defaults to True
-    ShowFig : bool, optional
+    show_fig : bool, optional
         Whether to show the figure object when it has been created.
         defaults to True
 
@@ -1533,7 +1575,7 @@ def fit_PSD(Data, bandwidth, TrapFreqGuess, AGuess=0.1e10, GammaGuess=400, MakeF
         frame.set_edgecolor('white')
         ax.set_xlabel("Frequency (Hz)")
         ax.set_ylabel("$S_{xx}$ ($v^2/Hz$)")
-        if ShowFig == True:
+        if show_fig == True:
             _plt.show()
         return Params_Fit, Params_Fit_Err, fig, ax
     else:
@@ -1662,7 +1704,7 @@ def get_ZXY_data(Data, zf, xf, yf, FractionOfSampleFreq=1,
                  filterImplementation="filtfilt",
                  timeStart=None, timeEnd=None,
                  NPerSegmentPSD=1000000,
-                 MakeFig=True, ShowFig=True):
+                 MakeFig=True, show_fig=True):
     """
     Given a Data object and the frequencies of the z, x and y peaks (and some
     optional parameters for the created filters) this function extracts the
@@ -1704,7 +1746,7 @@ def get_ZXY_data(Data, zf, xf, yf, FractionOfSampleFreq=1,
         Starting time for filtering
     timeEnd : float, optional
         Ending time for filtering
-    ShowFig : bool, optional
+    show_fig : bool, optional
         If True - plot unfiltered and filtered PSD for z, x and y.
         If False - don't plot anything
 
@@ -1782,7 +1824,7 @@ def get_ZXY_data(Data, zf, xf, yf, FractionOfSampleFreq=1,
     else:
         fig = None
         ax = None
-    if ShowFig == True:
+    if show_fig == True:
         _plt.show()
     timedata = time[StartIndex: EndIndex][0::FractionOfSampleFreq]
     return zdata, xdata, ydata, timedata, fig, ax
@@ -1791,7 +1833,7 @@ def get_ZXY_data(Data, zf, xf, yf, FractionOfSampleFreq=1,
 def get_ZXY_data_IFFT(Data, zf, xf, yf,
                       zwidth=10000, xwidth=5000, ywidth=5000,
                       timeStart=None, timeEnd=None,
-                      ShowFig=True):
+                      show_fig=True):
     """
     Given a Data object and the frequencies of the z, x and y peaks (and some
     optional parameters for the created filters) this function extracts the
@@ -1822,7 +1864,7 @@ def get_ZXY_data_IFFT(Data, zf, xf, yf,
         Starting time for filtering
     timeEnd : float, optional
         Ending time for filtering
-    ShowFig : bool, optional
+    show_fig : bool, optional
         If True - plot unfiltered and filtered PSD for z, x and y.
         If False - don't plot anything
 
@@ -1860,7 +1902,7 @@ def get_ZXY_data_IFFT(Data, zf, xf, yf,
     ydata = IFFT_filter(input_signal, SAMPLEFREQ, yf -
                         ywidth / 2, yf + ywidth / 2)
 
-    if ShowFig == True:
+    if show_fig == True:
         NPerSegment = len(Data.time)
         if NPerSegment > 1e7:
             NPerSegment = int(1e7)
@@ -2058,7 +2100,7 @@ def animate_2Dscatter(x, y, NumAnimatedPoints=50, NTrailPoints=20,
 
     def animate(i, scatter):
         scatter.axes.clear() # clear old scatter object
-        scatter = ax.scatter(x[i:i+NTrailPoints], y[i:i+NTrailPoints], color=rgba_colors) 
+        scatter = ax.scatter(x[i:i+NTrailPoints], y[i:i+NTrailPoints], color=rgba_colors, animated=True) 
         # create new scatter with updated data
         ax.set_xlim(xlims)
         ax.set_ylim(ylims)
@@ -2097,7 +2139,7 @@ def animate_2Dscatter_slices(x, y, NumAnimatedPoints=50,
 
     def animate(i, scatter):
         scatter.axes.clear() # clear old scatter object
-        scatter = ax.scatter(x[i], y[i])
+        scatter = ax.scatter(x[i], y[i], animated=True)
         # create new scatter with updated data
         ax.set_xlim(xlims)
         ax.set_ylim(ylims)
@@ -2284,11 +2326,11 @@ def IIR_filter_design(CentralFreq, bandwidth, transitionWidth, SampleFreq, GainS
     b, a = scipy.signal.iirdesign(bandpass, bandstop, GainPass, GainStop)
     return b, a
 
-def get_freq_response(a, b, ShowFig=True, SampleFreq=(2 * pi), NumOfFreqs=500, whole=False):
+def get_freq_response(a, b, show_fig=True, SampleFreq=(2 * pi), NumOfFreqs=500, whole=False):
     """
     This function takes an array of coefficients and finds the frequency
     response of the filter using scipy.signal.freqz.
-    ShowFig sets if the response should be plotted
+    show_fig sets if the response should be plotted
 
     Parameters
     ----------
@@ -2297,7 +2339,7 @@ def get_freq_response(a, b, ShowFig=True, SampleFreq=(2 * pi), NumOfFreqs=500, w
 
     a : array_like
         Coefficients multiplying the y values (outputs of the filter)
-    ShowFig : bool, optional
+    show_fig : bool, optional
         Verbosity of function (i.e. whether to plot frequency and phase
         response or whether to just return the values.)
         Options (Default is 1):
@@ -2344,7 +2386,7 @@ def get_freq_response(a, b, ShowFig=True, SampleFreq=(2 * pi), NumOfFreqs=500, w
         ax1.set_xlabel("frequency (Hz)")
     ax1.set_ylabel("Gain (dB)")
     ax1.set_xlim([0, SampleFreq / 2.0])
-    if ShowFig == True:
+    if show_fig == True:
         _plt.show()
     fig2 = _plt.figure()
     ax2 = fig2.add_subplot(111)
@@ -2358,12 +2400,12 @@ def get_freq_response(a, b, ShowFig=True, SampleFreq=(2 * pi), NumOfFreqs=500, w
 
     ax2.set_ylabel("Phase Difference")
     ax2.set_xlim([0, SampleFreq / 2.0])
-    if ShowFig == True:
+    if show_fig == True:
         _plt.show()
     return freqList, GainArray, PhaseDiffArray, fig1, ax1, fig2, ax2
 
 
-def multi_plot_PSD(DataArray, xlim=[0, 500], units="kHz", LabelArray=[], ColorArray=[], alphaArray=[], ShowFig=True):
+def multi_plot_PSD(DataArray, xlim=[0, 500], units="kHz", LabelArray=[], ColorArray=[], alphaArray=[], show_fig=True):
     """
     plot the pulse spectral density for multiple data sets on the same
     axes.
@@ -2381,7 +2423,7 @@ def multi_plot_PSD(DataArray, xlim=[0, 500], units="kHz", LabelArray=[], ColorAr
         array of labels for each data-set to be plotted
     ColorArray : array-like, optional
         array of colors for each data-set to be plotted
-    ShowFig : bool, optional
+    show_fig : bool, optional
        If True runs plt.show() before returning figure
        if False it just returns the figure object.
        (the default is True, it shows the figure)
@@ -2427,12 +2469,12 @@ def multi_plot_PSD(DataArray, xlim=[0, 500], units="kHz", LabelArray=[], ColorAr
 
     _plt.title('filedir=%s' % (DataArray[0].filedir))
 
-    if ShowFig == True:
+    if show_fig == True:
         _plt.show()
     return fig, ax
 
 
-def multi_plot_time(DataArray, SubSampleN=1, units='s', xlim=None, ylim=None, LabelArray=[], ShowFig=True):
+def multi_plot_time(DataArray, SubSampleN=1, units='s', xlim=None, ylim=None, LabelArray=[], show_fig=True):
     """
     plot the time trace for multiple data sets on the same axes.
 
@@ -2449,7 +2491,7 @@ def multi_plot_time(DataArray, SubSampleN=1, units='s', xlim=None, ylim=None, La
         plot the time signal
     LabelArray : array-like, optional
         array of labels for each data-set to be plotted
-    ShowFig : bool, optional
+    show_fig : bool, optional
        If True runs plt.show() before returning figure
        if False it just returns the figure object.
        (the default is True, it shows the figure) 
@@ -2483,12 +2525,12 @@ def multi_plot_time(DataArray, SubSampleN=1, units='s', xlim=None, ylim=None, La
     frame.set_edgecolor('white')
 
     ax.set_ylabel("voltage (V)")
-    if ShowFig == True:
+    if show_fig == True:
         _plt.show()
     return fig, ax
 
 
-def multi_subplots_time(DataArray, SubSampleN=1, units='s', xlim=None, ylim=None, LabelArray=[], ShowFig=True):
+def multi_subplots_time(DataArray, SubSampleN=1, units='s', xlim=None, ylim=None, LabelArray=[], show_fig=True):
     """
     plot the time trace on multiple axes
 
@@ -2505,7 +2547,7 @@ def multi_subplots_time(DataArray, SubSampleN=1, units='s', xlim=None, ylim=None
         plot the time signal
     LabelArray : array-like, optional
         array of labels for each data-set to be plotted
-    ShowFig : bool, optional
+    show_fig : bool, optional
        If True runs plt.show() before returning figure
        if False it just returns the figure object.
        (the default is True, it shows the figure) 
@@ -2537,7 +2579,7 @@ def multi_subplots_time(DataArray, SubSampleN=1, units='s', xlim=None, ylim=None
             axs[i].set_xlim(xlim)
         if ylim != None:
             axs[i].set_ylim(ylim)
-    if ShowFig == True:
+    if show_fig == True:
         _plt.show()
     return fig, axs
 
@@ -2763,7 +2805,7 @@ def parse_orgtable(lines):
     dataframe.set_index("RunNo")
     return dataframe
 
-def plot_3d_dist(Z, X, Y, N=1000, AxisOffset=0, Angle=-40, LowLim=None, HighLim=None, ShowFig=True):
+def plot_3d_dist(Z, X, Y, N=1000, AxisOffset=0, Angle=-40, LowLim=None, HighLim=None, show_fig=True):
     """
     Plots Z, X and Y as a 3d scatter plot with heatmaps of each axis pair.
 
@@ -2784,14 +2826,14 @@ def plot_3d_dist(Z, X, Y, N=1000, AxisOffset=0, Angle=-40, LowLim=None, HighLim=
         Lower limit of x, y and z axis
     HighLim : optional, double
         Upper limit of x, y and z axis
-    ShowFig : optional, bool
+    show_fig : optional, bool
         Whether to show the produced figure before returning
 
     Returns
     -------
-    fig : plt.figure
+    fig : matplotlib.figure.Figure object
         The figure object created
-    ax : fig.add_subplot(111)
+    ax : matplotlib.axes.Axes object
         The subplot object created
     """
     angle = Angle
@@ -2846,11 +2888,11 @@ def plot_3d_dist(Z, X, Y, N=1000, AxisOffset=0, Angle=-40, LowLim=None, HighLim=
     zpos = lowLim # Plane of histogram
     zflat = _np.full_like(yy, zpos) 
     p = ax.plot_surface(xx, yy, zflat, facecolors=normalized_map, rstride=1, cstride=1, shade=False)
-    if ShowFig == True:
+    if show_fig == True:
         _plt.show()
     return fig, ax
 
-def multi_plot_3d_dist(ZXYData, N=1000, AxisOffset=0, Angle=-40, LowLim=None, HighLim=None, ColorArray=None, alphaLevel=0.3, ShowFig=True):
+def multi_plot_3d_dist(ZXYData, N=1000, AxisOffset=0, Angle=-40, LowLim=None, HighLim=None, ColorArray=None, alphaLevel=0.3, show_fig=True):
     """
     Plots serveral Z, X and Y datasets as a 3d scatter plot with heatmaps of each axis pair in each dataset.
 
@@ -2867,14 +2909,14 @@ def multi_plot_3d_dist(ZXYData, N=1000, AxisOffset=0, Angle=-40, LowLim=None, Hi
         Lower limit of x, y and z axis
     HighLim : optional, double
         Upper limit of x, y and z axis
-    ShowFig : optional, bool
+    show_fig : optional, bool
         Whether to show the produced figure before returning
 
     Returns
     -------
-    fig : plt.figure
+    fig : matplotlib.figure.Figure object
         The figure object created
-    ax : fig.add_subplot(111)
+    ax : matplotlib.axes.Axes object
         The subplot object created
     """
     if ZXYData.shape[1] != 3:
@@ -2954,7 +2996,7 @@ def multi_plot_3d_dist(ZXYData, N=1000, AxisOffset=0, Angle=-40, LowLim=None, Hi
     ax.set_zlabel("y")
     ax.view_init(30, angle)
     
-    if ShowFig == True:
+    if show_fig == True:
         _plt.show()
     return fig, ax
 
@@ -3047,7 +3089,7 @@ def calc_acceleration(xdata, dt):
     acceleration = _np.diff(_np.diff(xdata))/dt**2
     return acceleration
 
-def fit_radius_from_potentials(z, SampleFreq, Damping, HistBins=100, ShowFig=False):
+def fit_radius_from_potentials(z, SampleFreq, Damping, HistBins=100, show_fig=False):
     """
     Fits the dynamical potential to the Steady 
     State Potential by varying the Radius.
@@ -3071,10 +3113,11 @@ def fit_radius_from_potentials(z, SampleFreq, Damping, HistBins=100, ShowFig=Fal
     RadiusError : float
         One Standard Deviation Error in the Radius from the Fit
         (doesn't take into account possible error in damping)
-    fig : plt.figure
+    fig : matplotlib.figure.Figure object
         figure showing fitted dynamical potential and stationary potential
-    ax : plt.axes
+    ax : matplotlib.axes.Axes object
         axes for above figure
+
     """
     dt = 1/SampleFreq
     boltzmann=Boltzmann
@@ -3106,7 +3149,7 @@ def fit_radius_from_potentials(z, SampleFreq, Damping, HistBins=100, ShowFig=Fal
     ax.set_ylabel('U ($k_{B} T $ Joules)')
     ax.set_xlabel('Distance (mV)')
     _plt.tight_layout()
-    if ShowFig == True:
+    if show_fig == True:
         _plt.show()
     return Radius*1e-9, RadiusError*1e-9, fig, ax
 
@@ -3393,3 +3436,291 @@ def audiate(data, filename):
     AudioFreq = int(30000/10e6*data.SampleFreq)
     _writewav(filename, AudioFreq, data.voltage)
     return None
+
+# ----------------- WIGNER FUNCTIONS -------------------------------------------------------------
+
+def extract_slices(z, freq, sample_freq, show_plot=False):
+    """
+    Iterates through z trace and pulls out slices of length period_samples
+    and assigns them a phase from -180 to 180. Each slice then becomes a column
+    in the 2d array that is returned. Such that the row (the first index) refers
+    to phase (i.e. dat[0] are all the samples at phase = -180) and the column
+    refers to the oscillation number (i.e. dat[:, 0] is the first oscillation).
+
+    Parameters
+    ----------
+    z : ndarray
+        trace of z motion
+    freq : float
+        frequency of motion
+    sample_freq : float
+        sample frequency of the z array
+    show_plot : bool, optional (default=False)
+        if true plots and shows the phase plotted against the positon
+        for each oscillation built on top of each other.
+
+    Returns
+    -------
+    phase : ndarray
+        phase (in degrees) for each oscillation
+    phase_slices : ndarray
+        2d numpy array containing slices as detailed above.
+
+    """
+    dt = 1/sample_freq # dt between samples
+    period = 1/freq # period of oscillation of motion
+    period_samples = round(period/dt) # integer number of discrete samples in a period
+    number_of_oscillations = int(_np.floor(len(z)/period_samples)) # number of oscillations in z trace
+
+
+    phase_slices_untransposed = _np.zeros([number_of_oscillations-1, period_samples])
+
+    phase = _np.linspace(-180, 180, period_samples) # phase assigned to samples
+
+    if show_plot == True:
+        fig, ax = _plt.subplots()
+
+    for i in range(number_of_oscillations-1): 
+        # loops through number of oscillations - 1 pulling out period_samples
+        # slices and assigning them a phase from -180 to 180 degrees
+        start = i*period_samples # start index of section
+        end = (i+1)*period_samples # end index of section
+        if show_plot == True:
+            _plt.plot(phase, z[start:end]) 
+        phase_slices_untransposed[i] = z[start:end] # enter z section as ith row
+    
+    phase_slices = phase_slices_untransposed.transpose() # swap rows and columns 
+
+    if show_plot == True:
+        _plt.show()
+    return phase, phase_slices
+
+def histogram_phase(phase_slices, phase, histbins=200, show_plot=False):
+    """
+    histograms the phase slices such as to build a histogram of the position
+    distribution at each phase value.
+
+    Parameters
+    ----------
+    phase_slices : ndarray
+        2d array containing slices from many oscillations at each phase
+    phase : ndarray
+        1d array of phases corresponding to slices
+    histbins : int, optional (default=200)
+        number of bins to use in histogramming data
+    show_plot : bool, optional (default=False)
+        if true plots and shows the heatmap of the
+        phase against the positon distribution
+
+    Returns
+    -------
+    counts_array : ndarray
+        2d array containing the number of counts varying with
+        phase and position.
+    bin_edges : ndarray
+        positions of bin edges
+
+    """
+    counts_array = _np.zeros([len(phase), histbins])
+
+    histedges = [phase_slices.min(), phase_slices.max()]
+    for i, phase_slice in enumerate(phase_slices): # for each value of phase
+        counts, bin_edges = _np.histogram(phase_slice, bins=histbins, range=histedges) # histogram the position distribution at that phase
+        counts_array[i] = counts
+    counts_array = _np.array(counts_array)
+    counts_array_transposed = _np.transpose(counts_array).astype(float)
+
+    if show_plot == True:
+        fig = _plt.figure(figsize=(12, 6))
+        ax = fig.add_subplot(111)
+        ax.set_title('Phase Distribution')
+        ax.set_xlabel("phase (°)")
+        ax.set_ylabel("x")
+        _plt.imshow(counts_array_transposed, cmap='hot', interpolation='nearest', extent=[phase[0], phase[-1], histedges[0], histedges[1]])
+        ax.set_aspect('auto')
+        _plt.show()
+
+    return counts_array_transposed, bin_edges
+
+def get_wigner(z, freq, sample_freq, histbins=200, show_plot=False):
+    """
+    Calculates an approximation to the wigner quasi-probability distribution
+    by splitting the z position array into slices of the length of one period
+    of the motion. This slice is then associated with phase from -180 to 180
+    degrees. These slices are then histogramed in order to get a distribution
+    of counts of where the particle is observed at each phase. The 2d array
+    containing the counts varying with position and phase is then passed through
+    the inverse radon transformation using the Simultaneous Algebraic 
+    Reconstruction Technique approximation from the scikit-image package.
+
+    Parameters
+    ----------
+    z : ndarray
+        trace of z motion
+    freq : float
+        frequency of motion
+    sample_freq : float
+        sample frequency of the z array
+    histbins : int, optional (default=200)
+        number of bins to use in histogramming data for each phase
+    show_plot : bool, optional (default=False)
+        Whether or not to plot the phase distribution
+
+    Returns
+    -------
+    iradon_output : ndarray
+        2d array of size (histbins x histbins)
+    bin_centres : ndarray
+        positions of the bin centres
+
+    """
+    
+    phase, phase_slices = extract_slices(z, freq, sample_freq, show_plot=False)
+
+    counts_array, bin_edges = histogram_phase(phase_slices, phase, histbins, show_plot=show_plot)
+
+    diff = bin_edges[1] - bin_edges[0]
+    bin_centres = bin_edges[:-1] + diff
+
+    iradon_output = _iradon_sart(counts_array, theta=phase)
+
+    #_plt.imshow(iradon_output, extent=[bin_centres[0], bin_centres[-1], bin_centres[0], bin_centres[-1]])
+    #_plt.show()
+
+    return iradon_output, bin_centres
+
+def plot_wigner3d(iradon_output, bin_centres, bin_centre_units="", cmap=_cm.cubehelix_r, view=(10, -45), figsize=(10, 10)):
+    """
+    Plots the wigner space representation as a 3D surface plot.
+
+    Parameters
+    ----------
+    iradon_output : ndarray
+        2d array of size (histbins x histbins)
+    bin_centres : ndarray
+        positions of the bin centres
+    bin_centre_units : string, optional (default="")
+        Units in which the bin_centres are given
+    cmap : matplotlib.cm.cmap, optional (default=cm.cubehelix_r)
+        color map to use for Wigner
+    view : tuple, optional (default=(10, -45))
+        view angle for 3d wigner plot
+    figsize : tuple, optional (default=(10, 10))
+        tuple defining size of figure created
+
+    Returns
+    -------
+    fig : matplotlib.figure.Figure object
+        figure showing the wigner function
+    ax : matplotlib.axes.Axes object
+        axes containing the object
+
+    """
+    fig = _plt.figure(figsize=figsize)
+    ax = fig.add_subplot(111, projection='3d')
+
+    resid1 = iradon_output.sum(axis=0)
+    resid2 = iradon_output.sum(axis=1)
+
+    x = bin_centres # replace with x
+    y = bin_centres # replace with p (xdot/omega)
+    xpos, ypos = _np.meshgrid(x, y)
+    X = xpos
+    Y = ypos
+    Z = iradon_output
+
+    ax.set_xlabel("x ({})".format(bin_centre_units))
+    ax.set_xlabel("y ({})".format(bin_centre_units))
+
+    ax.scatter(_np.min(X)*_np.ones_like(y), y, resid2/_np.max(resid2)*_np.max(Z), alpha=0.7)
+    ax.scatter(x, _np.max(Y)*_np.ones_like(x), resid1/_np.max(resid1)*_np.max(Z), alpha=0.7)
+
+    # Plot the surface.
+    surf = ax.plot_surface(X, Y, Z, cmap=cmap,
+                           linewidth=0, antialiased=False)
+
+    # Customize the z axis.
+    #ax.set_zlim(-1.01, 1.01)
+    #ax.zaxis.set_major_locator(LinearLocator(10))
+    #ax.zaxis.set_major_formatter(FormatStrFormatter('%.02f'))
+
+    # Add a color bar which maps values to colors.
+    fig.colorbar(surf, shrink=0.5, aspect=5)
+
+    ax.view_init(view[0], view[1])
+
+    return fig, ax
+
+
+def plot_wigner2d(iradon_output, bin_centres, cmap=_cm.cubehelix_r, figsize=(6, 6)):
+    """
+    Plots the wigner space representation as a 2D heatmap.
+
+    Parameters
+    ----------
+    iradon_output : ndarray
+        2d array of size (histbins x histbins)
+    bin_centres : ndarray
+        positions of the bin centres
+    cmap : matplotlib.cm.cmap, optional (default=cm.cubehelix_r)
+        color map to use for Wigner
+    figsize : tuple, optional (default=(6, 6))
+        tuple defining size of figure created
+
+    Returns
+    -------
+    fig : matplotlib.figure.Figure object
+        figure showing the wigner function
+    ax : matplotlib.axes.Axes object
+        axes containing the object
+
+    """
+    xx, yy = _np.meshgrid(bin_centres, bin_centres)
+    resid1 = iradon_output.sum(axis=0)
+    resid2 = iradon_output.sum(axis=1)
+    
+    wigner_marginal_seperation = 0.001
+    left, width = 0.2, 0.65-0.1 # left = left side of hexbin and hist_x
+    bottom, height = 0.1, 0.65-0.1 # bottom = bottom of hexbin and hist_y
+    bottom_h = height + bottom + wigner_marginal_seperation
+    left_h = width + left + wigner_marginal_seperation
+    cbar_pos = [0.03, bottom, 0.05, 0.02+width]
+
+    rect_wigner = [left, bottom, width, height]
+    rect_histx = [left, bottom_h, width, 0.2]
+    rect_histy = [left_h, bottom, 0.2, height]
+
+    # start with a rectangular Figure
+    fig = _plt.figure(figsize=figsize)
+
+    axWigner = _plt.axes(rect_wigner)
+    axHistx = _plt.axes(rect_histx)
+    axHisty = _plt.axes(rect_histy)
+
+    pcol = axWigner.pcolor(xx, yy, iradon_output, cmap=cmap)
+    binwidth = bin_centres[1] - bin_centres[0]
+    axHistx.bar(bin_centres, resid2, binwidth)
+    axHisty.barh(bin_centres, resid1, binwidth)
+
+    _plt.setp(axHistx.get_xticklabels(), visible=False) # sets x ticks to be invisible while keeping gridlines
+    _plt.setp(axHisty.get_yticklabels(), visible=False) # sets x ticks to be invisible while keeping gridlines
+    for tick in axHisty.get_xticklabels():
+        tick.set_rotation(-90)
+
+
+    cbaraxes = fig.add_axes(cbar_pos)  # This is the position for the colorbar
+    #cbar = _plt.colorbar(axp, cax = cbaraxes)
+    cbar = fig.colorbar(pcol, cax = cbaraxes, drawedges=False) #, orientation="horizontal"
+    cbar.solids.set_edgecolor("face")
+    cbar.solids.set_rasterized(True)
+    cbar.ax.set_yticklabels(cbar.ax.yaxis.get_ticklabels(), y=0, rotation=45)
+    #cbar.set_label(cbarlabel, labelpad=-25, y=1.05, rotation=0)
+
+    plotlimits = _np.max(_np.abs(bin_centres))
+    axWigner.axis((-plotlimits, plotlimits, -plotlimits, plotlimits))
+    axHistx.set_xlim(axWigner.get_xlim())
+    axHisty.set_ylim(axWigner.get_ylim())
+
+    return fig, axWigner, axHistx, axHisty, cbar
+
+

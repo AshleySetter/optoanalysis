@@ -33,7 +33,7 @@ def test_plot_PSD():
     """
     This tests that the plot of the PSD produced by DataObject.plot_PSD is produced correctly and matches the baseline to a certain tolerance.
     """
-    fig, ax = GlobalData.plot_PSD([0, 400], ShowFig=False)
+    fig, ax = GlobalData.plot_PSD([0, 400], show_fig=False)
     return fig
 
 @pytest.mark.mpl_image_compare(tolerance=plot_similarity_tolerance) # this decorator compares the figure object returned by the following function to the baseline png image stored in tests/baseline
@@ -41,7 +41,7 @@ def test_get_fit():
     """
     Tests that DataObject.get_fit works and therefore tests fitPSD, fit_curvefit and PSD_Fitting as these are dependancies. It tests that the output values of the fitting are correct (both the values and thier errors) and that the plot looks the same as the baseline, within a certain tolerance.
     """
-    A, F, Gamma, fig, ax = GlobalData.get_fit(75000, 10000, ShowFig=False)
+    A, F, Gamma, fig, ax = GlobalData.get_fit(75000, 10000, show_fig=False)
     assert A.n == pytest.approx(584418711252, rel=float_relative_tolerance)
     assert F.n == pytest.approx(466604, rel=float_relative_tolerance)
     assert Gamma.n == pytest.approx(3951.716, rel=float_relative_tolerance)
@@ -85,7 +85,7 @@ def test_plot_time_data():
     """
     This tests that the plot of the time trace (from -1ms to 1ms) produced by DataObject.plot_time_data is produced correctly and matches the baseline to a certain tolerance.
     """
-    fig, ax = GlobalData.plot_time_data(timeStart=-1e-3, timeEnd=1e-3, units='ms', ShowFig=False)
+    fig, ax = GlobalData.plot_time_data(timeStart=-1e-3, timeEnd=1e-3, units='ms', show_fig=False)
     return fig
     
 def test_calc_area_under_PSD():
@@ -110,7 +110,7 @@ def test_get_fit_auto():
     OmegaTrapErrTrue = 7359927227.585048
     BigGammaTrue = 3946.998785496495
     BigGammaErrTrue = 107.96706466271127
-    A, OmegaTrap, BigGamma, _, _ = GlobalData.get_fit_auto(70e3, MakeFig=False, ShowFig=False)
+    A, OmegaTrap, BigGamma, _, _ = GlobalData.get_fit_auto(70e3, MakeFig=False, show_fig=False)
     assert A.n == pytest.approx(ATrue, rel=float_relative_tolerance)
     assert OmegaTrap.n == pytest.approx(OmegaTrapTrue, rel=float_relative_tolerance)
     assert BigGamma.n == pytest.approx(BigGammaTrue, rel=float_relative_tolerance)
@@ -126,7 +126,7 @@ def test_extract_motion():
     the get_ZXY_data function and get_ZXY_freqs function.
     """
     expectedLength = int(np.floor(len(GlobalData.time)/3))
-    z, x, y, t, fig, ax = GlobalData.extract_ZXY_motion([75e3, 167e3, 185e3], 5e3, [15e3, 15e3, 15e3], 3, NPerSegmentPSD=int(1e5), MakeFig=True, ShowFig=False)
+    z, x, y, t, fig, ax = GlobalData.extract_ZXY_motion([75e3, 167e3, 185e3], 5e3, [15e3, 15e3, 15e3], 3, NPerSegmentPSD=int(1e5), MakeFig=True, show_fig=False)
     assert len(z) == len(t)
     assert len(z) == len(x)
     assert len(x) == len(y)
@@ -138,7 +138,7 @@ def test_plot_phase_space():
     """
     Test the plot_phase_space and therefore calc_phase_space function.
     """
-    fig1, axscatter, axhistx, axhisty, cb = GlobalData.plot_phase_space(75e3, GlobalData.ConvFactor, PeakWidth=10e3, ShowPSD=False, ShowFig=False, FractionOfSampleFreq=3)
+    fig1, axscatter, axhistx, axhisty, cb = GlobalData.plot_phase_space(75e3, GlobalData.ConvFactor, PeakWidth=10e3, ShowPSD=False, show_fig=False, FractionOfSampleFreq=3)
     return fig1
     
 def test_multi_load_data():
@@ -164,7 +164,7 @@ def test_calc_temp():
     z degree of data from it's reference.
     """
     for dataset in GlobalMultiData:
-        dataset.get_fit_auto(65e3, MakeFig=False, ShowFig=False)
+        dataset.get_fit_auto(65e3, MakeFig=False, show_fig=False)
     T = optoanalysis.calc_temp(GlobalMultiData[0], GlobalMultiData[1])
     assert T.n == pytest.approx(2.6031509367704735, rel=float_relative_tolerance)
     assert T.std_dev == pytest.approx(0.21312482508893446, rel=float_relative_tolerance)
@@ -177,7 +177,7 @@ def test_multi_plot_PSD():
     produced by DataObject.multi_plot_PSD is produced correctly and matches the
     baseline to a certain tolerance.
     """
-    fig, ax = optoanalysis.multi_plot_PSD(GlobalMultiData, xlim=[0, 300], units="kHz", LabelArray=["Reference", "Cooled"], ColorArray=["red", "blue"], alphaArray=[0.8, 0.8], ShowFig=False)
+    fig, ax = optoanalysis.multi_plot_PSD(GlobalMultiData, xlim=[0, 300], units="kHz", LabelArray=["Reference", "Cooled"], ColorArray=["red", "blue"], alphaArray=[0.8, 0.8], show_fig=False)
     return fig
 
 @pytest.mark.mpl_image_compare(tolerance=plot_similarity_tolerance)
@@ -187,7 +187,7 @@ def test_multi_plot_time():
     produced by DataObject.multi_plot_time is produced correctly and matches the
     baseline to a certain tolerance.
     """
-    fig, ax = optoanalysis.multi_plot_time(GlobalMultiData, SubSampleN=1, units='us', xlim=[-1000, 1000], LabelArray=["Reference", "Cooled"], ShowFig=False)
+    fig, ax = optoanalysis.multi_plot_time(GlobalMultiData, SubSampleN=1, units='us', xlim=[-1000, 1000], LabelArray=["Reference", "Cooled"], show_fig=False)
     return fig
 
 @pytest.mark.mpl_image_compare(tolerance=plot_similarity_tolerance)
@@ -197,5 +197,5 @@ def test_multi_subplots_time():
     produced by DataObject.multi_subplots_time is produced correctly and matches the
     baseline to a certain tolerance.
     """
-    fig, ax = optoanalysis.multi_subplots_time(GlobalMultiData, SubSampleN=1, units='us', xlim=[-1000, 1000], LabelArray=["Reference", "Cooled"], ShowFig=False)
+    fig, ax = optoanalysis.multi_subplots_time(GlobalMultiData, SubSampleN=1, units='us', xlim=[-1000, 1000], LabelArray=["Reference", "Cooled"], show_fig=False)
     return fig
