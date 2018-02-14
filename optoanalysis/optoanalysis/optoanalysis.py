@@ -973,9 +973,18 @@ class DataObject():
         """
         _, Pos, fig, ax = self.filter_data(
             freq, FractionOfSampleFreq, PeakWidth, MakeFig=ShowPSD, show_fig=ShowPSD, timeStart=timeStart, timeEnd=timeEnd)
-
+        time = self.time.get_array()
+        if timeStart != None:
+            StartIndex = _np.where(time == take_closest(time, timeStart))[0][0]
+        else:
+            StartIndex = 0
+        if timeEnd != None:
+            EndIndex = _np.where(time == take_closest(time, timeEnd))[0][0]
+        else:
+            EndIndex = -1
+            
         Pos = Pos[PointsOfPadding : -PointsOfPadding+1]
-        time = self.time.get_array()[::FractionOfSampleFreq][PointsOfPadding : -PointsOfPadding+1]
+        time = time[StartIndex:EndIndex][::FractionOfSampleFreq][PointsOfPadding : -PointsOfPadding+1]
         
         if type(ConvFactor) == _uncertainties.core.Variable:
             conv = ConvFactor.n
@@ -1574,7 +1583,7 @@ def fit_PSD(Data, bandwidth, TrapFreqGuess, AGuess=0.1e10, GammaGuess=400, MakeF
         frame.set_facecolor('white')
         frame.set_edgecolor('white')
         ax.set_xlabel("Frequency (Hz)")
-        ax.set_ylabel("$S_{xx}$ ($v^2/Hz$)")
+        ax.set_ylabel("$S_{xx}$ ($V^2/Hz$)")
         if show_fig == True:
             _plt.show()
         return Params_Fit, Params_Fit_Err, fig, ax
@@ -1640,7 +1649,7 @@ def extract_parameters(Pressure, PressureErr, A, AErr, Gamma0, Gamma0Err, method
     m_air = 4.81e-26 # molecular mass of air is 28.97 g/mol and Avogadro's Number 6.0221409^23
     if method == "chang":
         vbar = (8*kB*T0/(pi*m_air))**0.5
-        radius = 8/(rho*pi*vbar)*(Pressure/Gamma0) # is this DEFINITELY CORRECT???????????????
+        radius = 16/(rho*pi*vbar)*(Pressure/Gamma0) # is this DEFINITELY CORRECT???????????????
     # see section 4.1.1 of Muddassar Rashid's 2016 Thesis for
     # derivation of this
     # see also page 132 of Jan Giesler's Thesis
@@ -1918,7 +1927,7 @@ def get_ZXY_data_IFFT(Data, zf, xf, yf,
         _plt.legend(loc="best")
         _plt.xlim([zf - zwidth, yf + ywidth])
         _plt.xlabel('Frequency (Hz)')
-        _plt.ylabel(r'$S_{xx}$')
+        _plt.ylabel(r'$S_{xx}$ ($V^2/Hz$)')
         _plt.semilogy()
         _plt.title("filepath = %s" % (Data.filepath))
         _plt.show()
