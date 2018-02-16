@@ -87,15 +87,18 @@ class DataObject():
 
     """
 
-    def __init__(self, filepath, RelativeChannelNo=None, calcPSD=True, NPerSegmentPSD=1000000):
+    def __init__(self, filepath, RelativeChannelNo=None, SampleFreq=None, calcPSD=True, NPerSegmentPSD=1000000):
         """
         Parameters
         ----------
         filepath : string
             The filepath to the data file to initialise this object instance.
         RelativeChannelNo : int, optional
-            If loading a .bin file produced by the Saneae datalogger, used to specify
+            If loading a .bin file produced by the Saleae datalogger, used to specify
             the channel number
+        SampleFreq : float, optional
+            If loading a .dat file produced by the labview NI5122 daq card, used to
+            manually specify the sample frequency 
         calcPSD : bool, optional
             Whether to calculate the PSD upon loading the file, can take some time
             off the loading and reduce memory usage if frequency space info is not required
@@ -114,12 +117,12 @@ class DataObject():
         self.filepath = filepath
         self.filename = filepath.split("/")[-1]
         self.filedir = self.filepath[0:-len(self.filename)]
-        self.load_time_data(RelativeChannelNo)
+        self.load_time_data(RelativeChannelNo,SampleFreq)
         if calcPSD != False:
             self.get_PSD(NPerSegmentPSD)
         return None
 
-    def load_time_data(self, RelativeChannelNo=None):
+    def load_time_data(self, RelativeChannelNo=None, SampleFreq=None):
         """
         Loads the time and voltage data and the wave description from the associated file.
 
@@ -127,6 +130,8 @@ class DataObject():
         ----------
         RelativeChannelNo : int, optional
              Channel number for loading saleae data files
+        SampleFreq : float, optional
+             Manual selection of sample frequency for loading labview NI5122 daq files
         """
         f = open(self.filepath, 'rb')
         raw = f.read()
@@ -143,8 +148,14 @@ class DataObject():
         elif FileExtension == "bin":
             if RelativeChannelNo == None:
                 raise ValueError("If loading a .bin file from the Saleae data logger you must enter a relative channel number to load")
-            time, self.voltage, SampleTime = optoanalysis.Saleae.interpret_waveform(raw, RelativeChannelNo)
-            self.SampleFreq = 1/SampleTime
+            timeParams, self.voltage = optoanalysis.Saleae.interpret_waveform(raw, RelativeChannelNo)
+            self.SampleFreq = 1/timeParams[2]
+        elif FileExtension == "dat": #for importing a file written by labview using the NI5122 daq card
+            if SampleFreq == None:
+                raise ValueError("If loading a .dat file from the NI5122 daq card you must enter a SampleFreq")
+            self.voltage = _np.fromfile(self.filepath, dtype='>h')
+            timeParams = (0,len(self.voltage)/SampleFreq,1/SampleFreq)
+            self.SampleFreq = 1/timeParams[2]
         startTime, endTime, Timestep = timeParams
         self.timeStart = startTime
         self.timeEnd = endTime
@@ -1045,7 +1056,7 @@ class ORGTableData():
         return Value 
 
     
-def load_data(Filepath, ObjectType='data', RelativeChannelNo=None, calcPSD=True, NPerSegmentPSD=1000000):
+def load_data(Filepath, ObjectType='data', RelativeChannelNo=None, SampleFreq=None, calcPSD=True, NPerSegmentPSD=1000000):
     """
     Parameters
     ----------
@@ -1060,6 +1071,9 @@ def load_data(Filepath, ObjectType='data', RelativeChannelNo=None, calcPSD=True,
     RelativeChannelNo : int, optional
         If loading a .bin file produced by the Saneae datalogger, used to specify
         the channel number
+    SampleFreq : float, optional
+            If loading a .dat file produced by the labview NI5122 daq card, used to
+            manually specify the sample frequency
     calcPSD : bool, optional
         Whether to calculate the PSD upon loading the file, can take some time
         off the loading and reduce memory usage if frequency space info is not required
@@ -1082,7 +1096,7 @@ def load_data(Filepath, ObjectType='data', RelativeChannelNo=None, calcPSD=True,
         Object = ObjectTypeDict[ObjectType]
     except KeyError:
         raise ValueError("You entered {}, this is not a valid object type".format(ObjectType))
-    data = Object(Filepath, RelativeChannelNo, calcPSD, NPerSegmentPSD)
+    data = Object(Filepath, RelativeChannelNo, SampleFreq, calcPSD, NPerSegmentPSD)
     try:
         channel_number, run_number, repeat_number = [int(val) for val in re.findall('\d+', data.filename)]
         data.channel_number = channel_number
@@ -2592,6 +2606,54 @@ def multi_subplots_time(DataArray, SubSampleN=1, units='s', xlim=None, ylim=None
         _plt.show()
     return fig, axs
 
+def arrange_plots_on_one_canvas(FigureAxTupleArray, title='', SubtitleArray = [], show_fig=True):
+    """
+    Arranges plots, given in an array of tuples consisting of fig and axs, 
+    onto a subplot-figure consisting of 2 horizontal times the lenght of the
+    passed (fig,axs)-array divided by 2 vertical subplots 
+
+    Parameters
+    ----------
+    FigureAxTupleArray : array-like
+        array of Tuples(fig, axs) outputted from the other plotting funtions 
+        inside optoanalysis
+    title : string, optional
+        string for the global title of the overall combined figure 
+    SubtitleArray : array-like, optional
+        array of titles for each figure-set to be plotted, i.e. subplots 
+    show_fig : bool, optional
+       If True runs plt.show() before returning figure
+       if False it just returns the figure object.
+       (the default is True, it shows the figure) 
+
+    Returns
+    -------
+    fig : matplotlib.figure.Figure object
+        The figure object created
+    axs : list of matplotlib.axes.Axes objects
+        The list of axes object created
+    """
+    if SubtitleArray == []:
+        SubtitleArray = ["Plot {}".format(i)
+                      for i in _np.arange(0, len(FigureAxTupleArray), 1)]
+    SingleFigSize = FigureAxTupleArray[0][0].get_size_inches()
+    combinedFig=_plt.figure(figsize=(2*SingleFigSize[0],_np.ceil(len(FigureAxTupleArray)/2)*SingleFigSize[1]))
+    for index in range(len(FigureAxTupleArray)):
+        individualPlot = FigureAxTupleArray[index]
+        individualPlot[0].set_size_inches((2*SingleFigSize[0],_np.ceil(len(FigureAxTupleArray)/2)*SingleFigSize[1]))
+        ax = individualPlot[1]
+        ax.set_title(SubtitleArray[index])
+        ax.remove()
+        ax.figure = combinedFig
+        ax.change_geometry(int(_np.ceil(len(FigureAxTupleArray)/2)),2,1+index)
+        combinedFig.axes.append(ax)
+        combinedFig.add_axes(ax)
+        #_plt.close(individualPlot[0])
+    combinedFig.subplots_adjust(hspace=.4)
+    combinedFig.suptitle(title)
+    if show_fig == True:
+        _plt.show()
+    return combinedFig
 
 def calc_PSD(Signal, SampleFreq, NPerSegment=1000000, window="hann"):
     """
