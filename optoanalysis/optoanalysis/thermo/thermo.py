@@ -33,11 +33,25 @@ class ThermoObject(optoanalysis.DataObject):
                 Contains the values for the PSD (Pulse Spectral Density) as calculated
                 at each frequency contained in freqs        
     """
-    def __init__(self, filepath, RelativeChannelNo=None, calcPSD=True, NPerSegmentPSD=1000000):
+    def __init__(self, filepath, RelativeChannelNo=None, SampleFreq=None, calcPSD=True, NPerSegmentPSD=1000000):
         """
-        Initialises the object by generating the data and calculating the PSD.
+        Parameters
+        ----------
+        filepath : string
+            The filepath to the data file to initialise this object instance.
+        RelativeChannelNo : int, optional
+            If loading a .bin file produced by the Saleae datalogger, used to specify
+            the channel number
+        SampleFreq : float, optional
+            If loading a .dat file produced by the labview NI5122 daq card, used to
+            manually specify the sample frequency 
+        calcPSD : bool, optional
+            Whether to calculate the PSD upon loading the file, can take some time
+            off the loading and reduce memory usage if frequency space info is not required
+        NPerSegmentPSD : int, optional
+            NPerSegment to pass to scipy.signal.welch to calculate the PSD
         """
-        super(ThermoObject, self).__init__(filepath, RelativeChannelNo, calcPSD=True, NPerSegmentPSD=1000000) # calls the init func from optoanalysis
+        super(ThermoObject, self).__init__(filepath, RelativeChannelNo=RelativeChannelNo, SampleFreq=SampleFreq,  calcPSD=True, NPerSegmentPSD=1000000) # calls the init func from optoanalysis
         return None
 
     @_jit
@@ -166,10 +180,12 @@ def calc_entropy(phase_space_density_array):
     ----------
     phase_space_density_array : array
         array which represents the phase space density at every point in time
-     Returns:
+
+    Returns:
     -------
     entropy : array
-        The entropy of the particle at every point in time via the phase space density method.  
+        The entropy of the particle at every point in time via the phase space density method.
+    
     """
     entropy = -_scipy.constants.Boltzmann*_np.log(phase_space_density_array)
     return entropy
