@@ -250,7 +250,7 @@ class DataObject():
 
     def get_PSD(self, NPerSegment=1000000, window="hann", timeStart=None, timeEnd=None, override=False):
         """
-        Extracts the pulse spectral density (PSD) from the data.
+        Extracts the power spectral density (PSD) from the data.
 
         Parameters
         ----------
