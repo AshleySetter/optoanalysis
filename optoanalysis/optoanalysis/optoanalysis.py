@@ -614,7 +614,7 @@ class DataObject():
         self.FTrap = OmegaTrap/(2*pi)
         return OmegaTrap, A, Gamma, fig, ax
 
-    def extract_parameters(self, P_mbar, P_Error, method="rashid"):
+    def extract_parameters(self, P_mbar, P_Error, method="chang"):
         """
         Extracts the Radius, mass and Conversion factor for a particle.
 
@@ -1605,7 +1605,7 @@ def fit_PSD(Data, bandwidth, TrapFreqGuess, AGuess=0.1e10, GammaGuess=400, MakeF
         return Params_Fit, Params_Fit_Err, None, None
 
 
-def extract_parameters(Pressure, PressureErr, A, AErr, Gamma0, Gamma0Err, method="rashid"):
+def extract_parameters(Pressure, PressureErr, A, AErr, Gamma0, Gamma0Err, method="chang"):
     """
     Calculates the radius, mass and conversion factor and thier uncertainties.
     For values to be correct data must have been taken with feedback off and
@@ -1676,7 +1676,7 @@ def extract_parameters(Pressure, PressureErr, A, AErr, Gamma0, Gamma0Err, method
     err_conversionFactor = conversionFactor * \
         _np.sqrt((AErr / A)**2 + (err_mass / mass)
                  ** 2 + (Gamma0Err / Gamma0)**2)
-
+    print("I AM NOT MAD!!! I SWEAR!")
     return [radius, mass, conversionFactor], [err_radius, err_mass, err_conversionFactor]
 
 
