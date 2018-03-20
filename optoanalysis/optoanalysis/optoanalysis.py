@@ -30,7 +30,18 @@ from scipy.constants import Boltzmann, pi
 from os.path import exists as _does_file_exist
 from skimage.transform import iradon_sart as _iradon_sart
 import gc
-
+try:
+    import pycuda.autoinit
+    import pycuda.gpuarray as _gpuarray
+except (OSError, ModuleNotFoundError) as e:
+    print("pyCUDA not present on system, function calc_fft_with_PyCUDA and calc_ifft_with_PyCUDA will crash")
+try:
+    from skcuda.fft import fft as _fft
+    from skcuda.fft import ifft as _ifft
+    from skcuda.fft import Plan as _Plan
+except (OSError, ModuleNotFoundError) as e:
+    print("skcuda not present on system, function calc_fft_with_PyCUDA and calc_ifft_with_PyCUDA will crash")
+    
 #cpu_count = _cpu_count()
 #workerPool = _Pool(cpu_count)
 
@@ -87,7 +98,7 @@ class DataObject():
 
     """
 
-    def __init__(self, filepath, RelativeChannelNo=None, SampleFreq=None, calcPSD=True, NPerSegmentPSD=1000000):
+    def __init__(self, filepath, RelativeChannelNo=None, SampleFreq=None, PointsToLoad=-1, calcPSD=True, NPerSegmentPSD=1000000):
         """
         Parameters
         ----------
@@ -99,6 +110,9 @@ class DataObject():
         SampleFreq : float, optional
             If loading a .dat file produced by the labview NI5122 daq card, used to
             manually specify the sample frequency 
+        PointsToLoad : int, optional
+            Number of first points to read. -1 means all points (i.e., the complete file)
+            WORKS WITH NI5122 DATA SO FAR ONLY!!!
         calcPSD : bool, optional
             Whether to calculate the PSD upon loading the file, can take some time
             off the loading and reduce memory usage if frequency space info is not required
@@ -117,12 +131,12 @@ class DataObject():
         self.filepath = filepath
         self.filename = filepath.split("/")[-1]
         self.filedir = self.filepath[0:-len(self.filename)]
-        self.load_time_data(RelativeChannelNo,SampleFreq)
+        self.load_time_data(RelativeChannelNo,SampleFreq,PointsToLoad)
         if calcPSD != False:
             self.get_PSD(NPerSegmentPSD)
         return None
 
-    def load_time_data(self, RelativeChannelNo=None, SampleFreq=None):
+    def load_time_data(self, RelativeChannelNo=None, SampleFreq=None,PointsToLoad=-1):
         """
         Loads the time and voltage data and the wave description from the associated file.
 
@@ -132,6 +146,9 @@ class DataObject():
              Channel number for loading saleae data files
         SampleFreq : float, optional
              Manual selection of sample frequency for loading labview NI5122 daq files
+        PointsToLoad : int, optional
+            Number of first points to read. -1 means all points (i.e., the complete file)
+            WORKS WITH NI5122 DATA SO FAR ONLY!!!
         """
         f = open(self.filepath, 'rb')
         raw = f.read()
@@ -153,7 +170,7 @@ class DataObject():
         elif FileExtension == "dat": #for importing a file written by labview using the NI5122 daq card
             if SampleFreq == None:
                 raise ValueError("If loading a .dat file from the NI5122 daq card you must enter a SampleFreq")
-            self.voltage = _np.fromfile(self.filepath, dtype='>h')
+            self.voltage = _np.fromfile(self.filepath, dtype='>h',count=PointsToLoad)
             timeParams = (0,len(self.voltage)/SampleFreq,1/SampleFreq)
             self.SampleFreq = 1/timeParams[2]
         startTime, endTime, Timestep = timeParams
@@ -1056,7 +1073,7 @@ class ORGTableData():
         return Value 
 
     
-def load_data(Filepath, ObjectType='data', RelativeChannelNo=None, SampleFreq=None, calcPSD=True, NPerSegmentPSD=1000000):
+def load_data(Filepath, ObjectType='data', RelativeChannelNo=None, SampleFreq=None, PointsToLoad=-1, calcPSD=True, NPerSegmentPSD=1000000):
     """
     Parameters
     ----------
@@ -1074,6 +1091,9 @@ def load_data(Filepath, ObjectType='data', RelativeChannelNo=None, SampleFreq=No
     SampleFreq : float, optional
             If loading a .dat file produced by the labview NI5122 daq card, used to
             manually specify the sample frequency
+    PointsToLoad : int, optional
+            Number of first points to read. -1 means all points (i.e., the complete file)
+            WORKS WITH NI5122 DATA SO FAR ONLY!!!
     calcPSD : bool, optional
         Whether to calculate the PSD upon loading the file, can take some time
         off the loading and reduce memory usage if frequency space info is not required
@@ -1096,7 +1116,7 @@ def load_data(Filepath, ObjectType='data', RelativeChannelNo=None, SampleFreq=No
         Object = ObjectTypeDict[ObjectType]
     except KeyError:
         raise ValueError("You entered {}, this is not a valid object type".format(ObjectType))
-    data = Object(Filepath, RelativeChannelNo, SampleFreq, calcPSD, NPerSegmentPSD)
+    data = Object(Filepath, RelativeChannelNo, SampleFreq, PointsToLoad, calcPSD, NPerSegmentPSD)
     try:
         channel_number, run_number, repeat_number = [int(val) for val in re.findall('\d+', data.filename)]
         data.channel_number = channel_number
@@ -2177,7 +2197,7 @@ def animate_2Dscatter_slices(x, y, NumAnimatedPoints=50,
     return None
 
 
-def IFFT_filter(Signal, SampleFreq, lowerFreq, upperFreq):
+def IFFT_filter(Signal, SampleFreq, lowerFreq, upperFreq, PyCUDA = False):
     """
     Filters data using fft -> zeroing out fft bins -> ifft
 
@@ -2191,24 +2211,86 @@ def IFFT_filter(Signal, SampleFreq, lowerFreq, upperFreq):
         Lower frequency of bandpass to allow through filter
     upperFreq : float
        Upper frequency of bandpass to allow through filter
+    PyCUDA : bool, optional
+       If True, uses PyCUDA to accelerate the FFT and IFFT
+       via using your NVIDIA-GPU
+       If False, performs FFT and IFFT with conventional
+       scipy.fftpack
 
     Returns
     -------
     FilteredData : ndarray
         Array containing the filtered data
     """
-    print("starting fft")
-    Signalfft = scipy.fftpack.fft(Signal)
+    if PyCUDA==True:
+        Signalfft=calc_fft_with_PyCUDA(Signal)
+    else:
+        print("starting fft")
+        Signalfft = scipy.fftpack.fft(Signal)
     print("starting freq calc")
     freqs = _np.fft.fftfreq(len(Signal)) * SampleFreq
     print("starting bin zeroing")
     for i, freq in enumerate(freqs):
         if freq < lowerFreq or freq > upperFreq:
             Signalfft[i] = 0
-    print("starting ifft")
-    FilteredSignal = 2 * scipy.fftpack.ifft(Signalfft)
+    if PyCUDA==True:
+        FilteredSignal = 2 * calc_ifft_with_PyCUDA(Signalfft)
+    else:
+        print("starting ifft")
+        FilteredSignal = 2 * scipy.fftpack.ifft(Signalfft)
     print("done")
     return _np.real(FilteredSignal)
+
+def calc_fft_with_PyCUDA(Signal):
+    """
+    Calculates the FFT of the passed signal by using
+    the scikit-cuda libary which relies on PyCUDA
+
+    Parameters
+    ----------
+    Signal : ndarray
+        Signal to be transformed into Fourier space
+
+    Returns
+    -------
+    Signalfft : ndarray
+        Array containing the signal's FFT
+    """
+    print("starting fft")
+    Signal = Signal.astype(_np.float32)
+    Signal_gpu = _gpuarray.to_gpu(Signal)
+    Signalfft_gpu = _gpuarray.empty(len(Signal)//2+1,_np.complex64)
+    plan = _Plan(Signal.shape,_np.float32,_np.complex64)
+    _fft(Signal_gpu, Signalfft_gpu, plan)
+    Signalfft = Signalfft_gpu.get() #only 2N+1 long
+    Signalfft = _np.hstack((Signalfft,_np.conj(_np.flipud(Signalfft[1:len(Signal)//2]))))
+    print("fft done")
+    return Signalfft
+
+def calc_ifft_with_PyCUDA(Signalfft):
+    """
+    Calculates the inverse-FFT of the passed FFT-signal by 
+    using the scikit-cuda libary which relies on PyCUDA
+
+    Parameters
+    ----------
+    Signalfft : ndarray
+        FFT-Signal to be transformed into Real space
+
+    Returns
+    -------
+    Signal : ndarray
+        Array containing the ifft signal
+    """
+    print("starting ifft")
+    Signalfft = Signalfft.astype(_np.complex64)
+    Signalfft_gpu = _gpuarray.to_gpu(Signalfft[0:len(Signalfft)//2+1])
+    Signal_gpu = _gpuarray.empty(len(Signalfft),_np.float32)
+    plan = _Plan(len(Signalfft),_np.complex64,_np.float32)
+    _ifft(Signalfft_gpu, Signal_gpu, plan)
+    Signal = Signal_gpu.get()/(2*len(Signalfft)) #normalising as CUDA IFFT is un-normalised
+    print("ifft done")
+    return Signal
 
 def butterworth_filter(Signal, SampleFreq, lowerFreq, upperFreq):
     """
