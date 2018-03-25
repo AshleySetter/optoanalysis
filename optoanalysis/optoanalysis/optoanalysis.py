@@ -631,6 +631,8 @@ class DataObject():
         self.FTrap = OmegaTrap/(2*pi)
         return OmegaTrap, A, Gamma, fig, ax
 
+    def calc_gamma_from_variance_autocorrelation_fit(self,):
+        
     def extract_parameters(self, P_mbar, P_Error, method="rashid"):
         """
         Extracts the Radius, mass and Conversion factor for a particle.
@@ -2772,6 +2774,26 @@ def calc_PSD(Signal, SampleFreq, NPerSegment=1000000, window="hann"):
     freqs.sort()
     return freqs, PSD
 
+def calc_autocorrelation(Signal):
+    """
+    Calculates the autocorrelation from a given Signal via using
+    
+
+    Parameters
+    ----------
+    Signal : array-like
+        Array containing the signal to have the autocorrelation calculated for
+
+    Returns
+    -------
+    Autocorrelation : ndarray
+            Array containing the value of the autocorrelation evaluated
+            at the corresponding amount of shifted array-index.
+    """
+    mean = _np.mean(Signal)
+    Signal -= mean
+    autocorr = scipy.signal.correlate(Signal, Signal, mode='full')
+    return autocorr[autocorr.size//2:]/autocorr[autocorr.size//2]
 
 def _GetRealImagArray(Array):
     """
