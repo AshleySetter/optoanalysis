@@ -632,7 +632,7 @@ class DataObject():
         return OmegaTrap, A, Gamma, fig, ax
 
     def calc_gamma_from_variance_autocorrelation_fit(self,):
-        
+        # make seperate function for fitting equ named _autocorrelation_fitting_eqn and fitting fit_autocorrelation like fit_PSD
     def extract_parameters(self, P_mbar, P_Error, method="rashid"):
         """
         Extracts the Radius, mass and Conversion factor for a particle.
