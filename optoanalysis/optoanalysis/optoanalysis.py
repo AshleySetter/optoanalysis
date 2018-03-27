@@ -136,7 +136,7 @@ class DataObject():
             self.get_PSD(NPerSegmentPSD)
         return None
 
-    def load_time_data(self, RelativeChannelNo=None, SampleFreq=None,PointsToLoad=-1):
+    def load_time_data(self, RelativeChannelNo=None, SampleFreq=None, PointsToLoad=-1):
         """
         Loads the time and voltage data and the wave description from the associated file.
 
@@ -631,8 +631,72 @@ class DataObject():
         self.FTrap = OmegaTrap/(2*pi)
         return OmegaTrap, A, Gamma, fig, ax
 
-    def calc_gamma_from_variance_autocorrelation_fit(self,):
-        # make seperate function for fitting equ named _autocorrelation_fitting_eqn and fitting fit_autocorrelation like fit_PSD
+    def calc_gamma_from_variance_autocorrelation_fit(self, NumberOfOscillations, GammaGuess=None, Silent=False, MakeFig=True, show_fig=True):
+        """
+        Calculates the total damping, i.e. Gamma, by splitting the time trace
+        into chunks of NumberOfOscillations oscillations and calculated the
+        variance of each of these chunks. This array of varainces is then used
+        for the autocorrleation. The autocorrelation is fitted with an exponential 
+        relaxation function and the function returns the parameters with errors.
+
+        Parameters
+        ----------
+        NumberOfOscillations : int
+            The number of oscillations each chunk of the timetrace 
+            used to calculate the variance should contain.
+        GammaGuess : float, optional
+            Inital guess for BigGamma (in radians)
+        Silent : bool, optional
+            Whether it prints the values fitted or is silent.
+        MakeFig : bool, optional
+            Whether to construct and return the figure object showing
+            the fitting. defaults to True
+        show_fig : bool, optional
+            Whether to show the figure object when it has been created.
+            defaults to True
+
+        Returns
+        -------
+        Gamma : ufloat
+            Big Gamma, the total damping in radians
+        fig : matplotlib.figure.Figure object
+            The figure object created showing the autocorrelation
+            of the data with the fit
+        ax : matplotlib.axes.Axes object
+            The axes object created showing the autocorrelation
+            of the data with the fit
+
+        """
+        SplittedArraySize = int(self.SampleFreq/self.FTrap.n) * NumberOfOscillations
+        VoltageArraySize = len(self.voltage)
+        SnippetsVariances = _np.var(self.voltage[:VoltageArraySize-_np.mod(VoltageArraySize,SplittedArraySize)].reshape(-1,SplittedArraySize),axis=1)
+        autocorrelation = calc_autocorrelation(SnippetsVariances)
+        time = _np.array(range(len(autocorrelation))) * NumberOfOscillations / self.SampleFreq
+
+        if GammaGuess==None:
+            Gamma_Initial = (time[4]-time[0])/(autocorrelation[0]-autocorrelation[4])
+        else:
+            Gamma_Initial = GammaGuess
+        
+        if MakeFig == True:
+            Params, ParamsErr, fig, ax = fit_autocorrelation(
+                autocorrelation, time, Gamma_Initial, MakeFig=MakeFig, show_fig=show_fig)
+        else:
+            Params, ParamsErr, _ , _ = fit_autocorrelation(
+                autocorrelation, time, Gamma_Initial, MakeFig=MakeFig, show_fig=show_fig)
+
+        if Silent == False:
+            print("\n")
+            print(
+                "Big Gamma: {} +- {}% ".format(Params[0], ParamsErr[0] / Params[0] * 100))
+
+        Gamma = _uncertainties.ufloat(Params[0], ParamsErr[0])
+        
+        if MakeFig == True:
+            return Gamma, fig, ax
+        else:
+            return Gamma, None, None
+        
     def extract_parameters(self, P_mbar, P_Error, method="rashid"):
         """
         Extracts the Radius, mass and Conversion factor for a particle.
@@ -1451,7 +1515,94 @@ def take_closest(myList, myNumber):
     else:
         return before
 
+def _autocorrelation_fitting_eqn(t, Gamma):
+    """
+    The value of the fitting equation:
+    exp(-t*Gamma)
+    to be fit to the autocorrelation-exponential decay
 
+    Parameters
+    ----------
+    t : float
+        time 
+    Gamma : float
+        Big Gamma (in radians), i.e. damping 
+
+    Returns
+    -------
+    Value : float
+        The value of the fitting equation
+    """
+    return _np.exp(-t*Gamma)
+
+def fit_autocorrelation(autocorrelation, time, GammaGuess, MakeFig=True, show_fig=True):
+    """
+    Fits exponential relaxation theory to data.
+
+    Parameters
+    ----------
+    autocorrelation : array
+        array containing autocorrelation to be fitted
+    time : array
+        array containing the time of each point the autocorrelation
+        was evaluated
+    GammaGuess : float
+        The approximate Big Gamma (in radians) to use initially
+    MakeFig : bool, optional
+        Whether to construct and return the figure object showing
+        the fitting. defaults to True
+    show_fig : bool, optional
+        Whether to show the figure object when it has been created.
+        defaults to True
+
+    Returns
+    -------
+    ParamsFit - Fitted parameters:
+        [Gamma]
+    ParamsFitErr - Error in fitted parameters:
+        [GammaErr]
+    fig : matplotlib.figure.Figure object
+        figure object containing the plot
+    ax : matplotlib.axes.Axes object
+        axes with the data plotted of the:
+            - initial data
+            - final fit
+    """    
+    datax = time
+    datay = autocorrelation
+    
+    p0 = _np.array([GammaGuess])
+
+    Params_Fit, Params_Fit_Err = fit_curvefit(p0,
+                                              datax,
+                                              datay,
+                                              _autocorrelation_fitting_eqn)
+
+    if MakeFig == True:
+        fig = _plt.figure(figsize=properties["default_fig_size"])
+        ax = fig.add_subplot(111)
+
+        autocorrelation_fit = _autocorrelation_fitting_eqn(Params_Fit[0],
+                                                           datax)
+
+        ax.plot(datax*1e6, datay,
+                color="darkblue", label="Autocorrelation Data", alpha=0.5)
+        ax.plot(datax*1e6, autocorrelation_fit,
+                color="red", label="fit")
+        ax.set_xlim([0,
+                     100e6/Params_Fit[0]/(2*_np.pi)])
+        legend = ax.legend(loc="best", frameon = 1)
+        frame = legend.get_frame()
+        frame.set_facecolor('white')
+        frame.set_edgecolor('white')
+        ax.set_xlabel("time (us)")
+        ax.set_ylabel(r"$\left | \frac{\langle x(t)x(t+\tau) \rangle}{\langle x(t)x(t) \rangle} \right |$")
+        if show_fig == True:
+            _plt.show()
+        return Params_Fit, Params_Fit_Err, fig, ax
+    else:
+        return Params_Fit, Params_Fit_Err, None, None
+    
 def _PSD_fitting_eqn(A, OmegaTrap, Gamma, omega):
     """
     The value of the fitting equation:
@@ -2232,9 +2383,11 @@ def IFFT_filter(Signal, SampleFreq, lowerFreq, upperFreq, PyCUDA = False):
     print("starting freq calc")
     freqs = _np.fft.fftfreq(len(Signal)) * SampleFreq
     print("starting bin zeroing")
-    for i, freq in enumerate(freqs):
+    Signalfft[_np.where(freqs < lowerFreq)] = 0
+    Signalfft[_np.where(freqs > upperFreq)] = 0
+    '''for i, freq in enumerate(freqs):
         if freq < lowerFreq or freq > upperFreq:
-            Signalfft[i] = 0
+            Signalfft[i] = 0'''
     if PyCUDA==True:
         FilteredSignal = 2 * calc_ifft_with_PyCUDA(Signalfft)
     else:
