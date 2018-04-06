@@ -111,7 +111,7 @@ class DataObject():
             If loading a .dat file produced by the labview NI5122 daq card, used to
             manually specify the sample frequency 
         PointsToLoad : int, optional
-            Number of first points to read. -1 means all points (i.e., the complete file)
+            Number of first points to read. -1 means all points (i.e. the complete file)
             WORKS WITH NI5122 DATA SO FAR ONLY!!!
         calcPSD : bool, optional
             Whether to calculate the PSD upon loading the file, can take some time
@@ -667,11 +667,14 @@ class DataObject():
             of the data with the fit
 
         """
-        SplittedArraySize = int(self.SampleFreq/self.FTrap.n) * NumberOfOscillations
+        try:
+            SplittedArraySize = int(self.SampleFreq/self.FTrap.n) * NumberOfOscillations
+        except KeyError:
+            ValueError('You forgot to do the spectrum fit to specify self.FTrap exactly.')
         VoltageArraySize = len(self.voltage)
         SnippetsVariances = _np.var(self.voltage[:VoltageArraySize-_np.mod(VoltageArraySize,SplittedArraySize)].reshape(-1,SplittedArraySize),axis=1)
         autocorrelation = calc_autocorrelation(SnippetsVariances)
-        time = _np.array(range(len(autocorrelation))) * NumberOfOscillations / self.SampleFreq
+        time = _np.array(range(len(autocorrelation))) * SplittedArraySize / self.SampleFreq
 
         if GammaGuess==None:
             Gamma_Initial = (time[4]-time[0])/(autocorrelation[0]-autocorrelation[4])
@@ -696,7 +699,78 @@ class DataObject():
             return Gamma, fig, ax
         else:
             return Gamma, None, None
+
+    def calc_gamma_from_position_autocorrelation_fit(self, GammaGuess=None, FreqTrapGuess=None, Silent=False, MakeFig=True, show_fig=True):
+        """
+        Calculates the total damping, i.e. Gamma, by calculating the autocorrleation 
+        of the position-time trace. The autocorrelation is fitted with an exponential 
+        relaxation function derived in Tongcang Li's 2013 thesis (DOI: 10.1007/978-1-4614-6031-2)
+        and the function (equation 4.20 in the thesis) returns the parameters with errors.
+
+        Parameters
+        ----------
+        GammaGuess : float, optional
+            Inital guess for BigGamma (in radians)
+        FreqTrapGuess : float, optional
+            Inital guess for the trapping Frequency in Hz
+        Silent : bool, optional
+            Whether it prints the values fitted or is silent.
+        MakeFig : bool, optional
+            Whether to construct and return the figure object showing
+            the fitting. defaults to True
+        show_fig : bool, optional
+            Whether to show the figure object when it has been created.
+            defaults to True
+
+        Returns
+        -------
+        Gamma : ufloat
+            Big Gamma, the total damping in radians
+        OmegaTrap : ufloat
+            Trapping frequency in radians
+        fig : matplotlib.figure.Figure object
+            The figure object created showing the autocorrelation
+            of the data with the fit
+        ax : matplotlib.axes.Axes object
+            The axes object created showing the autocorrelation
+            of the data with the fit
+
+        """
+        autocorrelation = calc_autocorrelation(self.voltage)
+        time = self.time.get_array()[:-1]
+
+        if GammaGuess==None:
+            Gamma_Initial = (autocorrelation[0]-autocorrelation[int(self.SampleFreq/self.FTrap.n)])/(time[int(self.SampleFreq/self.FTrap.n)]-time[0])*2*_np.pi
+        else:
+            Gamma_Initial = GammaGuess
+
+        if FreqTrapGuess==None:
+            FreqTrap_Initial = self.FTrap.n
+        else:
+            FreqTrap_Initial = FreqTrapGuess
+            
+        if MakeFig == True:
+            Params, ParamsErr, fig, ax = fit_autocorrelation(
+                autocorrelation, time, Gamma_Initial, FreqTrap_Initial, method='position', MakeFig=MakeFig, show_fig=show_fig)
+        else:
+            Params, ParamsErr, _ , _ = fit_autocorrelation(
+                autocorrelation, time, Gamma_Initial, FreqTrap_Initial, method='position', MakeFig=MakeFig, show_fig=show_fig)
+
+        if Silent == False:
+            print("\n")
+            print(
+                "Big Gamma: {} +- {}% ".format(Params[0], ParamsErr[0] / Params[0] * 100))
+            print(
+                "Trap Frequency: {} +- {}% ".format(Params[1], ParamsErr[1] / Params[1] * 100))
+            
+        Gamma = _uncertainties.ufloat(Params[0], ParamsErr[0])
+        OmegaTrap = _uncertainties.ufloat(Params[1], ParamsErr[1])
         
+        if MakeFig == True:
+            return Gamma, OmegaTrap, fig, ax
+        else:
+            return Gamma, OmegaTrap, None, None
+    
     def extract_parameters(self, P_mbar, P_Error, method="rashid"):
         """
         Extracts the Radius, mass and Conversion factor for a particle.
@@ -780,10 +854,10 @@ class DataObject():
         return self.zVolts, self.xVolts, self.yVolts, time, fig, ax
 
     def filter_data(self, freq, FractionOfSampleFreq=1, PeakWidth=10000,
-                  filterImplementation="filtfilt",
-                  timeStart=None, timeEnd=None,
+                    filterImplementation="filtfilt",
+                    timeStart=None, timeEnd=None,
                     NPerSegmentPSD=1000000,
-                  MakeFig=True, show_fig=True):
+                    PyCUDA=False, MakeFig=True, show_fig=True):
         """
         filter out data about a central frequency with some bandwidth using an IIR filter.
     
@@ -804,6 +878,7 @@ class DataObject():
             filter the peak. Defaults to 10KHz
         filterImplementation : string, optional
             filtfilt or lfilter - use scipy.filtfilt or lfilter
+            ifft - uses built in IFFT_filter
             default: filtfilt
         timeStart : float, optional
             Starting time for filtering. Defaults to start of time data.
@@ -811,6 +886,12 @@ class DataObject():
             Ending time for filtering. Defaults to end of time data.
         NPerSegmentPSD : int, optional
             NPerSegment to pass to scipy.signal.welch to calculate the PSD
+        PyCUDA : bool, optional
+            Only important for the 'ifft'-method
+            If True, uses PyCUDA to accelerate the FFT and IFFT
+            via using your NVIDIA-GPU
+            If False, performs FFT and IFFT with conventional
+            scipy.fftpack
         MakeFig : bool, optional
             If True - generate figure showing filtered and unfiltered PSD
             Defaults to True.
@@ -840,26 +921,27 @@ class DataObject():
     
         StartIndex = _np.where(time == take_closest(time, timeStart))[0][0]
         EndIndex = _np.where(time == take_closest(time, timeEnd))[0][0]
-    
+
         SAMPLEFREQ = self.SampleFreq / FractionOfSampleFreq
+        if filterImplementation == "filtfilt" or filterImplementation == "lfilter":
+            if filterImplementation == "filtfilt":
+                ApplyFilter = scipy.signal.filtfilt
+            elif filterImplementation == "lfilter":
+                ApplyFilter = scipy.signal.lfilter
+                
+            input_signal = self.voltage[StartIndex: EndIndex][0::FractionOfSampleFreq]
     
-        if filterImplementation == "filtfilt":
-            ApplyFilter = scipy.signal.filtfilt
-        elif filterImplementation == "lfilter":
-            ApplyFilter = scipy.signal.lfilter
+            b, a = make_butterworth_bandpass_b_a(freq, PeakWidth, SAMPLEFREQ)
+            print("filtering data")
+            filteredData = ApplyFilter(b, a, input_signal)
+    
+            if(_np.isnan(filteredData).any()):
+                raise ValueError(
+                    "Value Error: FractionOfSampleFreq must be higher, a sufficiently small sample frequency should be used to produce a working IIR filter.")
+        elif filterImplementation == "ifft":
+            filteredData = IFFT_filter(self.voltage[StartIndex: EndIndex][0::FractionOfSampleFreq], SAMPLEFREQ, freq-PeakWidth/2, freq+PeakWidth/2, PyCUDA = PyCUDA)
         else:
-            raise ValueError("filterImplementation must be one of [filtfilt, lfilter] you entered: {}".format(
-                filterImplementation))
-    
-        input_signal = self.voltage[StartIndex: EndIndex][0::FractionOfSampleFreq]
-    
-        b, a = make_butterworth_bandpass_b_a(freq, PeakWidth, SAMPLEFREQ)
-        print("filtering data")
-        filteredData = ApplyFilter(b, a, input_signal)
-    
-        if(_np.isnan(filteredData).any()):
-            raise ValueError(
-                "Value Error: FractionOfSampleFreq must be higher, a sufficiently small sample frequency should be used to produce a working IIR filter.")
+            raise ValueError("filterImplementation must be one of [filtfilt, lfilter, ifft] you entered: {}".format(filterImplementation))
     
         if MakeFig == True:
             f, PSD = scipy.signal.welch(
@@ -1149,7 +1231,7 @@ def load_data(Filepath, ObjectType='data', RelativeChannelNo=None, SampleFreq=No
     ObjectType : string, optional
         type to load the data as, takes the value 'default' if not specified.
         Options are:
-        'default' : optoanalysis.DataObject
+        'data' : optoanalysis.DataObject
         'thermo' : optoanalysis.thermo.ThermoObject
     RelativeChannelNo : int, optional
         If loading a .bin file produced by the Saneae datalogger, used to specify
@@ -1535,7 +1617,30 @@ def _autocorrelation_fitting_eqn(t, Gamma):
     """
     return _np.exp(-t*Gamma)
 
-def fit_autocorrelation(autocorrelation, time, GammaGuess, MakeFig=True, show_fig=True):
+def _position_autocorrelation_fitting_eqn(t, Gamma, AngTrapFreq):
+    """
+    The value of the fitting equation:
+    exp(-t*Gamma)
+    to be fit to the autocorrelation-exponential decay
+
+    Parameters
+    ----------
+    t : float
+        time 
+    Gamma : float
+        Big Gamma (in radians), i.e. damping 
+    AngTrapFreq : float
+        Angular Trapping Frequency in Radians
+
+    Returns
+    -------
+    Value : float
+        The value of the fitting equation
+    """
+    return _np.exp(-t*Gamma/2)* ( _np.cos(t* _np.sqrt(AngTrapFreq**2-Gamma**2/4)) + Gamma* _np.sin(t* _np.sqrt(AngTrapFreq**2-Gamma**2/4))/(2* _np.sqrt(AngTrapFreq**2-Gamma**2/4)) )
+
+
+def fit_autocorrelation(autocorrelation, time, GammaGuess, TrapFreqGuess=None, method='variance', MakeFig=True, show_fig=True):
     """
     Fits exponential relaxation theory to data.
 
@@ -1548,6 +1653,13 @@ def fit_autocorrelation(autocorrelation, time, GammaGuess, MakeFig=True, show_fi
         was evaluated
     GammaGuess : float
         The approximate Big Gamma (in radians) to use initially
+    TrapFreqGuess : float
+        The approximate trapping frequency to use initially in Hz.
+    method : string, optional
+        To choose which autocorrelation fit is needed.
+        'variance' : exponential 'energy' decay
+        'position' : equation 4.20 from Tongcang Li's 2013 thesis 
+                     (DOI: 10.1007/978-1-4614-6031-2)
     MakeFig : bool, optional
         Whether to construct and return the figure object showing
         the fitting. defaults to True
@@ -1558,9 +1670,11 @@ def fit_autocorrelation(autocorrelation, time, GammaGuess, MakeFig=True, show_fi
     Returns
     -------
     ParamsFit - Fitted parameters:
-        [Gamma]
+        'variance'-method : [Gamma]
+        'position'-method : [Gamma, AngularTrappingFrequency]
     ParamsFitErr - Error in fitted parameters:
-        [GammaErr]
+        'varaince'-method : [GammaErr]
+        'position'-method : [GammaErr, AngularTrappingFrequencyErr]
     fig : matplotlib.figure.Figure object
         figure object containing the plot
     ax : matplotlib.axes.Axes object
@@ -1570,27 +1684,37 @@ def fit_autocorrelation(autocorrelation, time, GammaGuess, MakeFig=True, show_fi
     """    
     datax = time
     datay = autocorrelation
-    
-    p0 = _np.array([GammaGuess])
 
-    Params_Fit, Params_Fit_Err = fit_curvefit(p0,
-                                              datax,
-                                              datay,
-                                              _autocorrelation_fitting_eqn)
+    method = method.lower()
+    if method == 'variance':
+        p0 = _np.array([GammaGuess])
 
+        Params_Fit, Params_Fit_Err = fit_curvefit(p0,
+                                                  datax,
+                                                  datay,
+                                                  _autocorrelation_fitting_eqn)
+        autocorrelation_fit = _autocorrelation_fitting_eqn(datax,
+                                                           Params_Fit[0])
+    elif method == 'position':
+        AngTrapFreqGuess = 2 * _np.pi * TrapFreqGuess
+        p0 = _np.array([GammaGuess, AngTrapFreqGuess])
+        Params_Fit, Params_Fit_Err = fit_curvefit(p0,
+                                                  datax,
+                                                  datay,
+                                                  _position_autocorrelation_fitting_eqn)
+        autocorrelation_fit = _position_autocorrelation_fitting_eqn(datax,
+                                                                    Params_Fit[0],
+                                                                    Params_Fit[1])
+        
     if MakeFig == True:
         fig = _plt.figure(figsize=properties["default_fig_size"])
         ax = fig.add_subplot(111)
-
-        autocorrelation_fit = _autocorrelation_fitting_eqn(Params_Fit[0],
-                                                           datax)
-
         ax.plot(datax*1e6, datay,
-                color="darkblue", label="Autocorrelation Data", alpha=0.5)
+                '.', color="darkblue", label="Autocorrelation Data", alpha=0.5)
         ax.plot(datax*1e6, autocorrelation_fit,
                 color="red", label="fit")
         ax.set_xlim([0,
-                     100e6/Params_Fit[0]/(2*_np.pi)])
+                     30e6/Params_Fit[0]/(2*_np.pi)])
         legend = ax.legend(loc="best", frameon = 1)
         frame = legend.get_frame()
         frame.set_facecolor('white')
@@ -2385,9 +2509,6 @@ def IFFT_filter(Signal, SampleFreq, lowerFreq, upperFreq, PyCUDA = False):
     print("starting bin zeroing")
     Signalfft[_np.where(freqs < lowerFreq)] = 0
     Signalfft[_np.where(freqs > upperFreq)] = 0
-    '''for i, freq in enumerate(freqs):
-        if freq < lowerFreq or freq > upperFreq:
-            Signalfft[i] = 0'''
     if PyCUDA==True:
         FilteredSignal = 2 * calc_ifft_with_PyCUDA(Signalfft)
     else:
@@ -2943,8 +3064,7 @@ def calc_autocorrelation(Signal):
             Array containing the value of the autocorrelation evaluated
             at the corresponding amount of shifted array-index.
     """
-    mean = _np.mean(Signal)
-    Signal -= mean
+    Signal -= _np.mean(Signal)
     autocorr = scipy.signal.correlate(Signal, Signal, mode='full')
     return autocorr[autocorr.size//2:]/autocorr[autocorr.size//2]
 
