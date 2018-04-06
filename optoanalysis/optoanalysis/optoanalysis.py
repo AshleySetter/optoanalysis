@@ -1278,15 +1278,17 @@ def load_data(Filepath, ObjectType='data', RelativeChannelNo=None, SampleFreq=No
                 repeat_number = int(repeat_number)
                 pressure = float(pressure)
                 if (run_number == data.run_number) and (repeat_number == data.repeat_number):
-                    data.pmbar = pressure
-        elif _does_file_exist(glob('*' + data.filepath[20:-4] + ' - header.dat')[0]):
+                    data.pmbar = pressure    
+    except ValueError:
+        pass
+    try:
+        if _does_file_exist(glob(data.filepath.replace(data.filename, '*' + data.filename[20:-4] + ' - header.dat'))[0]):
             print("header file exists")
-            with open(glob('*' + data.filepath[20:-4] + ' - header.dat')[0], encoding='ISO-8859-1') as f:
+            with open(glob(data.filepath.replace(data.filename, '*' + data.filepath[20:-4] + ' - header.dat'))[0], encoding='ISO-8859-1') as f:
                 lines = f.readlines()
             data.pmbar = (float(lines[68][-9:-1])+float(lines[69][-9:-1]))/2
-            
     except ValueError:
-        pass    
+        pass
     return data
 
 def search_data_std(Channel, RunNos, RepeatNos, directoryPath='.'):
