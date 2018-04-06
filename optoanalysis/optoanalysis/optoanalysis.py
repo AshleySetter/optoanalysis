@@ -3072,7 +3072,7 @@ def calc_autocorrelation(Signal):
             Array containing the value of the autocorrelation evaluated
             at the corresponding amount of shifted array-index.
     """
-    Signal -= _np.mean(Signal)
+    Signal = Signal - _np.mean(Signal)
     autocorr = scipy.signal.correlate(Signal, Signal, mode='full')
     return autocorr[autocorr.size//2:]/autocorr[autocorr.size//2]
 
