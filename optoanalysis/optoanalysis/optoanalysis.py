@@ -631,7 +631,6 @@ class DataObject():
         self.FTrap = OmegaTrap/(2*pi)
         return OmegaTrap, A, Gamma, fig, ax
 
-<<<<<<< HEAD
     def calc_gamma_from_variance_autocorrelation_fit(self, NumberOfOscillations, GammaGuess=None, Silent=False, MakeFig=True, show_fig=True):
         """
         Calculates the total damping, i.e. Gamma, by splitting the time trace
@@ -772,10 +771,7 @@ class DataObject():
         else:
             return Gamma, OmegaTrap, None, None
     
-    def extract_parameters(self, P_mbar, P_Error, method="rashid"):
-=======
     def extract_parameters(self, P_mbar, P_Error, method="chang"):
->>>>>>> upstream/master
         """
         Extracts the Radius, mass and Conversion factor for a particle.
 
@@ -1283,6 +1279,12 @@ def load_data(Filepath, ObjectType='data', RelativeChannelNo=None, SampleFreq=No
                 pressure = float(pressure)
                 if (run_number == data.run_number) and (repeat_number == data.repeat_number):
                     data.pmbar = pressure
+        elif _does_file_exist(data.filepath[:-4] + ' - header.dat'):
+            print("header file exists")
+            with open(data.filepath[:-4] + ' - header.dat', encoding='ISO-8859-1') as f:
+                lines = f.readlines()
+            data.pmbar = (float(lines[68][-9:-1])+float(lines[69][-9:-1]))/2
+            
     except ValueError:
         pass    
     return data
