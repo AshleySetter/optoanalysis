@@ -3056,7 +3056,7 @@ def calc_PSD(Signal, SampleFreq, NPerSegment=1000000, window="hann"):
     freqs.sort()
     return freqs, PSD
 
-def calc_autocorrelation(Signal):
+def calc_autocorrelation(Signal, FFT=False, PyCUDA=False):
     """
     Calculates the autocorrelation from a given Signal via using
     
@@ -3065,6 +3065,15 @@ def calc_autocorrelation(Signal):
     ----------
     Signal : array-like
         Array containing the signal to have the autocorrelation calculated for
+    FFT : optional, bool
+        Uses FFT to accelerate autocorrelation calculation, but assumes certain
+        certain periodicity on the signal to autocorrelate. Zero-padding is added
+        to account for this periodicity assumption.
+    PyCUDA : bool, optional
+       If True, uses PyCUDA to accelerate the FFT and IFFT
+       via using your NVIDIA-GPU
+       If False, performs FFT and IFFT with conventional
+       scipy.fftpack
 
     Returns
     -------
@@ -3072,9 +3081,24 @@ def calc_autocorrelation(Signal):
             Array containing the value of the autocorrelation evaluated
             at the corresponding amount of shifted array-index.
     """
-    Signal = Signal - _np.mean(Signal)
-    autocorr = scipy.signal.correlate(Signal, Signal, mode='full')
-    return autocorr[autocorr.size//2:]/autocorr[autocorr.size//2]
+    if FFT==True:
+        Signal_padded = scipy.fftpack.ifftshift((Signal-_np.average(Signal))/_np.std(Signal))
+        n, = Signal_padded.shape
+        Signal_padded = _np.r_[Signal_padded[:n//2], _np.zeros_like(Signal_padded), Signal_padded[n//2:]]
+        if PyCUDA==True:
+            f = calc_fft_with_PyCUDA(Signal_padded)
+        else:
+            f = scipy.fftpack.fft(Signal_padded)
+        p = _np.absolute(f)**2
+        if PyCUDA==True:
+            autocorr = calc_ifft_with_PyCUDA(p)
+        else:
+            autocorr = scipy.fftpack.ifft(p)
+        return _np.real(autocorr)[:n//2]/(_np.arange(n//2)[::-1]+n//2)
+    else:
+        Signal = Signal - _np.mean(Signal)
+        autocorr = scipy.signal.correlate(Signal, Signal, mode='full')
+        return autocorr[autocorr.size//2:]/autocorr[autocorr.size//2]
 
 def _GetRealImagArray(Array):
     """
