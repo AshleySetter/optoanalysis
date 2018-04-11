@@ -1701,7 +1701,7 @@ def fit_autocorrelation(autocorrelation, time, GammaGuess, TrapFreqGuess=None, m
                                                   datax,
                                                   datay,
                                                   _autocorrelation_fitting_eqn)
-        autocorrelation_fit = _autocorrelation_fitting_eqn(datax,
+        autocorrelation_fit = _autocorrelation_fitting_eqn(_np.arange(0,datax[-1],1e-7),
                                                            Params_Fit[0])
     elif method == 'position':
         AngTrapFreqGuess = 2 * _np.pi * TrapFreqGuess
@@ -1710,7 +1710,7 @@ def fit_autocorrelation(autocorrelation, time, GammaGuess, TrapFreqGuess=None, m
                                                   datax,
                                                   datay,
                                                   _position_autocorrelation_fitting_eqn)
-        autocorrelation_fit = _position_autocorrelation_fitting_eqn(datax,
+        autocorrelation_fit = _position_autocorrelation_fitting_eqn(_np.arange(0,datax[-1],1e-7),
                                                                     Params_Fit[0],
                                                                     Params_Fit[1])
         
@@ -1719,7 +1719,7 @@ def fit_autocorrelation(autocorrelation, time, GammaGuess, TrapFreqGuess=None, m
         ax = fig.add_subplot(111)
         ax.plot(datax*1e6, datay,
                 '.', color="darkblue", label="Autocorrelation Data", alpha=0.5)
-        ax.plot(datax*1e6, autocorrelation_fit,
+        ax.plot(_np.arange(0,datax[-1],1e-7)*1e6, autocorrelation_fit,
                 color="red", label="fit")
         ax.set_xlim([0,
                      30e6/Params_Fit[0]/(2*_np.pi)])
