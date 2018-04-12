@@ -1631,7 +1631,7 @@ def _energy_autocorrelation_fitting_eqn(t, Gamma, AngTrapFreq):
     Value : float
         The value of the fitting equation
     """
-    return _np.exp(-t*Gamma) * (4 * AngTrapFreq**2 - Gamma**2 _np.cos(2*_np.sqrt(Gamma**2/4-AngTrapFreq**2)*t))
+    return _np.exp(-t*Gamma) * (4 * AngTrapFreq**2 - Gamma**2 * _np.cos(2*_np.sqrt(Gamma**2/4-AngTrapFreq**2)*t))
 
 def _position_autocorrelation_fitting_eqn(t, Gamma, AngTrapFreq):
     """
