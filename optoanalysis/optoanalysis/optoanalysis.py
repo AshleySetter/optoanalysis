@@ -1613,7 +1613,8 @@ def take_closest(myList, myNumber):
 def _energy_autocorrelation_fitting_eqn(t, Gamma, AngTrapFreq):
     """
     The value of the fitting equation:
-    exp(-t*Gamma)
+    exp(-t*Gamma) * (4*Omega**2-Gamma**2 * cos(2*sqrt(Gamma**2 /4 - Omega**2)*t))
+    [taken from DOI: 10.1103/PhysRevE.94.062151]
     to be fit to the autocorrelation-exponential decay
 
     Parameters
@@ -1635,7 +1636,8 @@ def _energy_autocorrelation_fitting_eqn(t, Gamma, AngTrapFreq):
 def _position_autocorrelation_fitting_eqn(t, Gamma, AngTrapFreq):
     """
     The value of the fitting equation:
-    exp(-t*Gamma)
+    exp(-t*Gamma/2) * (cos(t* sqrt(Omega**2 - Gamma**2 /4)) + Gamma* sin(t* sqrt(Omega**2-Gamma**2 /4))/(2* sqrt(Omega**2 - Gamma**2 /4)))
+    [eqn 4.20 taken from DOI: DOI: 10.1007/978-1-4614-6031-2]
     to be fit to the autocorrelation-exponential decay
 
     Parameters
@@ -1675,6 +1677,7 @@ def fit_autocorrelation(autocorrelation, time, GammaGuess, TrapFreqGuess, method
         'position' : equation 4.20 from Tongcang Li's 2013 thesis 
                      (DOI: 10.1007/978-1-4614-6031-2)
         'energy'   : proper exponential energy correlation decay
+                     (DOI: 10.1103/PhysRevE.94.062151)
     MakeFig : bool, optional
         Whether to construct and return the figure object showing
         the fitting. defaults to True
