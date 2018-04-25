@@ -685,25 +685,81 @@ class DataObject():
         
         if MakeFig == True:
             Params, ParamsErr, fig, ax = fit_autocorrelation(
-                autocorrelation, time, Gamma_Initial, self.FTrap.n, MakeFig=MakeFig, show_fig=show_fig)
+                autocorrelation, time, Gamma_Initial, MakeFig=MakeFig, show_fig=show_fig)
         else:
             Params, ParamsErr, _ , _ = fit_autocorrelation(
-                autocorrelation, time, Gamma_Initial, self.FTrap.n, MakeFig=MakeFig, show_fig=show_fig)
+                autocorrelation, time, Gamma_Initial, MakeFig=MakeFig, show_fig=show_fig)
 
         if Silent == False:
             print("\n")
             print(
                 "Big Gamma: {} +- {}% ".format(Params[0], ParamsErr[0] / Params[0] * 100))
-            print(
-                "Trap Frequency: {} +- {}% ".format(Params[1], ParamsErr[1] / Params[1] * 100))
 
         Gamma = _uncertainties.ufloat(Params[0], ParamsErr[0])
-        OmegaTrap = _uncertainties.ufloat(Params[1], ParamsErr[1])
         
         if MakeFig == True:
-            return Gamma, OmegaTrap, fig, ax
+            return Gamma, fig, ax
         else:
-            return Gamma, OmegaTrap, None, None
+            return Gamma, None, None
+
+    def calc_gamma_from_energy_autocorrelation_fit(self, GammaGuess=None, Silent=False, MakeFig=True, show_fig=True):
+        """
+        Calculates the total damping, i.e. Gamma, by calculating the energy each 
+        point in time. This energy array is then used for the autocorrleation. 
+        The autocorrelation is fitted with an exponential relaxation function and
+        the function returns the parameters with errors.
+
+        Parameters
+        ----------
+        GammaGuess : float, optional
+            Inital guess for BigGamma (in radians)
+        Silent : bool, optional
+            Whether it prints the values fitted or is silent.
+        MakeFig : bool, optional
+            Whether to construct and return the figure object showing
+            the fitting. defaults to True
+        show_fig : bool, optional
+            Whether to show the figure object when it has been created.
+            defaults to True
+
+        Returns
+        -------
+        Gamma : ufloat
+            Big Gamma, the total damping in radians
+        fig : matplotlib.figure.Figure object
+            The figure object created showing the autocorrelation
+            of the data with the fit
+        ax : matplotlib.axes.Axes object
+            The axes object created showing the autocorrelation
+            of the data with the fit
+
+        """
+        autocorrelation = calc_autocorrelation(self.voltage[:-1]**2*self.OmegaTrap.n**2+(_np.diff(self.voltage)*self.SampleFreq)**2)
+        time = self.time.get_array()[:len(autocorrelation)]
+
+        if GammaGuess==None:
+            Gamma_Initial = (time[4]-time[0])/(autocorrelation[0]-autocorrelation[4])
+        else:
+            Gamma_Initial = GammaGuess
+        
+        if MakeFig == True:
+            Params, ParamsErr, fig, ax = fit_autocorrelation(
+                autocorrelation, time, Gamma_Initial, MakeFig=MakeFig, show_fig=show_fig)
+        else:
+            Params, ParamsErr, _ , _ = fit_autocorrelation(
+                autocorrelation, time, Gamma_Initial, MakeFig=MakeFig, show_fig=show_fig)
+
+        if Silent == False:
+            print("\n")
+            print(
+                "Big Gamma: {} +- {}% ".format(Params[0], ParamsErr[0] / Params[0] * 100))
+
+        Gamma = _uncertainties.ufloat(Params[0], ParamsErr[0])
+        
+        if MakeFig == True:
+            return Gamma, fig, ax
+        else:
+            return Gamma, None, None
 
     def calc_gamma_from_position_autocorrelation_fit(self, GammaGuess=None, FreqTrapGuess=None, Silent=False, MakeFig=True, show_fig=True):
         """
@@ -742,7 +798,7 @@ class DataObject():
 
         """
         autocorrelation = calc_autocorrelation(self.voltage)
-        time = self.time.get_array()[:-1]
+        time = self.time.get_array()[:len(autocorrelation)]
 
         if GammaGuess==None:
             Gamma_Initial = (autocorrelation[0]-autocorrelation[int(self.SampleFreq/self.FTrap.n)])/(time[int(self.SampleFreq/self.FTrap.n)]-time[0])*2*_np.pi
@@ -1610,12 +1666,15 @@ def take_closest(myList, myNumber):
     else:
         return before
 
-def _energy_autocorrelation_fitting_eqn(t, Gamma, AngTrapFreq):
+def _energy_autocorrelation_fitting_eqn(t, Gamma):
     """
     The value of the fitting equation:
-    exp(-t*Gamma) * (4*Omega**2-Gamma**2 * cos(2*sqrt(Gamma**2 /4 - Omega**2)*t))
-    [taken from DOI: 10.1103/PhysRevE.94.062151]
+    exp(-t*Gamma)
     to be fit to the autocorrelation-exponential decay
+    Actual correct equation would be: 
+    exp(-t*Gamma) * (4*Omega**2-Gamma**2 * cos(2*sqrt(Gamma**2 /4 - Omega**2)*t))
+    taken from DOI: 10.1103/PhysRevE.94.062151 but since
+    the additional term is negligible when the quality factor Q>1.
 
     Parameters
     ----------
@@ -1623,15 +1682,13 @@ def _energy_autocorrelation_fitting_eqn(t, Gamma, AngTrapFreq):
         time 
     Gamma : float
         Big Gamma (in radians), i.e. damping 
-    AngTrapFreq : float
-        Angular Trapping Frequency in Radians
 
     Returns
     -------
     Value : float
         The value of the fitting equation
     """
-    return _np.exp(-t*Gamma) * (4 * AngTrapFreq**2 - Gamma**2 * _np.cos(2*_np.sqrt(Gamma**2/4-AngTrapFreq**2)*t))
+    return _np.exp(-t*Gamma)
 
 def _position_autocorrelation_fitting_eqn(t, Gamma, AngTrapFreq):
     """
@@ -1657,7 +1714,7 @@ def _position_autocorrelation_fitting_eqn(t, Gamma, AngTrapFreq):
     return _np.exp(-t*Gamma/2)* ( _np.cos(t* _np.sqrt(AngTrapFreq**2-Gamma**2/4)) + Gamma* _np.sin(t* _np.sqrt(AngTrapFreq**2-Gamma**2/4))/(2* _np.sqrt(AngTrapFreq**2-Gamma**2/4)) )
 
 
-def fit_autocorrelation(autocorrelation, time, GammaGuess, TrapFreqGuess, method='energy', MakeFig=True, show_fig=True):
+def fit_autocorrelation(autocorrelation, time, GammaGuess, TrapFreqGuess=None, method='energy', MakeFig=True, show_fig=True):
     """
     Fits exponential relaxation theory to data.
 
@@ -1703,19 +1760,18 @@ def fit_autocorrelation(autocorrelation, time, GammaGuess, TrapFreqGuess, method
     datax = time
     datay = autocorrelation
 
-    AngTrapFreqGuess = 2 * _np.pi * TrapFreqGuess
     method = method.lower()
     if method == 'energy':
-        p0 = _np.array([GammaGuess, AngTrapFreqGuess])
+        p0 = _np.array([GammaGuess])
 
         Params_Fit, Params_Fit_Err = fit_curvefit(p0,
                                                   datax,
                                                   datay,
                                                   _energy_autocorrelation_fitting_eqn)
         autocorrelation_fit = _energy_autocorrelation_fitting_eqn(_np.arange(0,datax[-1],1e-7),
-                                                                  Params_Fit[0],
-                                                                  Params_Fit[1])
+                                                                  Params_Fit[0])
     elif method == 'position':
+        AngTrapFreqGuess = 2 * _np.pi * TrapFreqGuess
         p0 = _np.array([GammaGuess, AngTrapFreqGuess])
         Params_Fit, Params_Fit_Err = fit_curvefit(p0,
                                                   datax,
