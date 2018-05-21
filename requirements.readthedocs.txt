@@ -1,2 +1,0 @@
-optoanalysis/
--r optoanalysis/requirements.txt
