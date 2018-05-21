@@ -1,2 +1,2 @@
-cd ../../
+../../setup.py
 -r ../../requirements.txt
