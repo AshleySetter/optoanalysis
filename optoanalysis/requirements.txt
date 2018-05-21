@@ -1,5 +1,4 @@
 #
-../optoanalysis/
 ####### requirements.txt for optoanalysis #######
 numpy
 scipy
