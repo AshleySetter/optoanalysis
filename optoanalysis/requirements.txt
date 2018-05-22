@@ -14,5 +14,4 @@ pytest-mpl
 numpydoc
 sphinx_rtd_theme
 scikit-image
-pycuda
 #
