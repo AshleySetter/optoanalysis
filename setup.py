@@ -1,3 +1,3 @@
-import sys
-sys.path.append('optoanalysis/')
-import setup
+import os 
+os.chdir('optoanalysis/')
+os.system('python setup.py install --force')
