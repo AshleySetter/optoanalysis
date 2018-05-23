@@ -30,7 +30,7 @@ class Mock(MagicMock):
     def __getattr__(cls, name):
         return MagicMock()
 
-MOCK_MODULES = ['pygtk', 'gtk', 'gobject', 'argparse', 'numpy', 'pandas', 'numba', 'pycuda', 'skcuda']
+MOCK_MODULES = ['pygtk', 'gtk', 'gobject', 'argparse', 'numpy', 'pandas', 'numba', 'pycuda', 'skcuda', 'numpy.ma']
 sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 
 # -- General configuration ------------------------------------------------
@@ -70,8 +70,8 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'optoanalysis'
-copyright = '2017, Ashley Setter'
-author = 'Ashley Setter'
+copyright = '2018, Ashley Setter and Markus Rademacher'
+author = 'Ashley Setter and Markus Rademacher'
 
 mypackage_root_dir = os.path.dirname(__file__)
 with open(os.path.join(mypackage_root_dir, '../../optoanalysis/VERSION')) as version_file:
@@ -155,7 +155,7 @@ latex_elements = {
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
     (master_doc, 'optoanalysis.tex', 'optoanalysis Documentation',
-     'Ashley Setter', 'manual'),
+     'Ashley Setter \\and Markus Rademacher', 'manual'),
 ]
 
 
