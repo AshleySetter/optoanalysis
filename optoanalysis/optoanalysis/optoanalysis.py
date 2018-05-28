@@ -98,7 +98,7 @@ class DataObject():
 
     """
 
-    def __init__(self, filepath, RelativeChannelNo=None, SampleFreq=None, PointsToLoad=-1, calcPSD=True, NPerSegmentPSD=1000000):
+    def __init__(self, filepath, RelativeChannelNo=None, SampleFreq=None, PointsToLoad=-1, calcPSD=True, NPerSegmentPSD=1000000, NormaliseByMonitorOutput=False):
         """
         Parameters
         ----------
@@ -107,6 +107,11 @@ class DataObject():
         RelativeChannelNo : int, optional
             If loading a .bin file produced by the Saleae datalogger, used to specify
             the channel number
+            If loading a .dat file produced by the labview NI5122 daq card, used to 
+            specifiy the channel number if two channels where saved, if left None with 
+            .dat files it will assume that the file to load only contains one channel.
+            If NormaliseByMonitorOutput is True then RelativeChannelNo specifies the 
+            monitor channel for loading a .dat file produced by the labview NI5122 daq card.
         SampleFreq : float, optional
             If loading a .dat file produced by the labview NI5122 daq card, used to
             manually specify the sample frequency 
@@ -118,6 +123,10 @@ class DataObject():
             off the loading and reduce memory usage if frequency space info is not required
         NPerSegmentPSD : int, optional
             NPerSegment to pass to scipy.signal.welch to calculate the PSD
+        NormaliseByMonitorOutput : bool, optional
+            If True the particle signal trace will be divided by the monitor output, which is
+            specified by the channel number set in the RelativeChannelNo parameter. 
+            WORKS WITH NI5122 DATA SO FAR ONLY!!!
 
         Initialisation - assigns values to the following attributes:
         - filepath
@@ -131,12 +140,12 @@ class DataObject():
         self.filepath = filepath
         self.filename = filepath.split("/")[-1]
         self.filedir = self.filepath[0:-len(self.filename)]
-        self.load_time_data(RelativeChannelNo,SampleFreq,PointsToLoad)
+        self.load_time_data(RelativeChannelNo,SampleFreq,PointsToLoad,NormaliseByMonitorOutput)
         if calcPSD != False:
             self.get_PSD(NPerSegmentPSD)
         return None
 
-    def load_time_data(self, RelativeChannelNo=None, SampleFreq=None, PointsToLoad=-1):
+    def load_time_data(self, RelativeChannelNo=None, SampleFreq=None, PointsToLoad=-1, NormaliseByMonitorOutput=False):
         """
         Loads the time and voltage data and the wave description from the associated file.
 
@@ -144,11 +153,20 @@ class DataObject():
         ----------
         RelativeChannelNo : int, optional
              Channel number for loading saleae data files
+             If loading a .dat file produced by the labview NI5122 daq card, used to 
+             specifiy the channel number if two channels where saved, if left None with 
+             .dat files it will assume that the file to load only contains one channel.
+             If NormaliseByMonitorOutput is True then RelativeChannelNo specifies the 
+             monitor channel for loading a .dat file produced by the labview NI5122 daq card.
         SampleFreq : float, optional
              Manual selection of sample frequency for loading labview NI5122 daq files
         PointsToLoad : int, optional
-            Number of first points to read. -1 means all points (i.e., the complete file)
-            WORKS WITH NI5122 DATA SO FAR ONLY!!!
+             Number of first points to read. -1 means all points (i.e., the complete file)
+             WORKS WITH NI5122 DATA SO FAR ONLY!!!
+        NormaliseByMonitorOutput : bool, optional
+             If True the particle signal trace will be divided by the monitor output, which is
+             specified by the channel number set in the RelativeChannelNo parameter. 
+             WORKS WITH NI5122 DATA SO FAR ONLY!!!
         """
         f = open(self.filepath, 'rb')
         raw = f.read()
@@ -170,7 +188,19 @@ class DataObject():
         elif FileExtension == "dat": #for importing a file written by labview using the NI5122 daq card
             if SampleFreq == None:
                 raise ValueError("If loading a .dat file from the NI5122 daq card you must enter a SampleFreq")
-            self.voltage = _np.fromfile(self.filepath, dtype='>h',count=PointsToLoad)
+            if RelativeChannelNo == None:
+                self.voltage = _np.fromfile(self.filepath, dtype='>h',count=PointsToLoad)
+            elif RelativeChannelNo != None:
+                if NormaliseByMonitorOutput == True:
+                    filedata = _np.fromfile(self.filepath, dtype='>h',count=PointsToLoad)
+                    if RelativeChannelNo == 0:
+                        monitorsignal = filedata[:len(filedata):2]
+                        self.voltage = filedata[1:len(filedata):2]/monitorsignal
+                    elif RelativeChannelNo == 1:
+                        monitorsignal = filedata[1:len(filedata):2]
+                        self.voltage = filedata[:len(filedata):2]/monitorsignal
+                elif NormaliseByMonitorOutput == False:
+                    self.voltage = filedata[RelativeChannelNo:len(filedata):2]
             timeParams = (0,len(self.voltage)/SampleFreq,1/SampleFreq)
             self.SampleFreq = 1/timeParams[2]
         startTime, endTime, Timestep = timeParams
@@ -1282,7 +1312,7 @@ class ORGTableData():
         return Value 
 
     
-def load_data(Filepath, ObjectType='data', RelativeChannelNo=None, SampleFreq=None, PointsToLoad=-1, calcPSD=True, NPerSegmentPSD=1000000):
+def load_data(Filepath, ObjectType='data', RelativeChannelNo=None, SampleFreq=None, PointsToLoad=-1, calcPSD=True, NPerSegmentPSD=1000000, NormaliseByMonitorOutput=False):
     """
     Parameters
     ----------
@@ -1297,17 +1327,26 @@ def load_data(Filepath, ObjectType='data', RelativeChannelNo=None, SampleFreq=No
     RelativeChannelNo : int, optional
         If loading a .bin file produced by the Saneae datalogger, used to specify
         the channel number
+        If loading a .dat file produced by the labview NI5122 daq card, used to 
+        specifiy the channel number if two channels where saved, if left None with 
+        .dat files it will assume that the file to load only contains one channel.
+        If NormaliseByMonitorOutput is True then specifies the monitor channel for
+        loading a .dat file produced by the labview NI5122 daq card.
     SampleFreq : float, optional
-            If loading a .dat file produced by the labview NI5122 daq card, used to
-            manually specify the sample frequency
+        If loading a .dat file produced by the labview NI5122 daq card, used to
+        manually specify the sample frequency
     PointsToLoad : int, optional
-            Number of first points to read. -1 means all points (i.e., the complete file)
-            WORKS WITH NI5122 DATA SO FAR ONLY!!!
+        Number of first points to read. -1 means all points (i.e., the complete file)
+        WORKS WITH NI5122 DATA SO FAR ONLY!!!
     calcPSD : bool, optional
         Whether to calculate the PSD upon loading the file, can take some time
         off the loading and reduce memory usage if frequency space info is not required
     NPerSegmentPSD : int, optional
         NPerSegment to pass to scipy.signal.welch to calculate the PSD
+    NormaliseByMonitorOutput : bool, optional
+        If True the particle signal trace will be divided by the monitor output, which is
+        specified by the channel number set in the RelativeChannelNo parameter. 
+        WORKS WITH NI5122 DATA SO FAR ONLY!!!
 
     Returns
     -------
@@ -1325,7 +1364,7 @@ def load_data(Filepath, ObjectType='data', RelativeChannelNo=None, SampleFreq=No
         Object = ObjectTypeDict[ObjectType]
     except KeyError:
         raise ValueError("You entered {}, this is not a valid object type".format(ObjectType))
-    data = Object(Filepath, RelativeChannelNo, SampleFreq, PointsToLoad, calcPSD, NPerSegmentPSD)
+    data = Object(Filepath, RelativeChannelNo, SampleFreq, PointsToLoad, calcPSD, NPerSegmentPSD, NormaliseByMonitorOutput)
     try:
         channel_number, run_number, repeat_number = [int(val) for val in re.findall('\d+', data.filename)]
         data.channel_number = channel_number

@@ -33,7 +33,7 @@ class ThermoObject(optoanalysis.DataObject):
                 Contains the values for the PSD (Pulse Spectral Density) as calculated
                 at each frequency contained in freqs        
     """
-    def __init__(self, filepath, RelativeChannelNo=None, SampleFreq=None, PointsToLoad=-1, calcPSD=True, NPerSegmentPSD=1000000):
+    def __init__(self, filepath, RelativeChannelNo=None, SampleFreq=None, PointsToLoad=-1, calcPSD=True, NPerSegmentPSD=1000000, NormaliseByMonitorOutput=False):
         """
         Parameters
         ----------
@@ -42,6 +42,11 @@ class ThermoObject(optoanalysis.DataObject):
         RelativeChannelNo : int, optional
             If loading a .bin file produced by the Saleae datalogger, used to specify
             the channel number
+            If loading a .dat file produced by the labview NI5122 daq card, used to 
+            specifiy the channel number if two channels where saved, if left None with 
+            .dat files it will assume that the file to load only contains one channel.
+            If NormaliseByMonitorOutput is True then RelativeChannelNo specifies the 
+            monitor channel for loading a .dat file produced by the labview NI5122 daq card.
         SampleFreq : float, optional
             If loading a .dat file produced by the labview NI5122 daq card, used to
             manually specify the sample frequency 
@@ -53,6 +58,11 @@ class ThermoObject(optoanalysis.DataObject):
             off the loading and reduce memory usage if frequency space info is not required
         NPerSegmentPSD : int, optional
             NPerSegment to pass to scipy.signal.welch to calculate the PSD
+        NormaliseByMonitorOutput : bool, optional
+            If True the particle signal trace will be divided by the monitor output, which is
+            specified by the channel number set in the RelativeChannelNo parameter. 
+            WORKS WITH NI5122 DATA SO FAR ONLY!!!
+
         """
         super(ThermoObject, self).__init__(filepath, RelativeChannelNo=RelativeChannelNo, SampleFreq=SampleFreq, PointsToLoad=PointsToLoad, calcPSD=calcPSD, NPerSegmentPSD=NPerSegmentPSD) # calls the init func from optoanalysis
         return None
