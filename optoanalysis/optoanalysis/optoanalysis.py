@@ -1800,7 +1800,6 @@ def fit_autocorrelation(autocorrelation, time, GammaGuess, TrapFreqGuess=None, m
     datax = time
     datay = autocorrelation
 
-<<<<<<< HEAD
     method = method.lower()
     if method == 'energy':
         p0 = _np.array([GammaGuess])
@@ -1843,10 +1842,7 @@ def fit_autocorrelation(autocorrelation, time, GammaGuess, TrapFreqGuess=None, m
     else:
         return Params_Fit, Params_Fit_Err, None, None
     
-def _PSD_fitting_eqn(A, OmegaTrap, Gamma, omega):
-=======
 def PSD_fitting_eqn(A, OmegaTrap, Gamma, omega):
->>>>>>> upstream/master
     """
     The value of the fitting equation:
     A / ((OmegaTrap**2 - omega**2)**2 + (omega * Gamma)**2)
