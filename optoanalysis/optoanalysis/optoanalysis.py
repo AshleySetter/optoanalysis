@@ -1796,7 +1796,7 @@ def fit_autocorrelation(autocorrelation, time, GammaGuess, TrapFreqGuess=None, m
         axes with the data plotted of the:
             - initial data
             - final fit
-    """    
+    """
     datax = time
     datay = autocorrelation
 
@@ -1875,7 +1875,6 @@ def PSD_fitting_eqn(A, OmegaTrap, Gamma, omega):
         The value of the fitting equation
     """
     return A / ((OmegaTrap**2 - omega**2)**2 + omega**2 * (Gamma)**2)
-
 
 def fit_PSD(Data, bandwidth, TrapFreqGuess, AGuess=0.1e10, GammaGuess=400, MakeFig=True, show_fig=True):
     """
