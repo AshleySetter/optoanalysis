@@ -191,8 +191,8 @@ class DataObject():
             if RelativeChannelNo == None:
                 self.voltage = _np.fromfile(self.filepath, dtype='>h',count=PointsToLoad)
             elif RelativeChannelNo != None:
+                filedata = _np.fromfile(self.filepath, dtype='>h',count=PointsToLoad)
                 if NormaliseByMonitorOutput == True:
-                    filedata = _np.fromfile(self.filepath, dtype='>h',count=PointsToLoad)
                     if RelativeChannelNo == 0:
                         monitorsignal = filedata[:len(filedata):2]
                         self.voltage = filedata[1:len(filedata):2]/monitorsignal
