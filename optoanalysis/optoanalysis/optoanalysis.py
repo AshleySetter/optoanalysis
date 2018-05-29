@@ -1419,6 +1419,7 @@ def search_data_std(Channel, RunNos, RepeatNos, directoryPath='.'):
     for file_ in files:
         if 'CH{}'.format(Channel) in file_:
             files_CorrectChannel.append(file_)
+    print(files_CorrectChannel)
     files_CorrectRunNo = []
     for RunNo in RunNos:
         files_match = _fnmatch.filter(
@@ -1799,6 +1800,7 @@ def fit_autocorrelation(autocorrelation, time, GammaGuess, TrapFreqGuess=None, m
     datax = time
     datay = autocorrelation
 
+<<<<<<< HEAD
     method = method.lower()
     if method == 'energy':
         p0 = _np.array([GammaGuess])
@@ -1842,6 +1844,9 @@ def fit_autocorrelation(autocorrelation, time, GammaGuess, TrapFreqGuess=None, m
         return Params_Fit, Params_Fit_Err, None, None
     
 def _PSD_fitting_eqn(A, OmegaTrap, Gamma, omega):
+=======
+def PSD_fitting_eqn(A, OmegaTrap, Gamma, omega):
+>>>>>>> upstream/master
     """
     The value of the fitting equation:
     A / ((OmegaTrap**2 - omega**2)**2 + (omega * Gamma)**2)
@@ -1956,7 +1961,7 @@ def fit_PSD(Data, bandwidth, TrapFreqGuess, AGuess=0.1e10, GammaGuess=400, MakeF
 
     def calc_theory_PSD_curve_fit(freqs, A, TrapFreq, BigGamma):
         Theory_PSD = 10 * \
-            _np.log10(_PSD_fitting_eqn(A, TrapFreq, BigGamma, freqs)) # PSD in dB
+            _np.log10(PSD_fitting_eqn(A, TrapFreq, BigGamma, freqs)) # PSD in dB
         if A < 0 or TrapFreq < 0 or BigGamma < 0:
             return 1e9
         else:
@@ -1977,11 +1982,11 @@ def fit_PSD(Data, bandwidth, TrapFreqGuess, AGuess=0.1e10, GammaGuess=400, MakeF
         ax = fig.add_subplot(111)
 
         PSDTheory_fit_initial = 10 * _np.log10(
-            _PSD_fitting_eqn(p0[0], p0[1],
+            PSD_fitting_eqn(p0[0], p0[1],
                              p0[2], AngFreqs))
 
         PSDTheory_fit = 10 * _np.log10(
-            _PSD_fitting_eqn(Params_Fit[0],
+            PSD_fitting_eqn(Params_Fit[0],
                              Params_Fit[1],
                              Params_Fit[2],
                              AngFreqs))
@@ -2083,7 +2088,7 @@ def extract_parameters(Pressure, PressureErr, A, AErr, Gamma0, Gamma0Err, method
                  ** 2 + (Gamma0Err / Gamma0)**2)
     mass = rho * ((4 * pi * radius**3) / 3)
     err_mass = mass * 2 * err_radius / radius
-    conversionFactor = _np.sqrt(A * pi * mass / (2 * kB * T0 * Gamma0))
+    conversionFactor = _np.sqrt(A * mass / (4 * kB * T0 * Gamma0))
     err_conversionFactor = conversionFactor * \
         _np.sqrt((AErr / A)**2 + (err_mass / mass)
                  ** 2 + (Gamma0Err / Gamma0)**2)
@@ -4310,3 +4315,57 @@ def plot_wigner2d(iradon_output, bin_centres, cmap=_cm.cubehelix_r, figsize=(6, 
     return fig, axWigner, axHistx, axHisty, cbar
 
 
+def fit_data(freq_array, S_xx_array, AGuess, OmegaTrap, GammaGuess, make_fig=True, show_fig=True):
+    
+    logPSD = 10 * _np.log10(S_xx_array) # putting S_xx in dB
+
+    def calc_theory_PSD_curve_fit(freqs, A, TrapFreq, BigGamma):
+        Theory_PSD = 10 * \
+            _np.log10(PSD_fitting_eqn(A, TrapFreq, BigGamma, freqs)) # PSD in dB
+        if A < 0 or TrapFreq < 0 or BigGamma < 0:
+            return 1e9
+        else:
+            return Theory_PSD
+
+    datax = _np.array(freq_array)*(2*_np.pi) # angular frequency
+    datay = logPSD # S_xx data in dB
+
+    p0 = _np.array([AGuess, OmegaTrap, GammaGuess])
+
+    Params_Fit, Params_Fit_Err = fit_curvefit(p0,
+                                              datax,
+                                              datay,
+                                              calc_theory_PSD_curve_fit)
+
+    if make_fig == True:
+        fig = _plt.figure(figsize=properties["default_fig_size"])
+        ax = fig.add_subplot(111)
+
+        PSDTheory_fit_initial = PSD_fitting_eqn(p0[0],
+                                                 p0[1],
+                                                 p0[2],
+                                                 datax)
+
+        PSDTheory_fit = PSD_fitting_eqn(Params_Fit[0],
+                                         Params_Fit[1],
+                                         Params_Fit[2],
+                                         datax)
+
+        ax.plot(datax / (2 * pi), S_xx_array,
+                color="darkblue", label="Raw PSD Data", alpha=0.5)
+        ax.plot(datax / (2 * pi), PSDTheory_fit_initial,
+                '--', alpha=0.7, color="purple", label="initial vals")
+        ax.plot(datax / (2 * pi), PSDTheory_fit,
+                color="red", label="fitted vals")
+        ax.semilogy()
+        legend = ax.legend(loc="best", frameon = 1)
+        frame = legend.get_frame()
+        frame.set_facecolor('white')
+        frame.set_edgecolor('white')
+        ax.set_xlabel("Frequency (Hz)")
+        ax.set_ylabel("$S_{xx}$ ($V^2/Hz$)")
+        if show_fig == True:
+            _plt.show()
+        return Params_Fit, Params_Fit_Err, fig, ax
+    else:
+        return Params_Fit, Params_Fit_Err, None, None
