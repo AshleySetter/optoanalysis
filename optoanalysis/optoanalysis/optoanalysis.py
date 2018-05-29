@@ -1387,7 +1387,7 @@ def load_data(Filepath, ObjectType='data', RelativeChannelNo=None, SampleFreq=No
             with open(glob(data.filepath.replace(data.filename, '*' + data.filepath[20:-4] + ' - header.dat'))[0], encoding='ISO-8859-1') as f:
                 lines = f.readlines()
             data.pmbar = (float(lines[68][-9:-1])+float(lines[69][-9:-1]))/2
-    except ValueError:
+    except (ValueError, IndexError):
         pass
     return data
 
