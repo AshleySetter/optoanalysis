@@ -201,7 +201,7 @@ class DataObject():
                         self.voltage = filedata[:len(filedata):2]/monitorsignal
                 elif NormaliseByMonitorOutput == False:
                     self.voltage = filedata[RelativeChannelNo:len(filedata):2]
-            timeParams = (0,len(self.voltage)/SampleFreq,1/SampleFreq)
+            timeParams = (0,(len(self.voltage)-1)/SampleFreq,1/SampleFreq)
             self.SampleFreq = 1/timeParams[2]
         startTime, endTime, Timestep = timeParams
         self.timeStart = startTime
