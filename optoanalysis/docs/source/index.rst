@@ -19,7 +19,7 @@ If you use this package in any academic work it would be very appretiated if you
    :caption: Contents:
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 2
    :caption: Documentation:
 
    optoanalysis
