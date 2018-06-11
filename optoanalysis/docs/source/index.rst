@@ -15,11 +15,11 @@ This library contains numerous functions for loading, analysing and plotting dat
 If you use this package in any academic work it would be very appretiated if you could cite it.
 
 .. toctree::
-   :maxdepth: 4
+   :maxdepth: 2
    :caption: Contents:
 
 .. toctree::
-   :maxdepth: 4
+   :maxdepth: 1
    :caption: Documentation:
 
    optoanalysis
