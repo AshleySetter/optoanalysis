@@ -23,6 +23,7 @@ If you use this package in any academic work it would be very appretiated if you
    :caption: Documentation:
 
    optoanalysis
+   optoanalysis.optoanalysis
    optoanalysis.thermo
    optoanalysis.LeCroy
    optoanalysis.Saleae
