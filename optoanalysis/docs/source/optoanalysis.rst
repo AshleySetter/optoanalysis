@@ -10,5 +10,5 @@ optoanalysis.optoanalysis module
     :undoc-members:
     :show-inheritance:
 
-.. autoclass::
+.. autoclass:: optoanalysis.optoanalysis.DataObject
 .. automethod::
