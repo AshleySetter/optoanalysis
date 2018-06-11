@@ -10,3 +10,5 @@ optoanalysis.optoanalysis module
     :undoc-members:
     :show-inheritance:
 
+.. autoclass::
+.. automethod::
