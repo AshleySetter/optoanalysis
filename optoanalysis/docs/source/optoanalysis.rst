@@ -8,4 +8,3 @@ optoanalysis.optoanalysis module
     :members:
     :undoc-members:
     :show-inheritance:
-
