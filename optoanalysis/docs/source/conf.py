@@ -21,6 +21,18 @@ import os
 import sys
 sys.path.insert(0, os.path.abspath('../../'))
 
+# -- Creating Mock modues for readthedocs according to http://docs.readthedocs.io/en/latest/faq.html?highlight=setup.py
+
+from unittest.mock import MagicMock
+
+class Mock(MagicMock):
+    @classmethod
+    def __getattr__(cls, name):
+        return MagicMock()
+
+MOCK_MODULES = ['numba', 'pycuda', 'pycuda.autoinit', 'pycuda.gpuarray', 'skcuda.fft']
+sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
+
 # -- General configuration ------------------------------------------------
 numpydoc_show_class_members = False
 
@@ -58,8 +70,8 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'optoanalysis'
-copyright = '2017, Ashley Setter'
-author = 'Ashley Setter'
+copyright = '2018, Ashley Setter and Markus Rademacher'
+author = 'Ashley Setter and Markus Rademacher'
 
 mypackage_root_dir = os.path.dirname(__file__)
 with open(os.path.join(mypackage_root_dir, '../../optoanalysis/VERSION')) as version_file:
@@ -143,7 +155,7 @@ latex_elements = {
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
     (master_doc, 'optoanalysis.tex', 'optoanalysis Documentation',
-     'Ashley Setter', 'manual'),
+     'Ashley Setter \\and Markus Rademacher', 'manual'),
 ]
 
 
