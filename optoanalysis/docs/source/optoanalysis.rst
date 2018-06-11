@@ -6,7 +6,7 @@ optoanalysis.optoanalysis module
 
 .. automodule:: optoanalysis.optoanalysis
     :members:
-    :imported-members:
+    :inherited-members:
     :undoc-members:
     :show-inheritance:
 
