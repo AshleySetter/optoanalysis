@@ -1663,7 +1663,7 @@ def extract_parameters(Pressure, PressureErr, A, AErr, Gamma0, Gamma0Err, method
     m_air = 4.81e-26 # molecular mass of air is 28.97 g/mol and Avogadro's Number 6.0221409^23
     if method == "chang":
         vbar = (8*kB*T0/(pi*m_air))**0.5
-        radius = 16/(rho*pi*vbar)*(Pressure/Gamma0) # is this DEFINITELY CORRECT???????????????
+        radius = 16/(rho*pi*vbar)*(Pressure/Gamma0)/4 # is this DEFINITELY CORRECT???????????????
     # see section 4.1.1 of Muddassar Rashid's 2016 Thesis for
     # derivation of this
     # see also page 132 of Jan Giesler's Thesis
@@ -1676,7 +1676,6 @@ def extract_parameters(Pressure, PressureErr, A, AErr, Gamma0, Gamma0Err, method
     err_conversionFactor = conversionFactor * \
         _np.sqrt((AErr / A)**2 + (err_mass / mass)
                  ** 2 + (Gamma0Err / Gamma0)**2)
-
     return [radius, mass, conversionFactor], [err_radius, err_mass, err_conversionFactor]
 
 
