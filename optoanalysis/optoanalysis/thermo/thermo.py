@@ -64,7 +64,7 @@ class ThermoObject(optoanalysis.DataObject):
             WORKS WITH NI5122 DATA SO FAR ONLY!!!
 
         """
-        super(ThermoObject, self).__init__(filepath, RelativeChannelNo=RelativeChannelNo, SampleFreq=SampleFreq, PointsToLoad=PointsToLoad, calcPSD=calcPSD, NPerSegmentPSD=NPerSegmentPSD) # calls the init func from optoanalysis
+        super(ThermoObject, self).__init__(filepath, RelativeChannelNo=RelativeChannelNo, SampleFreq=SampleFreq, PointsToLoad=PointsToLoad, calcPSD=calcPSD, NPerSegmentPSD=NPerSegmentPSD,NormaliseByMonitorOutput=NormaliseByMonitorOutput) # calls the init func from optoanalysis
         return None
 
     @_jit
