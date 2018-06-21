@@ -30,7 +30,18 @@ from scipy.constants import Boltzmann, pi
 from os.path import exists as _does_file_exist
 from skimage.transform import iradon_sart as _iradon_sart
 import gc
-
+try:
+    import pycuda.autoinit
+    import pycuda.gpuarray as _gpuarray
+except (OSError, ModuleNotFoundError) as e:
+    print("pyCUDA not present on system, function calc_fft_with_PyCUDA and calc_ifft_with_PyCUDA will crash")
+try:
+    from skcuda.fft import fft as _fft
+    from skcuda.fft import ifft as _ifft
+    from skcuda.fft import Plan as _Plan
+except (OSError, ModuleNotFoundError) as e:
+    print("skcuda not present on system, function calc_fft_with_PyCUDA and calc_ifft_with_PyCUDA will crash")
+    
 #cpu_count = _cpu_count()
 #workerPool = _Pool(cpu_count)
 
@@ -87,7 +98,7 @@ class DataObject():
 
     """
 
-    def __init__(self, filepath, RelativeChannelNo=None, SampleFreq=None, calcPSD=True, NPerSegmentPSD=1000000):
+    def __init__(self, filepath, RelativeChannelNo=None, SampleFreq=None, PointsToLoad=-1, calcPSD=True, NPerSegmentPSD=1000000, NormaliseByMonitorOutput=False):
         """
         Parameters
         ----------
@@ -96,14 +107,26 @@ class DataObject():
         RelativeChannelNo : int, optional
             If loading a .bin file produced by the Saleae datalogger, used to specify
             the channel number
+            If loading a .dat file produced by the labview NI5122 daq card, used to 
+            specifiy the channel number if two channels where saved, if left None with 
+            .dat files it will assume that the file to load only contains one channel.
+            If NormaliseByMonitorOutput is True then RelativeChannelNo specifies the 
+            monitor channel for loading a .dat file produced by the labview NI5122 daq card.
         SampleFreq : float, optional
             If loading a .dat file produced by the labview NI5122 daq card, used to
             manually specify the sample frequency 
+        PointsToLoad : int, optional
+            Number of first points to read. -1 means all points (i.e. the complete file)
+            WORKS WITH NI5122 DATA SO FAR ONLY!!!
         calcPSD : bool, optional
             Whether to calculate the PSD upon loading the file, can take some time
             off the loading and reduce memory usage if frequency space info is not required
         NPerSegmentPSD : int, optional
             NPerSegment to pass to scipy.signal.welch to calculate the PSD
+        NormaliseByMonitorOutput : bool, optional
+            If True the particle signal trace will be divided by the monitor output, which is
+            specified by the channel number set in the RelativeChannelNo parameter. 
+            WORKS WITH NI5122 DATA SO FAR ONLY!!!
 
         Initialisation - assigns values to the following attributes:
         - filepath
@@ -117,12 +140,12 @@ class DataObject():
         self.filepath = filepath
         self.filename = filepath.split("/")[-1]
         self.filedir = self.filepath[0:-len(self.filename)]
-        self.load_time_data(RelativeChannelNo,SampleFreq)
+        self.load_time_data(RelativeChannelNo,SampleFreq,PointsToLoad,NormaliseByMonitorOutput)
         if calcPSD != False:
             self.get_PSD(NPerSegmentPSD)
         return None
 
-    def load_time_data(self, RelativeChannelNo=None, SampleFreq=None):
+    def load_time_data(self, RelativeChannelNo=None, SampleFreq=None, PointsToLoad=-1, NormaliseByMonitorOutput=False):
         """
         Loads the time and voltage data and the wave description from the associated file.
 
@@ -130,8 +153,20 @@ class DataObject():
         ----------
         RelativeChannelNo : int, optional
              Channel number for loading saleae data files
+             If loading a .dat file produced by the labview NI5122 daq card, used to 
+             specifiy the channel number if two channels where saved, if left None with 
+             .dat files it will assume that the file to load only contains one channel.
+             If NormaliseByMonitorOutput is True then RelativeChannelNo specifies the 
+             monitor channel for loading a .dat file produced by the labview NI5122 daq card.
         SampleFreq : float, optional
              Manual selection of sample frequency for loading labview NI5122 daq files
+        PointsToLoad : int, optional
+             Number of first points to read. -1 means all points (i.e., the complete file)
+             WORKS WITH NI5122 DATA SO FAR ONLY!!!
+        NormaliseByMonitorOutput : bool, optional
+             If True the particle signal trace will be divided by the monitor output, which is
+             specified by the channel number set in the RelativeChannelNo parameter. 
+             WORKS WITH NI5122 DATA SO FAR ONLY!!!
         """
         f = open(self.filepath, 'rb')
         raw = f.read()
@@ -153,8 +188,20 @@ class DataObject():
         elif FileExtension == "dat": #for importing a file written by labview using the NI5122 daq card
             if SampleFreq == None:
                 raise ValueError("If loading a .dat file from the NI5122 daq card you must enter a SampleFreq")
-            self.voltage = _np.fromfile(self.filepath, dtype='>h')
-            timeParams = (0,len(self.voltage)/SampleFreq,1/SampleFreq)
+            if RelativeChannelNo == None:
+                self.voltage = _np.fromfile(self.filepath, dtype='>h',count=PointsToLoad)
+            elif RelativeChannelNo != None:
+                filedata = _np.fromfile(self.filepath, dtype='>h',count=PointsToLoad)
+                if NormaliseByMonitorOutput == True:
+                    if RelativeChannelNo == 0:
+                        monitorsignal = filedata[:len(filedata):2]
+                        self.voltage = filedata[1:len(filedata):2]/monitorsignal
+                    elif RelativeChannelNo == 1:
+                        monitorsignal = filedata[1:len(filedata):2]
+                        self.voltage = filedata[:len(filedata):2]/monitorsignal
+                elif NormaliseByMonitorOutput == False:
+                    self.voltage = filedata[RelativeChannelNo:len(filedata):2]
+            timeParams = (0,(len(self.voltage)-1)/SampleFreq,1/SampleFreq)
             self.SampleFreq = 1/timeParams[2]
         startTime, endTime, Timestep = timeParams
         self.timeStart = startTime
@@ -250,7 +297,7 @@ class DataObject():
 
     def get_PSD(self, NPerSegment=1000000, window="hann", timeStart=None, timeEnd=None, override=False):
         """
-        Extracts the pulse spectral density (PSD) from the data.
+        Extracts the power spectral density (PSD) from the data.
 
         Parameters
         ----------
@@ -617,6 +664,207 @@ class DataObject():
         self.FTrap = OmegaTrap/(2*pi)
         return OmegaTrap, A, Gamma, fig, ax
 
+    def calc_gamma_from_variance_autocorrelation_fit(self, NumberOfOscillations, GammaGuess=None, Silent=False, MakeFig=True, show_fig=True):
+        """
+        Calculates the total damping, i.e. Gamma, by splitting the time trace
+        into chunks of NumberOfOscillations oscillations and calculated the
+        variance of each of these chunks. This array of varainces is then used
+        for the autocorrleation. The autocorrelation is fitted with an exponential 
+        relaxation function and the function returns the parameters with errors.
+
+        Parameters
+        ----------
+        NumberOfOscillations : int
+            The number of oscillations each chunk of the timetrace 
+            used to calculate the variance should contain.
+        GammaGuess : float, optional
+            Inital guess for BigGamma (in radians)
+        Silent : bool, optional
+            Whether it prints the values fitted or is silent.
+        MakeFig : bool, optional
+            Whether to construct and return the figure object showing
+            the fitting. defaults to True
+        show_fig : bool, optional
+            Whether to show the figure object when it has been created.
+            defaults to True
+
+        Returns
+        -------
+        Gamma : ufloat
+            Big Gamma, the total damping in radians
+        OmegaTrap : ufloat
+            Trapping frequency in radians
+        fig : matplotlib.figure.Figure object
+            The figure object created showing the autocorrelation
+            of the data with the fit
+        ax : matplotlib.axes.Axes object
+            The axes object created showing the autocorrelation
+            of the data with the fit
+
+        """
+        try:
+            SplittedArraySize = int(self.SampleFreq/self.FTrap.n) * NumberOfOscillations
+        except KeyError:
+            ValueError('You forgot to do the spectrum fit to specify self.FTrap exactly.')
+        VoltageArraySize = len(self.voltage)
+        SnippetsVariances = _np.var(self.voltage[:VoltageArraySize-_np.mod(VoltageArraySize,SplittedArraySize)].reshape(-1,SplittedArraySize),axis=1)
+        autocorrelation = calc_autocorrelation(SnippetsVariances)
+        time = _np.array(range(len(autocorrelation))) * SplittedArraySize / self.SampleFreq
+
+        if GammaGuess==None:
+            Gamma_Initial = (time[4]-time[0])/(autocorrelation[0]-autocorrelation[4])
+        else:
+            Gamma_Initial = GammaGuess
+        
+        if MakeFig == True:
+            Params, ParamsErr, fig, ax = fit_autocorrelation(
+                autocorrelation, time, Gamma_Initial, MakeFig=MakeFig, show_fig=show_fig)
+        else:
+            Params, ParamsErr, _ , _ = fit_autocorrelation(
+                autocorrelation, time, Gamma_Initial, MakeFig=MakeFig, show_fig=show_fig)
+
+        if Silent == False:
+            print("\n")
+            print(
+                "Big Gamma: {} +- {}% ".format(Params[0], ParamsErr[0] / Params[0] * 100))
+
+        Gamma = _uncertainties.ufloat(Params[0], ParamsErr[0])
+        
+        if MakeFig == True:
+            return Gamma, fig, ax
+        else:
+            return Gamma, None, None
+
+    def calc_gamma_from_energy_autocorrelation_fit(self, GammaGuess=None, Silent=False, MakeFig=True, show_fig=True):
+        """
+        Calculates the total damping, i.e. Gamma, by calculating the energy each 
+        point in time. This energy array is then used for the autocorrleation. 
+        The autocorrelation is fitted with an exponential relaxation function and
+        the function returns the parameters with errors.
+
+        Parameters
+        ----------
+        GammaGuess : float, optional
+            Inital guess for BigGamma (in radians)
+        Silent : bool, optional
+            Whether it prints the values fitted or is silent.
+        MakeFig : bool, optional
+            Whether to construct and return the figure object showing
+            the fitting. defaults to True
+        show_fig : bool, optional
+            Whether to show the figure object when it has been created.
+            defaults to True
+
+        Returns
+        -------
+        Gamma : ufloat
+            Big Gamma, the total damping in radians
+        fig : matplotlib.figure.Figure object
+            The figure object created showing the autocorrelation
+            of the data with the fit
+        ax : matplotlib.axes.Axes object
+            The axes object created showing the autocorrelation
+            of the data with the fit
+
+        """
+        autocorrelation = calc_autocorrelation(self.voltage[:-1]**2*self.OmegaTrap.n**2+(_np.diff(self.voltage)*self.SampleFreq)**2)
+        time = self.time.get_array()[:len(autocorrelation)]
+
+        if GammaGuess==None:
+            Gamma_Initial = (time[4]-time[0])/(autocorrelation[0]-autocorrelation[4])
+        else:
+            Gamma_Initial = GammaGuess
+        
+        if MakeFig == True:
+            Params, ParamsErr, fig, ax = fit_autocorrelation(
+                autocorrelation, time, Gamma_Initial, MakeFig=MakeFig, show_fig=show_fig)
+        else:
+            Params, ParamsErr, _ , _ = fit_autocorrelation(
+                autocorrelation, time, Gamma_Initial, MakeFig=MakeFig, show_fig=show_fig)
+
+        if Silent == False:
+            print("\n")
+            print(
+                "Big Gamma: {} +- {}% ".format(Params[0], ParamsErr[0] / Params[0] * 100))
+
+        Gamma = _uncertainties.ufloat(Params[0], ParamsErr[0])
+        
+        if MakeFig == True:
+            return Gamma, fig, ax
+        else:
+            return Gamma, None, None
+
+    def calc_gamma_from_position_autocorrelation_fit(self, GammaGuess=None, FreqTrapGuess=None, Silent=False, MakeFig=True, show_fig=True):
+        """
+        Calculates the total damping, i.e. Gamma, by calculating the autocorrleation 
+        of the position-time trace. The autocorrelation is fitted with an exponential 
+        relaxation function derived in Tongcang Li's 2013 thesis (DOI: 10.1007/978-1-4614-6031-2)
+        and the function (equation 4.20 in the thesis) returns the parameters with errors.
+
+        Parameters
+        ----------
+        GammaGuess : float, optional
+            Inital guess for BigGamma (in radians)
+        FreqTrapGuess : float, optional
+            Inital guess for the trapping Frequency in Hz
+        Silent : bool, optional
+            Whether it prints the values fitted or is silent.
+        MakeFig : bool, optional
+            Whether to construct and return the figure object showing
+            the fitting. defaults to True
+        show_fig : bool, optional
+            Whether to show the figure object when it has been created.
+            defaults to True
+
+        Returns
+        -------
+        Gamma : ufloat
+            Big Gamma, the total damping in radians
+        OmegaTrap : ufloat
+            Trapping frequency in radians
+        fig : matplotlib.figure.Figure object
+            The figure object created showing the autocorrelation
+            of the data with the fit
+        ax : matplotlib.axes.Axes object
+            The axes object created showing the autocorrelation
+            of the data with the fit
+
+        """
+        autocorrelation = calc_autocorrelation(self.voltage)
+        time = self.time.get_array()[:len(autocorrelation)]
+
+        if GammaGuess==None:
+            Gamma_Initial = (autocorrelation[0]-autocorrelation[int(self.SampleFreq/self.FTrap.n)])/(time[int(self.SampleFreq/self.FTrap.n)]-time[0])*2*_np.pi
+        else:
+            Gamma_Initial = GammaGuess
+
+        if FreqTrapGuess==None:
+            FreqTrap_Initial = self.FTrap.n
+        else:
+            FreqTrap_Initial = FreqTrapGuess
+            
+        if MakeFig == True:
+            Params, ParamsErr, fig, ax = fit_autocorrelation(
+                autocorrelation, time, Gamma_Initial, FreqTrap_Initial, method='position', MakeFig=MakeFig, show_fig=show_fig)
+        else:
+            Params, ParamsErr, _ , _ = fit_autocorrelation(
+                autocorrelation, time, Gamma_Initial, FreqTrap_Initial, method='position', MakeFig=MakeFig, show_fig=show_fig)
+
+        if Silent == False:
+            print("\n")
+            print(
+                "Big Gamma: {} +- {}% ".format(Params[0], ParamsErr[0] / Params[0] * 100))
+            print(
+                "Trap Frequency: {} +- {}% ".format(Params[1], ParamsErr[1] / Params[1] * 100))
+            
+        Gamma = _uncertainties.ufloat(Params[0], ParamsErr[0])
+        OmegaTrap = _uncertainties.ufloat(Params[1], ParamsErr[1])
+        
+        if MakeFig == True:
+            return Gamma, OmegaTrap, fig, ax
+        else:
+            return Gamma, OmegaTrap, None, None
+    
     def extract_parameters(self, P_mbar, P_Error, method="chang"):
         """
         Extracts the Radius, mass and Conversion factor for a particle.
@@ -700,10 +948,10 @@ class DataObject():
         return self.zVolts, self.xVolts, self.yVolts, time, fig, ax
 
     def filter_data(self, freq, FractionOfSampleFreq=1, PeakWidth=10000,
-                  filterImplementation="filtfilt",
-                  timeStart=None, timeEnd=None,
+                    filterImplementation="filtfilt",
+                    timeStart=None, timeEnd=None,
                     NPerSegmentPSD=1000000,
-                  MakeFig=True, show_fig=True):
+                    PyCUDA=False, MakeFig=True, show_fig=True):
         """
         filter out data about a central frequency with some bandwidth using an IIR filter.
     
@@ -724,6 +972,7 @@ class DataObject():
             filter the peak. Defaults to 10KHz
         filterImplementation : string, optional
             filtfilt or lfilter - use scipy.filtfilt or lfilter
+            ifft - uses built in IFFT_filter
             default: filtfilt
         timeStart : float, optional
             Starting time for filtering. Defaults to start of time data.
@@ -731,6 +980,12 @@ class DataObject():
             Ending time for filtering. Defaults to end of time data.
         NPerSegmentPSD : int, optional
             NPerSegment to pass to scipy.signal.welch to calculate the PSD
+        PyCUDA : bool, optional
+            Only important for the 'ifft'-method
+            If True, uses PyCUDA to accelerate the FFT and IFFT
+            via using your NVIDIA-GPU
+            If False, performs FFT and IFFT with conventional
+            scipy.fftpack
         MakeFig : bool, optional
             If True - generate figure showing filtered and unfiltered PSD
             Defaults to True.
@@ -760,26 +1015,27 @@ class DataObject():
     
         StartIndex = _np.where(time == take_closest(time, timeStart))[0][0]
         EndIndex = _np.where(time == take_closest(time, timeEnd))[0][0]
-    
+
         SAMPLEFREQ = self.SampleFreq / FractionOfSampleFreq
+        if filterImplementation == "filtfilt" or filterImplementation == "lfilter":
+            if filterImplementation == "filtfilt":
+                ApplyFilter = scipy.signal.filtfilt
+            elif filterImplementation == "lfilter":
+                ApplyFilter = scipy.signal.lfilter
+                
+            input_signal = self.voltage[StartIndex: EndIndex][0::FractionOfSampleFreq]
     
-        if filterImplementation == "filtfilt":
-            ApplyFilter = scipy.signal.filtfilt
-        elif filterImplementation == "lfilter":
-            ApplyFilter = scipy.signal.lfilter
+            b, a = make_butterworth_bandpass_b_a(freq, PeakWidth, SAMPLEFREQ)
+            print("filtering data")
+            filteredData = ApplyFilter(b, a, input_signal)
+    
+            if(_np.isnan(filteredData).any()):
+                raise ValueError(
+                    "Value Error: FractionOfSampleFreq must be higher, a sufficiently small sample frequency should be used to produce a working IIR filter.")
+        elif filterImplementation == "ifft":
+            filteredData = IFFT_filter(self.voltage[StartIndex: EndIndex][0::FractionOfSampleFreq], SAMPLEFREQ, freq-PeakWidth/2, freq+PeakWidth/2, PyCUDA = PyCUDA)
         else:
-            raise ValueError("filterImplementation must be one of [filtfilt, lfilter] you entered: {}".format(
-                filterImplementation))
-    
-        input_signal = self.voltage[StartIndex: EndIndex][0::FractionOfSampleFreq]
-    
-        b, a = make_butterworth_bandpass_b_a(freq, PeakWidth, SAMPLEFREQ)
-        print("filtering data")
-        filteredData = ApplyFilter(b, a, input_signal)
-    
-        if(_np.isnan(filteredData).any()):
-            raise ValueError(
-                "Value Error: FractionOfSampleFreq must be higher, a sufficiently small sample frequency should be used to produce a working IIR filter.")
+            raise ValueError("filterImplementation must be one of [filtfilt, lfilter, ifft] you entered: {}".format(filterImplementation))
     
         if MakeFig == True:
             f, PSD = scipy.signal.welch(
@@ -1059,7 +1315,7 @@ class ORGTableData():
         return Value 
 
     
-def load_data(Filepath, ObjectType='data', RelativeChannelNo=None, SampleFreq=None, calcPSD=True, NPerSegmentPSD=1000000, silent=False):
+def load_data(Filepath, ObjectType='data', RelativeChannelNo=None, SampleFreq=None, PointsToLoad=-1, calcPSD=True, NPerSegmentPSD=1000000, NormaliseByMonitorOutput=False, silent=False):
     """
     Parameters
     ----------
@@ -1069,19 +1325,31 @@ def load_data(Filepath, ObjectType='data', RelativeChannelNo=None, SampleFreq=No
     ObjectType : string, optional
         type to load the data as, takes the value 'default' if not specified.
         Options are:
-        'default' : optoanalysis.DataObject
+        'data' : optoanalysis.DataObject
         'thermo' : optoanalysis.thermo.ThermoObject
     RelativeChannelNo : int, optional
         If loading a .bin file produced by the Saneae datalogger, used to specify
         the channel number
+        If loading a .dat file produced by the labview NI5122 daq card, used to 
+        specifiy the channel number if two channels where saved, if left None with 
+        .dat files it will assume that the file to load only contains one channel.
+        If NormaliseByMonitorOutput is True then specifies the monitor channel for
+        loading a .dat file produced by the labview NI5122 daq card.
     SampleFreq : float, optional
-            If loading a .dat file produced by the labview NI5122 daq card, used to
-            manually specify the sample frequency
+        If loading a .dat file produced by the labview NI5122 daq card, used to
+        manually specify the sample frequency
+    PointsToLoad : int, optional
+        Number of first points to read. -1 means all points (i.e., the complete file)
+        WORKS WITH NI5122 DATA SO FAR ONLY!!!
     calcPSD : bool, optional
         Whether to calculate the PSD upon loading the file, can take some time
         off the loading and reduce memory usage if frequency space info is not required
     NPerSegmentPSD : int, optional
         NPerSegment to pass to scipy.signal.welch to calculate the PSD
+    NormaliseByMonitorOutput : bool, optional
+        If True the particle signal trace will be divided by the monitor output, which is
+        specified by the channel number set in the RelativeChannelNo parameter. 
+        WORKS WITH NI5122 DATA SO FAR ONLY!!!
 
     Returns
     -------
@@ -1100,7 +1368,7 @@ def load_data(Filepath, ObjectType='data', RelativeChannelNo=None, SampleFreq=No
         Object = ObjectTypeDict[ObjectType]
     except KeyError:
         raise ValueError("You entered {}, this is not a valid object type".format(ObjectType))
-    data = Object(Filepath, RelativeChannelNo, SampleFreq, calcPSD, NPerSegmentPSD)
+    data = Object(Filepath, RelativeChannelNo, SampleFreq, PointsToLoad, calcPSD, NPerSegmentPSD, NormaliseByMonitorOutput)
     try:
         channel_number, run_number, repeat_number = [int(val) for val in re.findall('\d+', data.filename)]
         data.channel_number = channel_number
@@ -1114,9 +1382,17 @@ def load_data(Filepath, ObjectType='data', RelativeChannelNo=None, SampleFreq=No
                 repeat_number = int(repeat_number)
                 pressure = float(pressure)
                 if (run_number == data.run_number) and (repeat_number == data.repeat_number):
-                    data.pmbar = pressure
+                    data.pmbar = pressure    
     except ValueError:
-        pass    
+        pass
+    try:
+        if _does_file_exist(glob(data.filepath.replace(data.filename, '*' + data.filename[20:-4] + ' - header.dat'))[0]):
+            print("header file exists")
+            with open(glob(data.filepath.replace(data.filename, '*' + data.filepath[20:-4] + ' - header.dat'))[0], encoding='ISO-8859-1') as f:
+                lines = f.readlines()
+            data.pmbar = (float(lines[68][-9:-1])+float(lines[69][-9:-1]))/2
+    except (ValueError, IndexError):
+        pass
     return data
 
 def search_data_std(Channel, RunNos, RepeatNos, directoryPath='.'):
@@ -1436,7 +1712,142 @@ def take_closest(myList, myNumber):
     else:
         return before
 
+def _energy_autocorrelation_fitting_eqn(t, Gamma):
+    """
+    The value of the fitting equation:
+    exp(-t*Gamma)
+    to be fit to the autocorrelation-exponential decay
+    Actual correct equation would be: 
+    exp(-t*Gamma) * (4*Omega**2-Gamma**2 * cos(2*sqrt(Gamma**2 /4 - Omega**2)*t))
+    taken from DOI: 10.1103/PhysRevE.94.062151 but since
+    the additional term is negligible when the quality factor Q>1.
 
+    Parameters
+    ----------
+    t : float
+        time 
+    Gamma : float
+        Big Gamma (in radians), i.e. damping 
+
+    Returns
+    -------
+    Value : float
+        The value of the fitting equation
+    """
+    return _np.exp(-t*Gamma)
+
+def _position_autocorrelation_fitting_eqn(t, Gamma, AngTrapFreq):
+    """
+    The value of the fitting equation:
+    exp(-t*Gamma/2) * (cos(t* sqrt(Omega**2 - Gamma**2 /4)) + Gamma* sin(t* sqrt(Omega**2-Gamma**2 /4))/(2* sqrt(Omega**2 - Gamma**2 /4)))
+    [eqn 4.20 taken from DOI: DOI: 10.1007/978-1-4614-6031-2]
+    to be fit to the autocorrelation-exponential decay
+
+    Parameters
+    ----------
+    t : float
+        time 
+    Gamma : float
+        Big Gamma (in radians), i.e. damping 
+    AngTrapFreq : float
+        Angular Trapping Frequency in Radians
+
+    Returns
+    -------
+    Value : float
+        The value of the fitting equation
+    """
+    return _np.exp(-t*Gamma/2)* ( _np.cos(t* _np.sqrt(AngTrapFreq**2-Gamma**2/4)) + Gamma* _np.sin(t* _np.sqrt(AngTrapFreq**2-Gamma**2/4))/(2* _np.sqrt(AngTrapFreq**2-Gamma**2/4)) )
+
+
+def fit_autocorrelation(autocorrelation, time, GammaGuess, TrapFreqGuess=None, method='energy', MakeFig=True, show_fig=True):
+    """
+    Fits exponential relaxation theory to data.
+
+    Parameters
+    ----------
+    autocorrelation : array
+        array containing autocorrelation to be fitted
+    time : array
+        array containing the time of each point the autocorrelation
+        was evaluated
+    GammaGuess : float
+        The approximate Big Gamma (in radians) to use initially
+    TrapFreqGuess : float
+        The approximate trapping frequency to use initially in Hz.
+    method : string, optional
+        To choose which autocorrelation fit is needed.
+        'position' : equation 4.20 from Tongcang Li's 2013 thesis 
+                     (DOI: 10.1007/978-1-4614-6031-2)
+        'energy'   : proper exponential energy correlation decay
+                     (DOI: 10.1103/PhysRevE.94.062151)
+    MakeFig : bool, optional
+        Whether to construct and return the figure object showing
+        the fitting. defaults to True
+    show_fig : bool, optional
+        Whether to show the figure object when it has been created.
+        defaults to True
+
+    Returns
+    -------
+    ParamsFit - Fitted parameters:
+        'variance'-method : [Gamma]
+        'position'-method : [Gamma, AngularTrappingFrequency]
+    ParamsFitErr - Error in fitted parameters:
+        'varaince'-method : [GammaErr]
+        'position'-method : [GammaErr, AngularTrappingFrequencyErr]
+    fig : matplotlib.figure.Figure object
+        figure object containing the plot
+    ax : matplotlib.axes.Axes object
+        axes with the data plotted of the:
+            - initial data
+            - final fit
+    """
+    datax = time
+    datay = autocorrelation
+
+    method = method.lower()
+    if method == 'energy':
+        p0 = _np.array([GammaGuess])
+
+        Params_Fit, Params_Fit_Err = fit_curvefit(p0,
+                                                  datax,
+                                                  datay,
+                                                  _energy_autocorrelation_fitting_eqn)
+        autocorrelation_fit = _energy_autocorrelation_fitting_eqn(_np.arange(0,datax[-1],1e-7),
+                                                                  Params_Fit[0])
+    elif method == 'position':
+        AngTrapFreqGuess = 2 * _np.pi * TrapFreqGuess
+        p0 = _np.array([GammaGuess, AngTrapFreqGuess])
+        Params_Fit, Params_Fit_Err = fit_curvefit(p0,
+                                                  datax,
+                                                  datay,
+                                                  _position_autocorrelation_fitting_eqn)
+        autocorrelation_fit = _position_autocorrelation_fitting_eqn(_np.arange(0,datax[-1],1e-7),
+                                                                    Params_Fit[0],
+                                                                    Params_Fit[1])
+        
+    if MakeFig == True:
+        fig = _plt.figure(figsize=properties["default_fig_size"])
+        ax = fig.add_subplot(111)
+        ax.plot(datax*1e6, datay,
+                '.', color="darkblue", label="Autocorrelation Data", alpha=0.5)
+        ax.plot(_np.arange(0,datax[-1],1e-7)*1e6, autocorrelation_fit,
+                color="red", label="fit")
+        ax.set_xlim([0,
+                     30e6/Params_Fit[0]/(2*_np.pi)])
+        legend = ax.legend(loc="best", frameon = 1)
+        frame = legend.get_frame()
+        frame.set_facecolor('white')
+        frame.set_edgecolor('white')
+        ax.set_xlabel("time (us)")
+        ax.set_ylabel(r"$\left | \frac{\langle x(t)x(t+\tau) \rangle}{\langle x(t)x(t) \rangle} \right |$")
+        if show_fig == True:
+            _plt.show()
+        return Params_Fit, Params_Fit_Err, fig, ax
+    else:
+        return Params_Fit, Params_Fit_Err, None, None
+    
 def PSD_fitting_eqn(A, OmegaTrap, Gamma, omega):
     """
     The value of the fitting equation:
@@ -1470,7 +1881,6 @@ def PSD_fitting_eqn(A, OmegaTrap, Gamma, omega):
         The value of the fitting equation
     """
     return A / ((OmegaTrap**2 - omega**2)**2 + omega**2 * (Gamma)**2)
-
 
 def fit_PSD(Data, bandwidth, TrapFreqGuess, AGuess=0.1e10, GammaGuess=400, MakeFig=True, show_fig=True):
     """
@@ -1683,7 +2093,6 @@ def extract_parameters(Pressure, PressureErr, A, AErr, Gamma0, Gamma0Err, method
     err_conversionFactor = conversionFactor * \
         _np.sqrt((AErr / A)**2 + (err_mass / mass)
                  ** 2 + (Gamma0Err / Gamma0)**2)
-    print("I AM NOT MAD!!! I SWEAR!")
     return [radius, mass, conversionFactor], [err_radius, err_mass, err_conversionFactor]
 
 
@@ -2184,7 +2593,7 @@ def animate_2Dscatter_slices(x, y, NumAnimatedPoints=50,
     return None
 
 
-def IFFT_filter(Signal, SampleFreq, lowerFreq, upperFreq):
+def IFFT_filter(Signal, SampleFreq, lowerFreq, upperFreq, PyCUDA = False):
     """
     Filters data using fft -> zeroing out fft bins -> ifft
 
@@ -2198,24 +2607,85 @@ def IFFT_filter(Signal, SampleFreq, lowerFreq, upperFreq):
         Lower frequency of bandpass to allow through filter
     upperFreq : float
        Upper frequency of bandpass to allow through filter
+    PyCUDA : bool, optional
+       If True, uses PyCUDA to accelerate the FFT and IFFT
+       via using your NVIDIA-GPU
+       If False, performs FFT and IFFT with conventional
+       scipy.fftpack
 
     Returns
     -------
     FilteredData : ndarray
         Array containing the filtered data
     """
-    print("starting fft")
-    Signalfft = scipy.fftpack.fft(Signal)
+    if PyCUDA==True:
+        Signalfft=calc_fft_with_PyCUDA(Signal)
+    else:
+        print("starting fft")
+        Signalfft = scipy.fftpack.fft(Signal)
     print("starting freq calc")
     freqs = _np.fft.fftfreq(len(Signal)) * SampleFreq
     print("starting bin zeroing")
-    for i, freq in enumerate(freqs):
-        if freq < lowerFreq or freq > upperFreq:
-            Signalfft[i] = 0
-    print("starting ifft")
-    FilteredSignal = 2 * scipy.fftpack.ifft(Signalfft)
+    Signalfft[_np.where(freqs < lowerFreq)] = 0
+    Signalfft[_np.where(freqs > upperFreq)] = 0
+    if PyCUDA==True:
+        FilteredSignal = 2 * calc_ifft_with_PyCUDA(Signalfft)
+    else:
+        print("starting ifft")
+        FilteredSignal = 2 * scipy.fftpack.ifft(Signalfft)
     print("done")
     return _np.real(FilteredSignal)
+
+def calc_fft_with_PyCUDA(Signal):
+    """
+    Calculates the FFT of the passed signal by using
+    the scikit-cuda libary which relies on PyCUDA
+
+    Parameters
+    ----------
+    Signal : ndarray
+        Signal to be transformed into Fourier space
+
+    Returns
+    -------
+    Signalfft : ndarray
+        Array containing the signal's FFT
+    """
+    print("starting fft")
+    Signal = Signal.astype(_np.float32)
+    Signal_gpu = _gpuarray.to_gpu(Signal)
+    Signalfft_gpu = _gpuarray.empty(len(Signal)//2+1,_np.complex64)
+    plan = _Plan(Signal.shape,_np.float32,_np.complex64)
+    _fft(Signal_gpu, Signalfft_gpu, plan)
+    Signalfft = Signalfft_gpu.get() #only 2N+1 long
+    Signalfft = _np.hstack((Signalfft,_np.conj(_np.flipud(Signalfft[1:len(Signal)//2]))))
+    print("fft done")
+    return Signalfft
+
+def calc_ifft_with_PyCUDA(Signalfft):
+    """
+    Calculates the inverse-FFT of the passed FFT-signal by 
+    using the scikit-cuda libary which relies on PyCUDA
+
+    Parameters
+    ----------
+    Signalfft : ndarray
+        FFT-Signal to be transformed into Real space
+
+    Returns
+    -------
+    Signal : ndarray
+        Array containing the ifft signal
+    """
+    print("starting ifft")
+    Signalfft = Signalfft.astype(_np.complex64)
+    Signalfft_gpu = _gpuarray.to_gpu(Signalfft[0:len(Signalfft)//2+1])
+    Signal_gpu = _gpuarray.empty(len(Signalfft),_np.float32)
+    plan = _Plan(len(Signalfft),_np.complex64,_np.float32)
+    _ifft(Signalfft_gpu, Signal_gpu, plan)
+    Signal = Signal_gpu.get()/(2*len(Signalfft)) #normalising as CUDA IFFT is un-normalised
+    print("ifft done")
+    return Signal
 
 def butterworth_filter(Signal, SampleFreq, lowerFreq, upperFreq):
     """
@@ -2697,6 +3167,49 @@ def calc_PSD(Signal, SampleFreq, NPerSegment=1000000, window="hann"):
     freqs.sort()
     return freqs, PSD
 
+def calc_autocorrelation(Signal, FFT=False, PyCUDA=False):
+    """
+    Calculates the autocorrelation from a given Signal via using
+    
+
+    Parameters
+    ----------
+    Signal : array-like
+        Array containing the signal to have the autocorrelation calculated for
+    FFT : optional, bool
+        Uses FFT to accelerate autocorrelation calculation, but assumes certain
+        certain periodicity on the signal to autocorrelate. Zero-padding is added
+        to account for this periodicity assumption.
+    PyCUDA : bool, optional
+       If True, uses PyCUDA to accelerate the FFT and IFFT
+       via using your NVIDIA-GPU
+       If False, performs FFT and IFFT with conventional
+       scipy.fftpack
+
+    Returns
+    -------
+    Autocorrelation : ndarray
+            Array containing the value of the autocorrelation evaluated
+            at the corresponding amount of shifted array-index.
+    """
+    if FFT==True:
+        Signal_padded = scipy.fftpack.ifftshift((Signal-_np.average(Signal))/_np.std(Signal))
+        n, = Signal_padded.shape
+        Signal_padded = _np.r_[Signal_padded[:n//2], _np.zeros_like(Signal_padded), Signal_padded[n//2:]]
+        if PyCUDA==True:
+            f = calc_fft_with_PyCUDA(Signal_padded)
+        else:
+            f = scipy.fftpack.fft(Signal_padded)
+        p = _np.absolute(f)**2
+        if PyCUDA==True:
+            autocorr = calc_ifft_with_PyCUDA(p)
+        else:
+            autocorr = scipy.fftpack.ifft(p)
+        return _np.real(autocorr)[:n//2]/(_np.arange(n//2)[::-1]+n//2)
+    else:
+        Signal = Signal - _np.mean(Signal)
+        autocorr = scipy.signal.correlate(Signal, Signal, mode='full')
+        return autocorr[autocorr.size//2:]/autocorr[autocorr.size//2]
 
 def _GetRealImagArray(Array):
     """
