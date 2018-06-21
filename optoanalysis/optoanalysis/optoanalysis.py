@@ -365,7 +365,7 @@ class DataObject():
         AreaUnderPSD = sum(self.PSD[index_startAreaPSD: index_endAreaPSD])
         return AreaUnderPSD
 
-    def get_fit(self, TrapFreq, WidthOfPeakToFit, A_Initial=0.1e10, Gamma_Initial=400, Silent=False, MakeFig=True, show_fig=True):
+    def get_fit(self, TrapFreq, WidthOfPeakToFit, A_Initial=0.1e10, Gamma_Initial=400, silent=False, MakeFig=True, show_fig=True):
         """
         Function that fits to a peak to the PSD to extract the 
         frequency, A factor and Gamma (damping) factor.
@@ -426,7 +426,7 @@ class DataObject():
             Params, ParamsErr, _ , _ = fit_PSD(
                 self, WidthOfPeakToFit, TrapFreq, A_Initial, Gamma_Initial, MakeFig=MakeFig, show_fig=show_fig)
 
-        if Silent == False:
+        if silent == False:
             print("\n")
             print("A: {} +- {}% ".format(Params[0],
                                          ParamsErr[0] / Params[0] * 100))
@@ -445,7 +445,7 @@ class DataObject():
         else:
             return self.A, self.OmegaTrap, self.Gamma, None, None
 
-    def get_fit_from_peak(self, lowerLimit, upperLimit, NumPointsSmoothing=1, Silent=False, MakeFig=True, show_fig=True):
+    def get_fit_from_peak(self, lowerLimit, upperLimit, NumPointsSmoothing=1, Silent=False, MakeFig=True, show_fig=True, silent=False):
         """
         Finds approximate values for the peaks central frequency, height, 
         and FWHM by looking for the heighest peak in the frequency range defined 
@@ -527,7 +527,8 @@ class DataObject():
                                Gamma_Initial=approx_Gamma,
                                Silent=Silent,
                                MakeFig=MakeFig,
-                               show_fig=show_fig)
+                               show_fig=show_fig,
+                               silent=silent)
         except (TypeError, ValueError) as e: 
             _warnings.warn("range is too small to fit, returning NaN", UserWarning)
             val = _uncertainties.ufloat(_np.NaN, _np.NaN)
@@ -542,7 +543,7 @@ class DataObject():
 
         return OmegaTrap, A, Gamma, fig, ax 
 
-    def get_fit_auto(self, CentralFreq, MaxWidth=15000, MinWidth=500, WidthIntervals=500, MakeFig=True, show_fig=True):
+    def get_fit_auto(self, CentralFreq, MaxWidth=15000, MinWidth=500, WidthIntervals=500, MakeFig=True, show_fig=True, silent=False):
         """
         Tries a range of regions to search for peaks and runs the one with the least error
         and returns the parameters with the least errors.
@@ -599,13 +600,15 @@ class DataObject():
             if TotalSumSquaredError < MinTotalSumSquaredError:
                 MinTotalSumSquaredError = TotalSumSquaredError
                 BestWidth = Width
-        print("found best")
+        if silent != True:
+            print("found best")
         try:
             OmegaTrap, A, Gamma, fig, ax \
                 = self.get_fit_from_peak(CentralFreq - BestWidth / 2,
                                          CentralFreq + BestWidth / 2,
                                          MakeFig=MakeFig,
-                                         show_fig=show_fig)
+                                         show_fig=show_fig
+                                         silent=silent)
         except UnboundLocalError:
             raise ValueError("A best width was not found, try increasing the number of widths tried by either decreasing WidthIntervals or MinWidth or increasing MaxWidth")
         OmegaTrap = self.OmegaTrap
@@ -1056,7 +1059,7 @@ class ORGTableData():
         return Value 
 
     
-def load_data(Filepath, ObjectType='data', RelativeChannelNo=None, SampleFreq=None, calcPSD=True, NPerSegmentPSD=1000000):
+def load_data(Filepath, ObjectType='data', RelativeChannelNo=None, SampleFreq=None, calcPSD=True, NPerSegmentPSD=1000000, silent=False):
     """
     Parameters
     ----------
@@ -1087,7 +1090,8 @@ def load_data(Filepath, ObjectType='data', RelativeChannelNo=None, SampleFreq=No
         that you requested to be loaded.
 
     """
-    print("Loading data from {}".format(Filepath))
+    if silent != True:
+        print("Loading data from {}".format(Filepath))
     ObjectTypeDict = {
         'data' : DataObject,
         'thermo' : optoanalysis.thermo.ThermoObject,
@@ -1271,16 +1275,18 @@ def search_data_custom(Channel, TraceTitle, RunNos, directoryPath='.'):
         A list containing the full file paths of the files you were looking for. 
     """
     files = glob('{}/*'.format(directoryPath))
-    files_CorrectChannel = []
+    files_CorrectChannel = []    
     for file_ in files:
         if 'C{}'.format(Channel) in file_:
             files_CorrectChannel.append(file_)
+    print(files_CorrectChannel)
     files_CorrectRunNo = []
     for RunNo in RunNos:
         files_match = _fnmatch.filter(
             files_CorrectChannel, '*C{}'.format(Channel)+TraceTitle+str(RunNo).zfill(5)+'.*')
         for file_ in files_match:
             files_CorrectRunNo.append(file_)
+    print(files_CorrectRunNo)
     paths = files_CorrectRunNo
     return paths
 
