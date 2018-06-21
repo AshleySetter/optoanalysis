@@ -654,7 +654,7 @@ class DataObject():
                 = self.get_fit_from_peak(CentralFreq - BestWidth / 2,
                                          CentralFreq + BestWidth / 2,
                                          MakeFig=MakeFig,
-                                         show_fig=show_fig
+                                         show_fig=show_fig,
                                          silent=silent)
         except UnboundLocalError:
             raise ValueError("A best width was not found, try increasing the number of widths tried by either decreasing WidthIntervals or MinWidth or increasing MaxWidth")
