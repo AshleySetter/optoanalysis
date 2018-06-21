@@ -31,17 +31,20 @@ from os.path import exists as _does_file_exist
 from skimage.transform import iradon_sart as _iradon_sart
 import gc
 try:
-    import pycuda.autoinit
-    import pycuda.gpuarray as _gpuarray
-except (OSError, ModuleNotFoundError) as e:
-    print("pyCUDA not present on system, function calc_fft_with_PyCUDA and calc_ifft_with_PyCUDA will crash")
-try:
-    from skcuda.fft import fft as _fft
-    from skcuda.fft import ifft as _ifft
-    from skcuda.fft import Plan as _Plan
-except (OSError, ModuleNotFoundError) as e:
-    print("skcuda not present on system, function calc_fft_with_PyCUDA and calc_ifft_with_PyCUDA will crash")
-    
+    try:
+        import pycuda.autoinit
+        import pycuda.gpuarray as _gpuarray
+    except (OSError, ModuleNotFoundError) as e:
+        print("pyCUDA not present on system, function calc_fft_with_PyCUDA and calc_ifft_with_PyCUDA will crash")
+    try:
+        from skcuda.fft import fft as _fft
+        from skcuda.fft import ifft as _ifft
+        from skcuda.fft import Plan as _Plan
+    except (OSError, ModuleNotFoundError) as e:
+        print("skcuda not present on system, function calc_fft_with_PyCUDA and calc_ifft_with_PyCUDA will crash")
+except NameError as e:
+    pass # ModuleNotFoundError not always there
+        
 #cpu_count = _cpu_count()
 #workerPool = _Pool(cpu_count)
 
@@ -492,7 +495,7 @@ class DataObject():
         else:
             return self.A, self.OmegaTrap, self.Gamma, None, None
 
-    def get_fit_from_peak(self, lowerLimit, upperLimit, NumPointsSmoothing=1, Silent=False, MakeFig=True, show_fig=True, silent=False):
+    def get_fit_from_peak(self, lowerLimit, upperLimit, NumPointsSmoothing=1, silent=False, MakeFig=True, show_fig=True):
         """
         Finds approximate values for the peaks central frequency, height, 
         and FWHM by looking for the heighest peak in the frequency range defined 
@@ -572,10 +575,9 @@ class DataObject():
                                (upperLimit-lowerLimit)/2, 
                                A_Initial=approx_A,
                                Gamma_Initial=approx_Gamma,
-                               Silent=Silent,
+                               silent=silent,
                                MakeFig=MakeFig,
-                               show_fig=show_fig,
-                               silent=silent)
+                               show_fig=show_fig)
         except (TypeError, ValueError) as e: 
             _warnings.warn("range is too small to fit, returning NaN", UserWarning)
             val = _uncertainties.ufloat(_np.NaN, _np.NaN)
@@ -631,7 +633,7 @@ class DataObject():
                     = self.get_fit_from_peak(
                         CentralFreq - Width / 2,
                         CentralFreq + Width / 2,
-                        Silent=True,
+                        silent=True,
                         MakeFig=False,
                         show_fig=False)
             except RuntimeError:
@@ -664,7 +666,7 @@ class DataObject():
         self.FTrap = OmegaTrap/(2*pi)
         return OmegaTrap, A, Gamma, fig, ax
 
-    def calc_gamma_from_variance_autocorrelation_fit(self, NumberOfOscillations, GammaGuess=None, Silent=False, MakeFig=True, show_fig=True):
+    def calc_gamma_from_variance_autocorrelation_fit(self, NumberOfOscillations, GammaGuess=None, silent=False, MakeFig=True, show_fig=True):
         """
         Calculates the total damping, i.e. Gamma, by splitting the time trace
         into chunks of NumberOfOscillations oscillations and calculated the
@@ -723,7 +725,7 @@ class DataObject():
             Params, ParamsErr, _ , _ = fit_autocorrelation(
                 autocorrelation, time, Gamma_Initial, MakeFig=MakeFig, show_fig=show_fig)
 
-        if Silent == False:
+        if silent == False:
             print("\n")
             print(
                 "Big Gamma: {} +- {}% ".format(Params[0], ParamsErr[0] / Params[0] * 100))
@@ -735,7 +737,7 @@ class DataObject():
         else:
             return Gamma, None, None
 
-    def calc_gamma_from_energy_autocorrelation_fit(self, GammaGuess=None, Silent=False, MakeFig=True, show_fig=True):
+    def calc_gamma_from_energy_autocorrelation_fit(self, GammaGuess=None, silent=False, MakeFig=True, show_fig=True):
         """
         Calculates the total damping, i.e. Gamma, by calculating the energy each 
         point in time. This energy array is then used for the autocorrleation. 
@@ -746,7 +748,7 @@ class DataObject():
         ----------
         GammaGuess : float, optional
             Inital guess for BigGamma (in radians)
-        Silent : bool, optional
+        silent : bool, optional
             Whether it prints the values fitted or is silent.
         MakeFig : bool, optional
             Whether to construct and return the figure object showing
@@ -782,7 +784,7 @@ class DataObject():
             Params, ParamsErr, _ , _ = fit_autocorrelation(
                 autocorrelation, time, Gamma_Initial, MakeFig=MakeFig, show_fig=show_fig)
 
-        if Silent == False:
+        if silent == False:
             print("\n")
             print(
                 "Big Gamma: {} +- {}% ".format(Params[0], ParamsErr[0] / Params[0] * 100))
@@ -794,7 +796,7 @@ class DataObject():
         else:
             return Gamma, None, None
 
-    def calc_gamma_from_position_autocorrelation_fit(self, GammaGuess=None, FreqTrapGuess=None, Silent=False, MakeFig=True, show_fig=True):
+    def calc_gamma_from_position_autocorrelation_fit(self, GammaGuess=None, FreqTrapGuess=None, silent=False, MakeFig=True, show_fig=True):
         """
         Calculates the total damping, i.e. Gamma, by calculating the autocorrleation 
         of the position-time trace. The autocorrelation is fitted with an exponential 
@@ -807,7 +809,7 @@ class DataObject():
             Inital guess for BigGamma (in radians)
         FreqTrapGuess : float, optional
             Inital guess for the trapping Frequency in Hz
-        Silent : bool, optional
+        silent : bool, optional
             Whether it prints the values fitted or is silent.
         MakeFig : bool, optional
             Whether to construct and return the figure object showing
@@ -850,7 +852,7 @@ class DataObject():
             Params, ParamsErr, _ , _ = fit_autocorrelation(
                 autocorrelation, time, Gamma_Initial, FreqTrap_Initial, method='position', MakeFig=MakeFig, show_fig=show_fig)
 
-        if Silent == False:
+        if silent == False:
             print("\n")
             print(
                 "Big Gamma: {} +- {}% ".format(Params[0], ParamsErr[0] / Params[0] * 100))
