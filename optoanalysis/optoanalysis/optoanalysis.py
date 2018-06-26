@@ -1014,10 +1014,12 @@ class DataObject():
             timeEnd = self.timeEnd
 
         time = self.time.get_array()
-    
+
         StartIndex = _np.where(time == take_closest(time, timeStart))[0][0]
         EndIndex = _np.where(time == take_closest(time, timeEnd))[0][0]
 
+        
+        input_signal = self.voltage[StartIndex: EndIndex][0::FractionOfSampleFreq]
         SAMPLEFREQ = self.SampleFreq / FractionOfSampleFreq
         if filterImplementation == "filtfilt" or filterImplementation == "lfilter":
             if filterImplementation == "filtfilt":
@@ -1025,7 +1027,6 @@ class DataObject():
             elif filterImplementation == "lfilter":
                 ApplyFilter = scipy.signal.lfilter
                 
-            input_signal = self.voltage[StartIndex: EndIndex][0::FractionOfSampleFreq]
     
             b, a = make_butterworth_bandpass_b_a(freq, PeakWidth, SAMPLEFREQ)
             print("filtering data")
@@ -1035,7 +1036,7 @@ class DataObject():
                 raise ValueError(
                     "Value Error: FractionOfSampleFreq must be higher, a sufficiently small sample frequency should be used to produce a working IIR filter.")
         elif filterImplementation == "ifft":
-            filteredData = IFFT_filter(self.voltage[StartIndex: EndIndex][0::FractionOfSampleFreq], SAMPLEFREQ, freq-PeakWidth/2, freq+PeakWidth/2, PyCUDA = PyCUDA)
+            filteredData = IFFT_filter(input_signal, SAMPLEFREQ, freq-PeakWidth/2, freq+PeakWidth/2, PyCUDA = PyCUDA)
         else:
             raise ValueError("filterImplementation must be one of [filtfilt, lfilter, ifft] you entered: {}".format(filterImplementation))
     
