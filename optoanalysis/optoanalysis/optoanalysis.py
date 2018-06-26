@@ -31,17 +31,20 @@ from os.path import exists as _does_file_exist
 from skimage.transform import iradon_sart as _iradon_sart
 import gc
 try:
-    import pycuda.autoinit
-    import pycuda.gpuarray as _gpuarray
-except (OSError, ModuleNotFoundError) as e:
-    print("pyCUDA not present on system, function calc_fft_with_PyCUDA and calc_ifft_with_PyCUDA will crash")
-try:
-    from skcuda.fft import fft as _fft
-    from skcuda.fft import ifft as _ifft
-    from skcuda.fft import Plan as _Plan
-except (OSError, ModuleNotFoundError) as e:
-    print("skcuda not present on system, function calc_fft_with_PyCUDA and calc_ifft_with_PyCUDA will crash")
-    
+    try:
+        import pycuda.autoinit
+        import pycuda.gpuarray as _gpuarray
+    except (OSError, ModuleNotFoundError) as e:
+        print("pyCUDA not present on system, function calc_fft_with_PyCUDA and calc_ifft_with_PyCUDA will crash")
+    try:
+        from skcuda.fft import fft as _fft
+        from skcuda.fft import ifft as _ifft
+        from skcuda.fft import Plan as _Plan
+    except (OSError, ModuleNotFoundError) as e:
+        print("skcuda not present on system, function calc_fft_with_PyCUDA and calc_ifft_with_PyCUDA will crash")
+except NameError as e:
+    pass # ModuleNotFoundError not always there
+        
 #cpu_count = _cpu_count()
 #workerPool = _Pool(cpu_count)
 
@@ -412,7 +415,7 @@ class DataObject():
         AreaUnderPSD = sum(self.PSD[index_startAreaPSD: index_endAreaPSD])
         return AreaUnderPSD
 
-    def get_fit(self, TrapFreq, WidthOfPeakToFit, A_Initial=0.1e10, Gamma_Initial=400, Silent=False, MakeFig=True, show_fig=True):
+    def get_fit(self, TrapFreq, WidthOfPeakToFit, A_Initial=0.1e10, Gamma_Initial=400, silent=False, MakeFig=True, show_fig=True):
         """
         Function that fits to a peak to the PSD to extract the 
         frequency, A factor and Gamma (damping) factor.
@@ -473,7 +476,7 @@ class DataObject():
             Params, ParamsErr, _ , _ = fit_PSD(
                 self, WidthOfPeakToFit, TrapFreq, A_Initial, Gamma_Initial, MakeFig=MakeFig, show_fig=show_fig)
 
-        if Silent == False:
+        if silent == False:
             print("\n")
             print("A: {} +- {}% ".format(Params[0],
                                          ParamsErr[0] / Params[0] * 100))
@@ -492,7 +495,7 @@ class DataObject():
         else:
             return self.A, self.OmegaTrap, self.Gamma, None, None
 
-    def get_fit_from_peak(self, lowerLimit, upperLimit, NumPointsSmoothing=1, Silent=False, MakeFig=True, show_fig=True):
+    def get_fit_from_peak(self, lowerLimit, upperLimit, NumPointsSmoothing=1, silent=False, MakeFig=True, show_fig=True):
         """
         Finds approximate values for the peaks central frequency, height, 
         and FWHM by looking for the heighest peak in the frequency range defined 
@@ -572,7 +575,7 @@ class DataObject():
                                (upperLimit-lowerLimit)/2, 
                                A_Initial=approx_A,
                                Gamma_Initial=approx_Gamma,
-                               Silent=Silent,
+                               silent=silent,
                                MakeFig=MakeFig,
                                show_fig=show_fig)
         except (TypeError, ValueError) as e: 
@@ -589,7 +592,7 @@ class DataObject():
 
         return OmegaTrap, A, Gamma, fig, ax 
 
-    def get_fit_auto(self, CentralFreq, MaxWidth=15000, MinWidth=500, WidthIntervals=500, MakeFig=True, show_fig=True):
+    def get_fit_auto(self, CentralFreq, MaxWidth=15000, MinWidth=500, WidthIntervals=500, MakeFig=True, show_fig=True, silent=False):
         """
         Tries a range of regions to search for peaks and runs the one with the least error
         and returns the parameters with the least errors.
@@ -630,7 +633,7 @@ class DataObject():
                     = self.get_fit_from_peak(
                         CentralFreq - Width / 2,
                         CentralFreq + Width / 2,
-                        Silent=True,
+                        silent=True,
                         MakeFig=False,
                         show_fig=False)
             except RuntimeError:
@@ -646,13 +649,15 @@ class DataObject():
             if TotalSumSquaredError < MinTotalSumSquaredError:
                 MinTotalSumSquaredError = TotalSumSquaredError
                 BestWidth = Width
-        print("found best")
+        if silent != True:
+            print("found best")
         try:
             OmegaTrap, A, Gamma, fig, ax \
                 = self.get_fit_from_peak(CentralFreq - BestWidth / 2,
                                          CentralFreq + BestWidth / 2,
                                          MakeFig=MakeFig,
-                                         show_fig=show_fig)
+                                         show_fig=show_fig,
+                                         silent=silent)
         except UnboundLocalError:
             raise ValueError("A best width was not found, try increasing the number of widths tried by either decreasing WidthIntervals or MinWidth or increasing MaxWidth")
         OmegaTrap = self.OmegaTrap
@@ -661,7 +666,7 @@ class DataObject():
         self.FTrap = OmegaTrap/(2*pi)
         return OmegaTrap, A, Gamma, fig, ax
 
-    def calc_gamma_from_variance_autocorrelation_fit(self, NumberOfOscillations, GammaGuess=None, Silent=False, MakeFig=True, show_fig=True):
+    def calc_gamma_from_variance_autocorrelation_fit(self, NumberOfOscillations, GammaGuess=None, silent=False, MakeFig=True, show_fig=True):
         """
         Calculates the total damping, i.e. Gamma, by splitting the time trace
         into chunks of NumberOfOscillations oscillations and calculated the
@@ -720,7 +725,7 @@ class DataObject():
             Params, ParamsErr, _ , _ = fit_autocorrelation(
                 autocorrelation, time, Gamma_Initial, MakeFig=MakeFig, show_fig=show_fig)
 
-        if Silent == False:
+        if silent == False:
             print("\n")
             print(
                 "Big Gamma: {} +- {}% ".format(Params[0], ParamsErr[0] / Params[0] * 100))
@@ -732,7 +737,7 @@ class DataObject():
         else:
             return Gamma, None, None
 
-    def calc_gamma_from_energy_autocorrelation_fit(self, GammaGuess=None, Silent=False, MakeFig=True, show_fig=True):
+    def calc_gamma_from_energy_autocorrelation_fit(self, GammaGuess=None, silent=False, MakeFig=True, show_fig=True):
         """
         Calculates the total damping, i.e. Gamma, by calculating the energy each 
         point in time. This energy array is then used for the autocorrleation. 
@@ -743,7 +748,7 @@ class DataObject():
         ----------
         GammaGuess : float, optional
             Inital guess for BigGamma (in radians)
-        Silent : bool, optional
+        silent : bool, optional
             Whether it prints the values fitted or is silent.
         MakeFig : bool, optional
             Whether to construct and return the figure object showing
@@ -779,7 +784,7 @@ class DataObject():
             Params, ParamsErr, _ , _ = fit_autocorrelation(
                 autocorrelation, time, Gamma_Initial, MakeFig=MakeFig, show_fig=show_fig)
 
-        if Silent == False:
+        if silent == False:
             print("\n")
             print(
                 "Big Gamma: {} +- {}% ".format(Params[0], ParamsErr[0] / Params[0] * 100))
@@ -791,7 +796,7 @@ class DataObject():
         else:
             return Gamma, None, None
 
-    def calc_gamma_from_position_autocorrelation_fit(self, GammaGuess=None, FreqTrapGuess=None, Silent=False, MakeFig=True, show_fig=True):
+    def calc_gamma_from_position_autocorrelation_fit(self, GammaGuess=None, FreqTrapGuess=None, silent=False, MakeFig=True, show_fig=True):
         """
         Calculates the total damping, i.e. Gamma, by calculating the autocorrleation 
         of the position-time trace. The autocorrelation is fitted with an exponential 
@@ -804,7 +809,7 @@ class DataObject():
             Inital guess for BigGamma (in radians)
         FreqTrapGuess : float, optional
             Inital guess for the trapping Frequency in Hz
-        Silent : bool, optional
+        silent : bool, optional
             Whether it prints the values fitted or is silent.
         MakeFig : bool, optional
             Whether to construct and return the figure object showing
@@ -847,7 +852,7 @@ class DataObject():
             Params, ParamsErr, _ , _ = fit_autocorrelation(
                 autocorrelation, time, Gamma_Initial, FreqTrap_Initial, method='position', MakeFig=MakeFig, show_fig=show_fig)
 
-        if Silent == False:
+        if silent == False:
             print("\n")
             print(
                 "Big Gamma: {} +- {}% ".format(Params[0], ParamsErr[0] / Params[0] * 100))
@@ -1312,7 +1317,7 @@ class ORGTableData():
         return Value 
 
     
-def load_data(Filepath, ObjectType='data', RelativeChannelNo=None, SampleFreq=None, PointsToLoad=-1, calcPSD=True, NPerSegmentPSD=1000000, NormaliseByMonitorOutput=False):
+def load_data(Filepath, ObjectType='data', RelativeChannelNo=None, SampleFreq=None, PointsToLoad=-1, calcPSD=True, NPerSegmentPSD=1000000, NormaliseByMonitorOutput=False, silent=False):
     """
     Parameters
     ----------
@@ -1355,7 +1360,8 @@ def load_data(Filepath, ObjectType='data', RelativeChannelNo=None, SampleFreq=No
         that you requested to be loaded.
 
     """
-    print("Loading data from {}".format(Filepath))
+    if silent != True:
+        print("Loading data from {}".format(Filepath))
     ObjectTypeDict = {
         'data' : DataObject,
         'thermo' : optoanalysis.thermo.ThermoObject,
@@ -1547,16 +1553,18 @@ def search_data_custom(Channel, TraceTitle, RunNos, directoryPath='.'):
         A list containing the full file paths of the files you were looking for. 
     """
     files = glob('{}/*'.format(directoryPath))
-    files_CorrectChannel = []
+    files_CorrectChannel = []    
     for file_ in files:
         if 'C{}'.format(Channel) in file_:
             files_CorrectChannel.append(file_)
+    print(files_CorrectChannel)
     files_CorrectRunNo = []
     for RunNo in RunNos:
         files_match = _fnmatch.filter(
             files_CorrectChannel, '*C{}'.format(Channel)+TraceTitle+str(RunNo).zfill(5)+'.*')
         for file_ in files_match:
             files_CorrectRunNo.append(file_)
+    print(files_CorrectRunNo)
     paths = files_CorrectRunNo
     return paths
 
@@ -2087,7 +2095,6 @@ def extract_parameters(Pressure, PressureErr, A, AErr, Gamma0, Gamma0Err, method
     err_conversionFactor = conversionFactor * \
         _np.sqrt((AErr / A)**2 + (err_mass / mass)
                  ** 2 + (Gamma0Err / Gamma0)**2)
-    print("I AM NOT MAD!!! I SWEAR!")
     return [radius, mass, conversionFactor], [err_radius, err_mass, err_conversionFactor]
 
 
