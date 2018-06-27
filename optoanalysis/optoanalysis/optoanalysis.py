@@ -694,8 +694,6 @@ class DataObject():
         -------
         Gamma : ufloat
             Big Gamma, the total damping in radians
-        OmegaTrap : ufloat
-            Trapping frequency in radians
         fig : matplotlib.figure.Figure object
             The figure object created showing the autocorrelation
             of the data with the fit
