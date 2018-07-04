@@ -694,8 +694,6 @@ class DataObject():
         -------
         Gamma : ufloat
             Big Gamma, the total damping in radians
-        OmegaTrap : ufloat
-            Trapping frequency in radians
         fig : matplotlib.figure.Figure object
             The figure object created showing the autocorrelation
             of the data with the fit
@@ -1014,10 +1012,12 @@ class DataObject():
             timeEnd = self.timeEnd
 
         time = self.time.get_array()
-    
+
         StartIndex = _np.where(time == take_closest(time, timeStart))[0][0]
         EndIndex = _np.where(time == take_closest(time, timeEnd))[0][0]
 
+        
+        input_signal = self.voltage[StartIndex: EndIndex][0::FractionOfSampleFreq]
         SAMPLEFREQ = self.SampleFreq / FractionOfSampleFreq
         if filterImplementation == "filtfilt" or filterImplementation == "lfilter":
             if filterImplementation == "filtfilt":
@@ -1025,7 +1025,6 @@ class DataObject():
             elif filterImplementation == "lfilter":
                 ApplyFilter = scipy.signal.lfilter
                 
-            input_signal = self.voltage[StartIndex: EndIndex][0::FractionOfSampleFreq]
     
             b, a = make_butterworth_bandpass_b_a(freq, PeakWidth, SAMPLEFREQ)
             print("filtering data")
@@ -1035,7 +1034,7 @@ class DataObject():
                 raise ValueError(
                     "Value Error: FractionOfSampleFreq must be higher, a sufficiently small sample frequency should be used to produce a working IIR filter.")
         elif filterImplementation == "ifft":
-            filteredData = IFFT_filter(self.voltage[StartIndex: EndIndex][0::FractionOfSampleFreq], SAMPLEFREQ, freq-PeakWidth/2, freq+PeakWidth/2, PyCUDA = PyCUDA)
+            filteredData = IFFT_filter(input_signal, SAMPLEFREQ, freq-PeakWidth/2, freq+PeakWidth/2, PyCUDA = PyCUDA)
         else:
             raise ValueError("filterImplementation must be one of [filtfilt, lfilter, ifft] you entered: {}".format(filterImplementation))
     
@@ -1884,7 +1883,44 @@ def PSD_fitting_eqn(A, OmegaTrap, Gamma, omega):
     """
     return A / ((OmegaTrap**2 - omega**2)**2 + omega**2 * (Gamma)**2)
 
-def fit_PSD(Data, bandwidth, TrapFreqGuess, AGuess=0.1e10, GammaGuess=400, MakeFig=True, show_fig=True):
+def PSD_fitting_eqn_with_background(A, OmegaTrap, Gamma, FlatBackground, omega):
+    """
+    The value of the fitting equation:
+    A / ((OmegaTrap**2 - omega**2)**2 + (omega * Gamma)**2) + FlatBackground
+    to be fit to the PSD
+
+    Parameters
+    ----------
+    A : float
+        Fitting constant A
+        A = γ**2*Γ_0*(2*K_b*T_0)/(π*m)
+        where:
+            γ = conversionFactor
+            Γ_0 = Damping factor due to environment
+            π = pi
+    OmegaTrap : float
+        The trapping frequency in the axis of interest 
+        (in angular frequency)
+    Gamma : float
+        The damping factor Gamma = Γ = Γ_0 + δΓ
+        where:
+            Γ_0 = Damping factor due to environment
+            δΓ = extra damping due to feedback or other effects
+    FlatBackground : float
+        Adds a constant offset to the peak to account for a flat 
+        noise background
+    omega : float
+        The angular frequency to calculate the value of the 
+        fitting equation at 
+
+    Returns
+    -------
+    Value : float
+        The value of the fitting equation
+    """
+    return A / ((OmegaTrap**2 - omega**2)**2 + omega**2 * (Gamma)**2) + FlatBackground
+
+def fit_PSD(Data, bandwidth, TrapFreqGuess, AGuess=0.1e10, GammaGuess=400, FlatBackground=None, MakeFig=True, show_fig=True):
     """
     Fits theory PSD to Data. Assumes highest point of PSD is the
     trapping frequency.
@@ -1903,6 +1939,11 @@ def fit_PSD(Data, bandwidth, TrapFreqGuess, AGuess=0.1e10, GammaGuess=400, MakeF
         The initial value of the A parameter to use in fitting
     GammaGuess : float, optional
         The initial value of the Gamma parameter to use in fitting
+    FlatBackground : float, optional
+        If given a number the fitting function assumes a flat 
+        background to get more exact Area, which does not factor in
+        noise. defaults to None, which fits a model with no flat 
+        background contribution, basically no offset
     MakeFig : bool, optional
         Whether to construct and return the figure object showing
         the fitting. defaults to True
@@ -1913,9 +1954,9 @@ def fit_PSD(Data, bandwidth, TrapFreqGuess, AGuess=0.1e10, GammaGuess=400, MakeF
     Returns
     -------
     ParamsFit - Fitted parameters:
-        [A, TrappingFrequency, Gamma]
+        [A, TrappingFrequency, Gamma, FlatBackground(optional)]
     ParamsFitErr - Error in fitted parameters:
-        [AErr, TrappingFrequencyErr, GammaErr]
+        [AErr, TrappingFrequencyErr, GammaErr, FlatBackgroundErr(optional)]
     fig : matplotlib.figure.Figure object
         figure object containing the plot
     ax : matplotlib.axes.Axes object
@@ -1962,9 +2003,13 @@ def fit_PSD(Data, bandwidth, TrapFreqGuess, AGuess=0.1e10, GammaGuess=400, MakeF
 
     logPSD = 10 * _np.log10(Data.PSD) # putting PSD in dB
 
-    def calc_theory_PSD_curve_fit(freqs, A, TrapFreq, BigGamma):
-        Theory_PSD = 10 * \
-            _np.log10(PSD_fitting_eqn(A, TrapFreq, BigGamma, freqs)) # PSD in dB
+    def calc_theory_PSD_curve_fit(freqs, A, TrapFreq, BigGamma, FlatBackground=None):
+        if FlatBackground == None:
+            Theory_PSD = 10 * \
+                _np.log10(PSD_fitting_eqn(A, TrapFreq, BigGamma, freqs)) # PSD in dB
+        else:
+            Theory_PSD = 10* \
+                _np.log10(PSD_fitting_eqn_with_background(A, TrapFreq, BigGamma, FlatBackground, freqs)) # PSD in dB
         if A < 0 or TrapFreq < 0 or BigGamma < 0:
             return 1e9
         else:
@@ -1973,26 +2018,46 @@ def fit_PSD(Data, bandwidth, TrapFreqGuess, AGuess=0.1e10, GammaGuess=400, MakeF
     datax = AngFreqs[indx_fit_lower:indx_fit_upper]
     datay = logPSD[indx_fit_lower:indx_fit_upper]
 
-    p0 = _np.array([AGuess, OmegaTrap, GammaGuess])
+    if FlatBackground == None:
+        p0 = _np.array([AGuess, OmegaTrap, GammaGuess])
 
-    Params_Fit, Params_Fit_Err = fit_curvefit(p0,
-                                              datax,
-                                              datay,
-                                              calc_theory_PSD_curve_fit)
+        Params_Fit, Params_Fit_Err = fit_curvefit(p0,
+                                                  datax,
+                                                  datay,
+                                                  calc_theory_PSD_curve_fit)
+    else:
+        p0 = _np.array([AGuess, OmegaTrap, GammaGuess, FlatBackground])
+
+        Params_Fit, Params_Fit_Err = fit_curvefit(p0,
+                                                  datax,
+                                                  datay,
+                                                  calc_theory_PSD_curve_fit)
 
     if MakeFig == True:
         fig = _plt.figure(figsize=properties["default_fig_size"])
         ax = fig.add_subplot(111)
 
-        PSDTheory_fit_initial = 10 * _np.log10(
-            PSD_fitting_eqn(p0[0], p0[1],
-                             p0[2], AngFreqs))
+        if FlatBackground==None:
+            PSDTheory_fit_initial = 10 * _np.log10(
+                PSD_fitting_eqn(p0[0], p0[1],
+                                p0[2], AngFreqs))
 
-        PSDTheory_fit = 10 * _np.log10(
-            PSD_fitting_eqn(Params_Fit[0],
-                             Params_Fit[1],
-                             Params_Fit[2],
-                             AngFreqs))
+            PSDTheory_fit = 10 * _np.log10(
+                PSD_fitting_eqn(Params_Fit[0],
+                                Params_Fit[1],
+                                Params_Fit[2],
+                                AngFreqs))
+        else:
+            PSDTheory_fit_initial = 10 * _np.log10(
+                PSD_fitting_eqn_with_background(p0[0], p0[1],
+                                                p0[2], p0[3], AngFreqs))
+
+            PSDTheory_fit = 10 * _np.log10(
+                PSD_fitting_eqn_with_background(Params_Fit[0],
+                                                Params_Fit[1],
+                                                Params_Fit[2],
+                                                Params_Fit[3],
+                                                AngFreqs))
 
         ax.plot(AngFreqs / (2 * pi), Data.PSD,
                 color="darkblue", label="Raw PSD Data", alpha=0.5)
