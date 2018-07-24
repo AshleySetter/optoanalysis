@@ -212,7 +212,7 @@ class DataObject():
                 raise ValueError("If loading a .tdms file saved from the FPGA you must enter a SampleFreq")
             self.SampleFreq = SampleFreq
             dt = 1/self.SampleFreq
-            FIFO_SIZE = 262143 # this is the maximum size of the DMA FIFO on the NI 7961 FPGA (the older less powerful one)
+            FIFO_SIZE = 262143 # this is the maximum size of the DMA FIFO on the NI 7961 FPGA with the NI 5781 DAC card
             tdms_file = _TdmsFile(self.filepath)
             channel = tdms_file.object('Measured_Data', 'data')
             data = channel.data[FIFO_SIZE:] # dump first 1048575 points of data
