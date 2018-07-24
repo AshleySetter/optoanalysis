@@ -29,6 +29,7 @@ from frange import frange
 from scipy.constants import Boltzmann, pi
 from os.path import exists as _does_file_exist
 from skimage.transform import iradon_sart as _iradon_sart
+from nptdms import TdmsFile as _TdmsFile
 import gc
 try:
     try:
@@ -206,6 +207,20 @@ class DataObject():
                     self.voltage = filedata[RelativeChannelNo:len(filedata):2]
             timeParams = (0,(len(self.voltage)-1)/SampleFreq,1/SampleFreq)
             self.SampleFreq = 1/timeParams[2]
+        elif FileExtension == "tdms": # for importing a file written by labview form the NI7961 FPGA with the RecordDataPC VI
+            if SampleFreq == None:
+                raise ValueError("If loading a .tdms file saved from the FPGA you must enter a SampleFreq")
+            self.SampleFreq = SampleFreq
+            dt = 1/self.SampleFreq
+            FIFO_SIZE = 262143 # this is the maximum size of the DMA FIFO on the NI 7961 FPGA (the older less powerful one)
+            tdms_file = _TdmsFile(self.filepath)
+            channel = tdms_file.object('Measured_Data', 'data')
+            data = channel.data[FIFO_SIZE:] # dump first 1048575 points of data
+            # as this is the values that had already filled the buffer
+            # from before when the record code started running
+            volts_per_unit = 2/(2**14)
+            self.voltage = volts_per_unit*data
+            timeParams = [0, (data.shape[0]-1)*dt, dt]
         startTime, endTime, Timestep = timeParams
         self.timeStart = startTime
         self.timeEnd = endTime
