@@ -1439,7 +1439,6 @@ def search_data_std(Channel, RunNos, RepeatNos, directoryPath='.'):
     for file_ in files:
         if 'CH{}'.format(Channel) in file_:
             files_CorrectChannel.append(file_)
-    print(files_CorrectChannel)
     files_CorrectRunNo = []
     for RunNo in RunNos:
         files_match = _fnmatch.filter(
@@ -1571,14 +1570,13 @@ def search_data_custom(Channel, TraceTitle, RunNos, directoryPath='.'):
     for file_ in files:
         if 'C{}'.format(Channel) in file_:
             files_CorrectChannel.append(file_)
-    print(files_CorrectChannel)
     files_CorrectRunNo = []
     for RunNo in RunNos:
         files_match = _fnmatch.filter(
             files_CorrectChannel, '*C{}'.format(Channel)+TraceTitle+str(RunNo).zfill(5)+'.*')
         for file_ in files_match:
             files_CorrectRunNo.append(file_)
-    print(files_CorrectRunNo)
+    print("loading the following files: {}".format(files_CorrectRunNo))
     paths = files_CorrectRunNo
     return paths
 
