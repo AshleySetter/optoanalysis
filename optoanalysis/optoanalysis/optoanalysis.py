@@ -2168,7 +2168,7 @@ def extract_parameters(Pressure, PressureErr, A, AErr, Gamma0, Gamma0Err, method
         _np.sqrt(((PressureErr * Pressure) / Pressure)
                  ** 2 + (Gamma0Err / Gamma0)**2)
     mass = rho * ((4 * pi * radius**3) / 3)
-    err_mass = mass * 2 * err_radius / radius
+    err_mass = mass * 3 * err_radius / radius
     conversionFactor = _np.sqrt(A * mass / (4 * kB * T0 * Gamma0))
     err_conversionFactor = conversionFactor * \
         _np.sqrt((AErr / A)**2 + (err_mass / mass)
@@ -4449,3 +4449,35 @@ def fit_data(freq_array, S_xx_array, AGuess, OmegaTrap, GammaGuess, make_fig=Tru
         return Params_Fit, Params_Fit_Err, fig, ax
     else:
         return Params_Fit, Params_Fit_Err, None, None
+
+def calc_reduced_chi_squared(y_observed, y_model, observation_error, number_of_fitted_parameters):
+    """
+    Calculates the reduced chi-squared, used to compare a model to observations. For example can be used to calculate how good a fit is by using fitted y values for y_model along with observed y values and error in those y values. Reduced chi-squared should be close to 1 for a good fit, lower than 1 suggests you are overestimating the measurement error (observation_error you entered is higher than the true error in the measurement). A value higher than 1 suggests either your model is a bad fit OR you are underestimating the error in the measurement (observation_error you entered is lower than the true error in the measurement). See https://en.wikipedia.org/wiki/Reduced_chi-squared_statistic for more detail.
+    
+    Parameters
+    ----------
+    y_observed : ndarray
+        array of measured/observed values of some variable y which you are fitting to.
+    y_model : ndarray
+        array of y values predicted by your model/fit (predicted y values corresponding to y_observed)
+    observation_error : float
+        error in the measurements/observations of y
+    number_of_fitted_parameters : float
+        number of parameters in your model
+
+    Returns
+    -------
+    chi2_reduced : float
+        reduced chi-squared parameter
+    """
+    observed = _np.array(y_observed)
+    expected = _np.array(y_model)
+    if observed.shape != expected.shape:
+        raise ValueError("y_observed should have same number of elements as y_model")
+    residuals = (observed - expected)
+    z = residuals / observation_error # residuals divided by known error in measurement
+    chi2 = _np.sum(z**2) # chi squared value
+    num_of_observations = len(observed)
+    v = num_of_observations - number_of_fitted_parameters # v = number of degrees of freedom
+    chi2_reduced = chi2/v
+    return chi2_reduced
