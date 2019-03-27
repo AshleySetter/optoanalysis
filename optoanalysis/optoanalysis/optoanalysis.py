@@ -30,6 +30,7 @@ from scipy.constants import Boltzmann, pi
 from os.path import exists as _does_file_exist
 from skimage.transform import iradon_sart as _iradon_sart
 from nptdms import TdmsFile as _TdmsFile
+import csv
 import gc
 try:
     try:
@@ -221,6 +222,22 @@ class DataObject():
             volts_per_unit = 2/(2**14)
             self.voltage = volts_per_unit*data
             timeParams = [0, (data.shape[0]-1)*dt, dt]
+        elif FileExtension == 'txt': # .txt file created by LeCroy Oscilloscope
+            data = []
+            with open(self.filepath, 'r') as csvfile:
+                reader = csv.reader(csvfile)
+                for row in reader:
+                    data.append(row)
+            data = _np.array(data[5:]).astype(float).transpose()
+            t0 = data[0][0]
+            tend = data[0][-1]
+            dt = data[0][1] - data[0][0]
+            self.SampleFreq = 1/dt
+            self.voltage = data[1]
+            del(data)
+            timeParams = [t0, tend, dt]
+        else:
+            raise ValueError("Filetype not supported")
         startTime, endTime, Timestep = timeParams
         self.timeStart = startTime
         self.timeEnd = endTime
