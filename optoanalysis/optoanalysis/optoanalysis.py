@@ -181,7 +181,11 @@ class DataObject():
             with _warnings.catch_warnings(): # supress missing data warning and raise a missing
                 # data warning from optoanalysis with the filepath
                 _warnings.simplefilter("ignore")
-                waveDescription, timeParams, self.voltage, _, missingdata = optoanalysis.LeCroy.InterpretWaveform(raw, noTimeArray=True) 
+                try:
+                    waveDescription, timeParams, self.voltage, _, missingdata = optoanalysis.LeCroy.InterpretWaveform(raw, noTimeArray=True)
+                except IndexError as error:
+                    print('problem with file {}'.format(self.filepath), flush=True)
+                    raise(error)
             if missingdata:
                 _warnings.warn("Waveform not of expected length. File {} may be missing data.".format(self.filepath))
             self.SampleFreq = (1 / waveDescription["HORIZ_INTERVAL"])
@@ -236,6 +240,38 @@ class DataObject():
             self.voltage = data[1]
             del(data)
             timeParams = [t0, tend, dt]
+        elif FileExtension == 'CSV': # .CSV file created by Textronics oscilloscope (normal teaching labs oscilloscope)
+            data = [] 
+            with open(self.filepath, 'r') as csvfile:
+                reader = csv.reader(csvfile)
+                for row in reader:
+                    data.append(row)
+            
+            data = _np.array(data)
+            horizontal = data[:,3].astype(float) # horizontal time signal - pre scaling
+            verticle = data[:,4].astype(float) # verticle voltage signal - pre scaling
+            
+            # meta data
+            N_data_points = data[0, 1].astype(float)
+            dt = data[1, 1].astype(float)
+            index_of_trigger = data[2, 1].astype(float)
+            verticle_units = data[7, 1]
+            verticle_scale = data[8, 1].astype(float)
+            verticle_offset = data[9, 1].astype(float)
+            horizontal_units = data[10, 1]
+            horizontal_scale = data[11, 1].astype(float)
+            Yzero = data[13, 1].astype(float)
+            
+            time = horizontal*horizontal_scale
+            voltage = (verticle - verticle_offset)*verticle_scale
+            
+            t0 = time[0]
+            tend = time[-1]
+            timeParams = [t0, tend, dt]
+            del(data)
+            del(time)
+            self.SampleFreq = 1/dt
+            self.voltage = voltage
         else:
             raise ValueError("Filetype not supported")
         startTime, endTime, Timestep = timeParams
@@ -1075,7 +1111,8 @@ class DataObject():
                 input_signal, SAMPLEFREQ, nperseg=NPerSegmentPSD)
             f_filtdata, PSD_filtdata = scipy.signal.welch(filteredData, SAMPLEFREQ, nperseg=NPerSegmentPSD)
             fig, ax = _plt.subplots(figsize=properties["default_fig_size"])
-            ax.plot(f, PSD)
+            ax.plot(self.freqs, self.PSD, label='original data')
+            ax.plot(f, PSD, label='subsampled data')
             ax.plot(f_filtdata, PSD_filtdata, label="filtered data")
             ax.legend(loc="best")
             ax.semilogy()
@@ -1553,6 +1590,7 @@ def multi_load_data_custom(Channel, TraceTitle, RunNos, directoryPath='.', calcP
     #    data.append(load_data(filepath))
     load_data_partial = _partial(load_data, calcPSD=calcPSD, NPerSegmentPSD=NPerSegmentPSD)
     data = workerPool.map(load_data_partial, matching_files)
+    #data = list(map(load_data_partial, matching_files))
     workerPool.close()
     workerPool.terminate()
     workerPool.join()
@@ -4120,9 +4158,10 @@ def unit_conversion(array, unit_prefix, current_prefix=""):
     converted_array = array*conversion_multiplication
     return converted_array
 
-def audiate(data, filename):
-    AudioFreq = int(30000/10e6*data.SampleFreq)
-    _writewav(filename, AudioFreq, data.voltage)
+def audiate(signal, AudioSampleFreq, filename):
+    AudioSampleFreq = int(_np.round(AudioSampleFreq))
+    signal_dc_removed = signal - _np.mean(signal)
+    _writewav(filename, AudioSampleFreq, signal_dc_removed)
     return None
 
 # ----------------- WIGNER FUNCTIONS -------------------------------------------------------------
