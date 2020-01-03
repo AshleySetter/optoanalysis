@@ -46,7 +46,7 @@ try:
         print("skcuda not present on system, function calc_fft_with_PyCUDA and calc_ifft_with_PyCUDA will crash")
 except NameError as e:
     pass # ModuleNotFoundError not always there
-        
+
 #cpu_count = _cpu_count()
 #workerPool = _Pool(cpu_count)
 
@@ -88,7 +88,7 @@ class DataObject():
             filename of the file containing the data used to initialise
             this particular instance of the DataObject class
     time : frange
-            Contains the time data as an frange object. Can get a generator 
+            Contains the time data as an frange object. Can get a generator
             or array of this object.
     voltage : ndarray
             Contains the voltage data in Volts
@@ -112,14 +112,14 @@ class DataObject():
         RelativeChannelNo : int, optional
             If loading a .bin file produced by the Saleae datalogger, used to specify
             the channel number
-            If loading a .dat file produced by the labview NI5122 daq card, used to 
-            specifiy the channel number if two channels where saved, if left None with 
+            If loading a .dat file produced by the labview NI5122 daq card, used to
+            specifiy the channel number if two channels where saved, if left None with
             .dat files it will assume that the file to load only contains one channel.
-            If NormaliseByMonitorOutput is True then RelativeChannelNo specifies the 
+            If NormaliseByMonitorOutput is True then RelativeChannelNo specifies the
             monitor channel for loading a .dat file produced by the labview NI5122 daq card.
         SampleFreq : float, optional
             If loading a .dat file produced by the labview NI5122 daq card, used to
-            manually specify the sample frequency 
+            manually specify the sample frequency
         PointsToLoad : int, optional
             Number of first points to read. -1 means all points (i.e. the complete file)
             WORKS WITH NI5122 DATA SO FAR ONLY!!!
@@ -130,7 +130,7 @@ class DataObject():
             NPerSegment to pass to scipy.signal.welch to calculate the PSD
         NormaliseByMonitorOutput : bool, optional
             If True the particle signal trace will be divided by the monitor output, which is
-            specified by the channel number set in the RelativeChannelNo parameter. 
+            specified by the channel number set in the RelativeChannelNo parameter.
             WORKS WITH NI5122 DATA SO FAR ONLY!!!
 
         Initialisation - assigns values to the following attributes:
@@ -158,10 +158,10 @@ class DataObject():
         ----------
         RelativeChannelNo : int, optional
              Channel number for loading saleae data files
-             If loading a .dat file produced by the labview NI5122 daq card, used to 
-             specifiy the channel number if two channels where saved, if left None with 
+             If loading a .dat file produced by the labview NI5122 daq card, used to
+             specifiy the channel number if two channels where saved, if left None with
              .dat files it will assume that the file to load only contains one channel.
-             If NormaliseByMonitorOutput is True then RelativeChannelNo specifies the 
+             If NormaliseByMonitorOutput is True then RelativeChannelNo specifies the
              monitor channel for loading a .dat file produced by the labview NI5122 daq card.
         SampleFreq : float, optional
              Manual selection of sample frequency for loading labview NI5122 daq files
@@ -170,7 +170,7 @@ class DataObject():
              WORKS WITH NI5122 DATA SO FAR ONLY!!!
         NormaliseByMonitorOutput : bool, optional
              If True the particle signal trace will be divided by the monitor output, which is
-             specified by the channel number set in the RelativeChannelNo parameter. 
+             specified by the channel number set in the RelativeChannelNo parameter.
              WORKS WITH NI5122 DATA SO FAR ONLY!!!
         """
         f = open(self.filepath, 'rb')
@@ -240,18 +240,18 @@ class DataObject():
             self.voltage = data[1]
             del(data)
             timeParams = [t0, tend, dt]
-        elif FileExtension.lower() == 'csv': # .CSV file created by oscilloscopes 
-            data = [] 
+        elif FileExtension.lower() == 'csv': # .CSV file created by oscilloscopes
+            data = []
             with open(self.filepath, 'r') as csvfile:
                 reader = csv.reader(csvfile)
                 for row in reader:
                     data.append(row)
-            
+
             data = _np.array(data)
             if data[15][1] == 'TDS1001B':
                 horizontal = data[:,3].astype(float) # horizontal time signal - pre scaling
                 verticle = data[:,4].astype(float) # verticle voltage signal - pre scaling
-                
+
                 # meta data
                 N_data_points = data[0, 1].astype(float)
                 dt = data[1, 1].astype(float)
@@ -262,10 +262,10 @@ class DataObject():
                 horizontal_units = data[10, 1]
                 horizontal_scale = data[11, 1].astype(float)
                 Yzero = data[13, 1].astype(float)
-                
+
                 time = horizontal*horizontal_scale
                 voltage = (verticle - verticle_offset)*verticle_scale
-                
+
                 t0 = time[0]
                 tend = time[-1]
                 timeParams = [t0, tend, dt]
@@ -325,7 +325,7 @@ class DataObject():
             By default it uses the first time point
         timeEnd : float, optional
             The time to finish getting data from.
-            By default it uses the last time point        
+            By default it uses the last time point
 
         Returns
         -------
@@ -337,12 +337,12 @@ class DataObject():
         """
         if timeStart == None:
             timeStart = self.timeStart
-            
+
         if timeEnd == None:
             timeEnd = self.timeEnd
 
         time = self.time.get_array()
-            
+
         StartIndex = _np.where(time == take_closest(time, timeStart))[0][0]
         EndIndex = _np.where(time == take_closest(time, timeEnd))[0][0]
 
@@ -350,7 +350,7 @@ class DataObject():
             EndIndex = EndIndex + 1 # so that it does not remove the last element
 
         return time[StartIndex:EndIndex], self.voltage[StartIndex:EndIndex]
-    
+
     def plot_time_data(self, timeStart=None, timeEnd=None, units='s', show_fig=True):
         """
         plot time data against voltage data.
@@ -436,7 +436,7 @@ class DataObject():
                 timeEnd = self.timeEnd
 
             time = self.time.get_array()
-                
+
             StartIndex = _np.where(time == take_closest(time, timeStart))[0][0]
             EndIndex = _np.where(time == take_closest(time, timeEnd))[0][0]
 
@@ -478,7 +478,7 @@ class DataObject():
             PSD = self.PSD
         else:
             freqs, PSD = self.get_PSD(timeStart=timeStart, timeEnd=timeEnd)
-            
+
         unit_prefix = units[:-2]
         if xlim == None:
             xlim = [0, unit_conversion(self.SampleFreq/2, unit_prefix)]
@@ -518,7 +518,7 @@ class DataObject():
 
     def get_fit(self, TrapFreq, WidthOfPeakToFit, A_Initial=0.1e10, Gamma_Initial=400, silent=False, MakeFig=True, show_fig=True):
         """
-        Function that fits to a peak to the PSD to extract the 
+        Function that fits to a peak to the PSD to extract the
         frequency, A factor and Gamma (damping) factor.
 
         Parameters
@@ -590,7 +590,7 @@ class DataObject():
         self.OmegaTrap = _uncertainties.ufloat(Params[1], ParamsErr[1])
         self.Gamma = _uncertainties.ufloat(Params[2], ParamsErr[2])
 
-        
+
         if MakeFig == True:
             return self.A, self.OmegaTrap, self.Gamma, fig, ax
         else:
@@ -598,9 +598,9 @@ class DataObject():
 
     def get_fit_from_peak(self, lowerLimit, upperLimit, NumPointsSmoothing=1, silent=False, MakeFig=True, show_fig=True):
         """
-        Finds approximate values for the peaks central frequency, height, 
-        and FWHM by looking for the heighest peak in the frequency range defined 
-        by the input arguments. It then uses the central frequency as the trapping 
+        Finds approximate values for the peaks central frequency, height,
+        and FWHM by looking for the heighest peak in the frequency range defined
+        by the input arguments. It then uses the central frequency as the trapping
         frequency, peak height to approximate the A value and the FWHM to an approximate
         the Gamma (damping) value.
 
@@ -611,7 +611,7 @@ class DataObject():
         upperLimit : float
             The higher frequency limit of the range in which it looks for a peak
         NumPointsSmoothing : float
-            The number of points of moving-average smoothing it applies before fitting the 
+            The number of points of moving-average smoothing it applies before fitting the
             peak.
         Silent : bool, optional
             Whether it prints the values fitted or is silent.
@@ -673,13 +673,13 @@ class DataObject():
         try:
             A, OmegaTrap, Gamma, fig, ax \
                 = self.get_fit(CentralFreq,
-                               (upperLimit-lowerLimit)/2, 
+                               (upperLimit-lowerLimit)/2,
                                A_Initial=approx_A,
                                Gamma_Initial=approx_Gamma,
                                silent=silent,
                                MakeFig=MakeFig,
                                show_fig=show_fig)
-        except (TypeError, ValueError) as e: 
+        except (TypeError, ValueError) as e:
             _warnings.warn("range is too small to fit, returning NaN", UserWarning)
             val = _uncertainties.ufloat(_np.NaN, _np.NaN)
             return val, val, val, val, val
@@ -691,7 +691,7 @@ class DataObject():
             self.freqs[LeftSideOfPeakIndex:RightSideOfPeakIndex]
         PSDArray = self.PSD[LeftSideOfPeakIndex:RightSideOfPeakIndex]
 
-        return OmegaTrap, A, Gamma, fig, ax 
+        return OmegaTrap, A, Gamma, fig, ax
 
     def get_fit_auto(self, CentralFreq, MaxWidth=15000, MinWidth=500, WidthIntervals=500, MakeFig=True, show_fig=True, silent=False):
         """
@@ -720,10 +720,10 @@ class DataObject():
         Gamma : ufloat
             Gamma, the damping parameter
         fig : matplotlib.figure.Figure object
-            The figure object created showing the PSD of the data 
+            The figure object created showing the PSD of the data
             with the fit
         ax : matplotlib.axes.Axes object
-            The axes object created showing the PSD of the data 
+            The axes object created showing the PSD of the data
             with the fit
 
         """
@@ -767,18 +767,20 @@ class DataObject():
         self.FTrap = OmegaTrap/(2*pi)
         return OmegaTrap, A, Gamma, fig, ax
 
+
+
     def calc_gamma_from_variance_autocorrelation_fit(self, NumberOfOscillations, GammaGuess=None, silent=False, MakeFig=True, show_fig=True):
         """
         Calculates the total damping, i.e. Gamma, by splitting the time trace
         into chunks of NumberOfOscillations oscillations and calculated the
         variance of each of these chunks. This array of varainces is then used
-        for the autocorrleation. The autocorrelation is fitted with an exponential 
+        for the autocorrleation. The autocorrelation is fitted with an exponential
         relaxation function and the function returns the parameters with errors.
 
         Parameters
         ----------
         NumberOfOscillations : int
-            The number of oscillations each chunk of the timetrace 
+            The number of oscillations each chunk of the timetrace
             used to calculate the variance should contain.
         GammaGuess : float, optional
             Inital guess for BigGamma (in radians)
@@ -816,7 +818,7 @@ class DataObject():
             Gamma_Initial = (time[4]-time[0])/(autocorrelation[0]-autocorrelation[4])
         else:
             Gamma_Initial = GammaGuess
-        
+
         if MakeFig == True:
             Params, ParamsErr, fig, ax = fit_autocorrelation(
                 autocorrelation, time, Gamma_Initial, MakeFig=MakeFig, show_fig=show_fig)
@@ -830,7 +832,7 @@ class DataObject():
                 "Big Gamma: {} +- {}% ".format(Params[0], ParamsErr[0] / Params[0] * 100))
 
         Gamma = _uncertainties.ufloat(Params[0], ParamsErr[0])
-        
+
         if MakeFig == True:
             return Gamma, fig, ax
         else:
@@ -838,8 +840,8 @@ class DataObject():
 
     def calc_gamma_from_energy_autocorrelation_fit(self, GammaGuess=None, silent=False, MakeFig=True, show_fig=True):
         """
-        Calculates the total damping, i.e. Gamma, by calculating the energy each 
-        point in time. This energy array is then used for the autocorrleation. 
+        Calculates the total damping, i.e. Gamma, by calculating the energy each
+        point in time. This energy array is then used for the autocorrleation.
         The autocorrelation is fitted with an exponential relaxation function and
         the function returns the parameters with errors.
 
@@ -875,7 +877,7 @@ class DataObject():
             Gamma_Initial = (time[4]-time[0])/(autocorrelation[0]-autocorrelation[4])
         else:
             Gamma_Initial = GammaGuess
-        
+
         if MakeFig == True:
             Params, ParamsErr, fig, ax = fit_autocorrelation(
                 autocorrelation, time, Gamma_Initial, MakeFig=MakeFig, show_fig=show_fig)
@@ -889,7 +891,7 @@ class DataObject():
                 "Big Gamma: {} +- {}% ".format(Params[0], ParamsErr[0] / Params[0] * 100))
 
         Gamma = _uncertainties.ufloat(Params[0], ParamsErr[0])
-        
+
         if MakeFig == True:
             return Gamma, fig, ax
         else:
@@ -897,8 +899,8 @@ class DataObject():
 
     def calc_gamma_from_position_autocorrelation_fit(self, GammaGuess=None, FreqTrapGuess=None, silent=False, MakeFig=True, show_fig=True):
         """
-        Calculates the total damping, i.e. Gamma, by calculating the autocorrleation 
-        of the position-time trace. The autocorrelation is fitted with an exponential 
+        Calculates the total damping, i.e. Gamma, by calculating the autocorrleation
+        of the position-time trace. The autocorrelation is fitted with an exponential
         relaxation function derived in Tongcang Li's 2013 thesis (DOI: 10.1007/978-1-4614-6031-2)
         and the function (equation 4.20 in the thesis) returns the parameters with errors.
 
@@ -943,7 +945,7 @@ class DataObject():
             FreqTrap_Initial = self.FTrap.n
         else:
             FreqTrap_Initial = FreqTrapGuess
-            
+
         if MakeFig == True:
             Params, ParamsErr, fig, ax = fit_autocorrelation(
                 autocorrelation, time, Gamma_Initial, FreqTrap_Initial, method='position', MakeFig=MakeFig, show_fig=show_fig)
@@ -957,26 +959,26 @@ class DataObject():
                 "Big Gamma: {} +- {}% ".format(Params[0], ParamsErr[0] / Params[0] * 100))
             print(
                 "Trap Frequency: {} +- {}% ".format(Params[1], ParamsErr[1] / Params[1] * 100))
-            
+
         Gamma = _uncertainties.ufloat(Params[0], ParamsErr[0])
         OmegaTrap = _uncertainties.ufloat(Params[1], ParamsErr[1])
-        
+
         if MakeFig == True:
             return Gamma, OmegaTrap, fig, ax
         else:
             return Gamma, OmegaTrap, None, None
-    
+
     def extract_parameters(self, P_mbar, P_Error, method="chang"):
         """
         Extracts the Radius, mass and Conversion factor for a particle.
 
         Parameters
         ----------
-        P_mbar : float 
+        P_mbar : float
             The pressure in mbar when the data was taken.
         P_Error : float
             The error in the pressure value (as a decimal e.g. 15% = 0.15)
-        
+
         Returns
         -------
         Radius : uncertainties.ufloat
@@ -1002,11 +1004,11 @@ class DataObject():
     def extract_ZXY_motion(self, ApproxZXYFreqs, uncertaintyInFreqs, ZXYPeakWidths, subSampleFraction=1, NPerSegmentPSD=1000000, MakeFig=True, show_fig=True):
         """
         Extracts the x, y and z signals (in volts) from the voltage signal. Does this by finding the highest peaks in the signal about the approximate frequencies, using the uncertaintyinfreqs parameter as the width it searches. It then uses the ZXYPeakWidths to construct bandpass IIR filters for each frequency and filtering them. If too high a sample frequency has been used to collect the data scipy may not be able to construct a filter good enough, in this case increasing the subSampleFraction may be nessesary.
-        
+
         Parameters
         ----------
         ApproxZXYFreqs : array_like
-            A sequency containing 3 elements, the approximate 
+            A sequency containing 3 elements, the approximate
             z, x and y frequency respectively.
         uncertaintyInFreqs : float
             The uncertainty in the z, x and y frequency respectively.
@@ -1015,7 +1017,7 @@ class DataObject():
             z, x and y frequency peaks respectively.
         subSampleFraction : int, optional
             How much to sub-sample the data by before filtering,
-            effectively reducing the sample frequency by this 
+            effectively reducing the sample frequency by this
             fraction.
         NPerSegmentPSD : int, optional
             NPerSegment to pass to scipy.signal.welch to calculate the PSD
@@ -1034,11 +1036,11 @@ class DataObject():
         time : ndarray
             The array of times corresponding to the above 3 arrays
         fig : matplotlib.figure.Figure object
-            figure object containing a plot of the PSD of the original 
+            figure object containing a plot of the PSD of the original
             signal with the z, x and y filtered signals
         ax : matplotlib.axes.Axes object
             axes object corresponding to the above figure
-        
+
         """
         [zf, xf, yf] = ApproxZXYFreqs
         zf, xf, yf = get_ZXY_freqs(
@@ -1055,7 +1057,7 @@ class DataObject():
                     PyCUDA=False, MakeFig=True, show_fig=True):
         """
         filter out data about a central frequency with some bandwidth using an IIR filter.
-    
+
         Parameters
         ----------
         freq : float
@@ -1093,7 +1095,7 @@ class DataObject():
         show_fig : bool, optional
             If True - plot unfiltered and filtered PSD
             Defaults to True.
-    
+
         Returns
         -------
         timedata : ndarray
@@ -1101,10 +1103,10 @@ class DataObject():
         FiletedData : ndarray
             Array containing the filtered signal in volts with time.
         fig : matplotlib.figure.Figure object
-            The figure object created showing the PSD of the filtered 
+            The figure object created showing the PSD of the filtered
             and unfiltered signal
         ax : matplotlib.axes.Axes object
-            The axes object created showing the PSD of the filtered 
+            The axes object created showing the PSD of the filtered
             and unfiltered signal
         """
         if timeStart == None:
@@ -1117,7 +1119,7 @@ class DataObject():
         StartIndex = _np.where(time == take_closest(time, timeStart))[0][0]
         EndIndex = _np.where(time == take_closest(time, timeEnd))[0][0]
 
-        
+
         input_signal = self.voltage[StartIndex: EndIndex][0::FractionOfSampleFreq]
         SAMPLEFREQ = self.SampleFreq / FractionOfSampleFreq
         if filterImplementation == "filtfilt" or filterImplementation == "lfilter":
@@ -1125,12 +1127,12 @@ class DataObject():
                 ApplyFilter = scipy.signal.filtfilt
             elif filterImplementation == "lfilter":
                 ApplyFilter = scipy.signal.lfilter
-                
-    
+
+
             b, a = make_butterworth_bandpass_b_a(freq, PeakWidth, SAMPLEFREQ)
             print("filtering data")
             filteredData = ApplyFilter(b, a, input_signal)
-    
+
             if(_np.isnan(filteredData).any()):
                 raise ValueError(
                     "Value Error: FractionOfSampleFreq must be higher, a sufficiently small sample frequency should be used to produce a working IIR filter.")
@@ -1138,7 +1140,7 @@ class DataObject():
             filteredData = IFFT_filter(input_signal, SAMPLEFREQ, freq-PeakWidth/2, freq+PeakWidth/2, PyCUDA = PyCUDA)
         else:
             raise ValueError("filterImplementation must be one of [filtfilt, lfilter, ifft] you entered: {}".format(filterImplementation))
-    
+
         if MakeFig == True:
             f, PSD = scipy.signal.welch(
                 input_signal, SAMPLEFREQ, nperseg=NPerSegmentPSD)
@@ -1161,7 +1163,7 @@ class DataObject():
     def plot_phase_space_sns(self, freq, ConvFactor, PeakWidth=10000, FractionOfSampleFreq=1, kind="hex", timeStart=None, timeEnd =None, PointsOfPadding=500, units="nm", logscale=False, cmap=None, marginalColor=None, gridsize=200, show_fig=True, ShowPSD=False, alpha=0.5, *args, **kwargs):
         """
         Plots the phase space of a peak in the PSD.
-        
+
         Parameters
         ----------
         freq : float
@@ -1196,7 +1198,7 @@ class DataObject():
             Whether to show the figure before exiting the function
             Defaults to True.
         ShowPSD : bool, optional
-            Where to show the PSD of the unfiltered and the 
+            Where to show the PSD of the unfiltered and the
             filtered signal used to make the phase space
             plot. Defaults to False.
 
@@ -1212,16 +1214,16 @@ class DataObject():
                 cmap = properties['default_log_cmap']
             else:
                 cmap = properties['default_linear_cmap']
-        
+
         unit_prefix = units[:-1]
 
         _, PosArray, VelArray = self.calc_phase_space(freq, ConvFactor, PeakWidth=PeakWidth, FractionOfSampleFreq=FractionOfSampleFreq, timeStart=timeStart, timeEnd=timeEnd, PointsOfPadding=PointsOfPadding, ShowPSD=ShowPSD)
 
         _plt.close('all')
-        
+
         PosArray = unit_conversion(PosArray, unit_prefix) # converts m to units required (nm by default)
         VelArray = unit_conversion(VelArray, unit_prefix) # converts m/s to units required (nm/s by default)
-        
+
         VarPos = _np.var(PosArray)
         VarVel = _np.var(VelArray)
         MaxPos = _np.max(PosArray)
@@ -1269,25 +1271,25 @@ class DataObject():
                                  marginal_kws={'hist_kws': {'log': logscale},},
                                  cmap=cmap,
                                  color=marginalColor,
-                                 alpha=alpha,                                
+                                 alpha=alpha,
                                  *args,
                                  **kwargs,
             )
 
         fig = JP1.fig
-        
+
         if show_fig == True:
             print("Showing Phase Space")
             _plt.show()
-            
+
         return fig, JP1
- 
+
     def plot_phase_space(self, freq, ConvFactor, PeakWidth=10000, FractionOfSampleFreq=1, timeStart=None, timeEnd =None, PointsOfPadding=500, units="nm", show_fig=True, ShowPSD=False, xlabel='', ylabel='', *args, **kwargs):
         unit_prefix = units[:-1]
 
         xlabel = xlabel + "({})".format(units)
         ylabel = ylabel + "({})".format(units)
-            
+
         _, PosArray, VelArray = self.calc_phase_space(freq, ConvFactor, PeakWidth=PeakWidth, FractionOfSampleFreq=FractionOfSampleFreq, timeStart=timeStart, timeEnd=timeEnd, PointsOfPadding=PointsOfPadding, ShowPSD=ShowPSD)
 
         PosArray = unit_conversion(PosArray, unit_prefix) # converts m to units required (nm by default)
@@ -1303,7 +1305,7 @@ class DataObject():
         if show_fig == True:
             _plt.show()
         return fig, axscatter, axhistx, axhisty, cb
-    
+
     def calc_phase_space(self, freq, ConvFactor, PeakWidth=10000, FractionOfSampleFreq=1, timeStart=None, timeEnd =None, PointsOfPadding=500, ShowPSD=False):
         """
         Calculates the position and velocity (in m) for use in plotting the phase space distribution.
@@ -1329,7 +1331,7 @@ class DataObject():
             How many points of the data at the beginning and end to disregard for plotting
             the phase space, to remove filtering artifacts. Defaults to 500
         ShowPSD : bool, optional
-            Where to show the PSD of the unfiltered and the filtered signal used 
+            Where to show the PSD of the unfiltered and the filtered signal used
             to make the phase space plot. Defaults to False.
         *args, **kwargs : optional
             args and kwargs passed to qplots.joint_plot
@@ -1355,10 +1357,10 @@ class DataObject():
             EndIndex = _np.where(time == take_closest(time, timeEnd))[0][0]
         else:
             EndIndex = -1
-            
+
         Pos = Pos[PointsOfPadding : -PointsOfPadding+1]
         time = time[StartIndex:EndIndex][::FractionOfSampleFreq][PointsOfPadding : -PointsOfPadding+1]
-        
+
         if type(ConvFactor) == _uncertainties.core.Variable:
             conv = ConvFactor.n
         else:
@@ -1366,8 +1368,8 @@ class DataObject():
         PosArray = Pos / conv # converts V to m
         VelArray = _np.diff(PosArray) * (self.SampleFreq / FractionOfSampleFreq) # calcs velocity (in m/s) by differtiating position
         return time, PosArray, VelArray
-        
-        
+
+
 class ORGTableData():
     """
     Class for reading in general data from org-mode tables.
@@ -1396,7 +1398,7 @@ class ORGTableData():
 
     def get_value(self, ColumnName, RunNo):
         """
-        Retreives the value of the collumn named ColumnName associated 
+        Retreives the value of the collumn named ColumnName associated
         with a particular run number.
 
         Parameters
@@ -1406,7 +1408,7 @@ class ORGTableData():
 
         RunNo : int
             The run number for which to retreive the pressure value
-        
+
         Returns
         -------
         Value : float
@@ -1414,10 +1416,10 @@ class ORGTableData():
         """
         Value = float(self.ORGTableData[self.ORGTableData.RunNo == '{}'.format(
             RunNo)][ColumnName])
-        
-        return Value 
 
-    
+        return Value
+
+
 def load_data(Filepath, ObjectType='data', RelativeChannelNo=None, SampleFreq=None, PointsToLoad=-1, calcPSD=True, NPerSegmentPSD=1000000, NormaliseByMonitorOutput=False, silent=False):
     """
     Parameters
@@ -1433,8 +1435,8 @@ def load_data(Filepath, ObjectType='data', RelativeChannelNo=None, SampleFreq=No
     RelativeChannelNo : int, optional
         If loading a .bin file produced by the Saneae datalogger, used to specify
         the channel number
-        If loading a .dat file produced by the labview NI5122 daq card, used to 
-        specifiy the channel number if two channels where saved, if left None with 
+        If loading a .dat file produced by the labview NI5122 daq card, used to
+        specifiy the channel number if two channels where saved, if left None with
         .dat files it will assume that the file to load only contains one channel.
         If NormaliseByMonitorOutput is True then specifies the monitor channel for
         loading a .dat file produced by the labview NI5122 daq card.
@@ -1451,7 +1453,7 @@ def load_data(Filepath, ObjectType='data', RelativeChannelNo=None, SampleFreq=No
         NPerSegment to pass to scipy.signal.welch to calculate the PSD
     NormaliseByMonitorOutput : bool, optional
         If True the particle signal trace will be divided by the monitor output, which is
-        specified by the channel number set in the RelativeChannelNo parameter. 
+        specified by the channel number set in the RelativeChannelNo parameter.
         WORKS WITH NI5122 DATA SO FAR ONLY!!!
 
     Returns
@@ -1485,7 +1487,7 @@ def load_data(Filepath, ObjectType='data', RelativeChannelNo=None, SampleFreq=No
                 repeat_number = int(repeat_number)
                 pressure = float(pressure)
                 if (run_number == data.run_number) and (repeat_number == data.repeat_number):
-                    data.pmbar = pressure    
+                    data.pmbar = pressure
     except ValueError:
         pass
     try:
@@ -1500,9 +1502,9 @@ def load_data(Filepath, ObjectType='data', RelativeChannelNo=None, SampleFreq=No
 
 def search_data_std(Channel, RunNos, RepeatNos, directoryPath='.'):
     """
-    Lets you find multiple datasets at once assuming they have a 
+    Lets you find multiple datasets at once assuming they have a
     filename which contains a pattern of the form:
-    CH<ChannelNo>_RUN00...<RunNo>_REPEAT00...<RepeatNo>    
+    CH<ChannelNo>_RUN00...<RunNo>_REPEAT00...<RepeatNo>
 
     Parameters
     ----------
@@ -1542,9 +1544,9 @@ def search_data_std(Channel, RunNos, RepeatNos, directoryPath='.'):
 
 def multi_load_data(Channel, RunNos, RepeatNos, directoryPath='.', calcPSD=True, NPerSegmentPSD=1000000):
     """
-    Lets you load multiple datasets at once assuming they have a 
+    Lets you load multiple datasets at once assuming they have a
     filename which contains a pattern of the form:
-    CH<ChannelNo>_RUN00...<RunNo>_REPEAT00...<RepeatNo>    
+    CH<ChannelNo>_RUN00...<RunNo>_REPEAT00...<RepeatNo>
 
     Parameters
     ----------
@@ -1561,7 +1563,7 @@ def multi_load_data(Channel, RunNos, RepeatNos, directoryPath='.', calcPSD=True,
     Returns
     -------
     Data : list
-        A list containing the DataObjects that were loaded. 
+        A list containing the DataObjects that were loaded.
     """
     matching_files = search_data_std(Channel=Channel, RunNos=RunNos, RepeatNos=RepeatNos, directoryPath=directoryPath)
     #data = []
@@ -1575,7 +1577,7 @@ def multi_load_data(Channel, RunNos, RepeatNos, directoryPath='.', calcPSD=True,
     workerPool.close()
     workerPool.terminate()
     workerPool.join()
-       
+
     #with _Pool(cpu_count) as workerPool:
         #load_data_partial = _partial(load_data, calcPSD=calcPSD, NPerSegmentPSD=NPerSegmentPSD)
         #data = workerPool.map(load_data_partial, files_CorrectRepeatNo)
@@ -1590,7 +1592,7 @@ def multi_load_data_custom(Channel, TraceTitle, RunNos, directoryPath='.', calcP
     Channel : int
         The channel you want to load
     TraceTitle : string
-        The custom trace title of the files. 
+        The custom trace title of the files.
     RunNos : sequence
         Sequence of run numbers you want to load
     RepeatNos : sequence
@@ -1602,7 +1604,7 @@ def multi_load_data_custom(Channel, TraceTitle, RunNos, directoryPath='.', calcP
     Returns
     -------
     Data : list
-        A list containing the DataObjects that were loaded. 
+        A list containing the DataObjects that were loaded.
     """
 #    files = glob('{}/*'.format(directoryPath))
 #    files_CorrectChannel = []
@@ -1639,7 +1641,7 @@ def search_data_custom(Channel, TraceTitle, RunNos, directoryPath='.'):
     Channel : int
         The channel you want to load
     TraceTitle : string
-        The custom trace title of the files. 
+        The custom trace title of the files.
     RunNos : sequence
         Sequence of run numbers you want to load
     RepeatNos : sequence
@@ -1651,10 +1653,10 @@ def search_data_custom(Channel, TraceTitle, RunNos, directoryPath='.'):
     Returns
     -------
     Paths : list
-        A list containing the full file paths of the files you were looking for. 
+        A list containing the full file paths of the files you were looking for.
     """
     files = glob('{}/*'.format(directoryPath))
-    files_CorrectChannel = []    
+    files_CorrectChannel = []
     for file_ in files:
         if 'C{}'.format(Channel) in file_:
             files_CorrectChannel.append(file_)
@@ -1692,9 +1694,9 @@ def calc_temp(Data_ref, Data):
 
 def calc_gamma_components(Data_ref, Data):
     """
-    Calculates the components of Gamma (Gamma0 and delta_Gamma), 
+    Calculates the components of Gamma (Gamma0 and delta_Gamma),
     assuming that the Data_ref is uncooled data (ideally at 3mbar
-    for best fitting). It uses the fact that A_prime=A/Gamma0 should 
+    for best fitting). It uses the fact that A_prime=A/Gamma0 should
     be constant for a particular particle under changes in pressure
     and therefore uses the reference save to calculate A_prime (assuming
     the Gamma value found for the uncooled data is actually equal to Gamma0
@@ -1717,7 +1719,7 @@ def calc_gamma_components(Data_ref, Data):
         Damping due to the environment
     delta_Gamma : uncertainties.ufloat
         Damping due to other effects (e.g. feedback cooling)
-    
+
     """
     A_prime = Data_ref.A/Data_ref.Gamma
     Gamma0 = Data.A/A_prime
@@ -1738,7 +1740,7 @@ def fit_curvefit(p0, datax, datay, function, **kwargs):
         y data to use for fitting
     function : function
         funcion to be fit to the data
-    kwargs 
+    kwargs
         keyword arguments to be passed to scipy.optimise.curve_fit
 
     Returns
@@ -1774,7 +1776,7 @@ def moving_average(array, n=3):
         The array to have the moving average taken of
     n : int
         The number of points of moving average to take
-    
+
     Returns
     -------
     MovingAverageArray : array
@@ -1819,7 +1821,7 @@ def _energy_autocorrelation_fitting_eqn(t, Gamma):
     The value of the fitting equation:
     exp(-t*Gamma)
     to be fit to the autocorrelation-exponential decay
-    Actual correct equation would be: 
+    Actual correct equation would be:
     exp(-t*Gamma) * (4*Omega**2-Gamma**2 * cos(2*sqrt(Gamma**2 /4 - Omega**2)*t))
     taken from DOI: 10.1103/PhysRevE.94.062151 but since
     the additional term is negligible when the quality factor Q>1.
@@ -1827,9 +1829,9 @@ def _energy_autocorrelation_fitting_eqn(t, Gamma):
     Parameters
     ----------
     t : float
-        time 
+        time
     Gamma : float
-        Big Gamma (in radians), i.e. damping 
+        Big Gamma (in radians), i.e. damping
 
     Returns
     -------
@@ -1848,9 +1850,9 @@ def _position_autocorrelation_fitting_eqn(t, Gamma, AngTrapFreq):
     Parameters
     ----------
     t : float
-        time 
+        time
     Gamma : float
-        Big Gamma (in radians), i.e. damping 
+        Big Gamma (in radians), i.e. damping
     AngTrapFreq : float
         Angular Trapping Frequency in Radians
 
@@ -1879,7 +1881,7 @@ def fit_autocorrelation(autocorrelation, time, GammaGuess, TrapFreqGuess=None, m
         The approximate trapping frequency to use initially in Hz.
     method : string, optional
         To choose which autocorrelation fit is needed.
-        'position' : equation 4.20 from Tongcang Li's 2013 thesis 
+        'position' : equation 4.20 from Tongcang Li's 2013 thesis
                      (DOI: 10.1007/978-1-4614-6031-2)
         'energy'   : proper exponential energy correlation decay
                      (DOI: 10.1103/PhysRevE.94.062151)
@@ -1928,7 +1930,7 @@ def fit_autocorrelation(autocorrelation, time, GammaGuess, TrapFreqGuess=None, m
         autocorrelation_fit = _position_autocorrelation_fitting_eqn(_np.arange(0,datax[-1],1e-7),
                                                                     Params_Fit[0],
                                                                     Params_Fit[1])
-        
+
     if MakeFig == True:
         fig = _plt.figure(figsize=properties["default_fig_size"])
         ax = fig.add_subplot(111)
@@ -1949,7 +1951,7 @@ def fit_autocorrelation(autocorrelation, time, GammaGuess, TrapFreqGuess=None, m
         return Params_Fit, Params_Fit_Err, fig, ax
     else:
         return Params_Fit, Params_Fit_Err, None, None
-    
+
 def PSD_fitting_eqn(A, OmegaTrap, Gamma, omega):
     """
     The value of the fitting equation:
@@ -1966,7 +1968,7 @@ def PSD_fitting_eqn(A, OmegaTrap, Gamma, omega):
             Γ_0 = Damping factor due to environment
             π = pi
     OmegaTrap : float
-        The trapping frequency in the axis of interest 
+        The trapping frequency in the axis of interest
         (in angular frequency)
     Gamma : float
         The damping factor Gamma = Γ = Γ_0 + δΓ
@@ -1974,8 +1976,8 @@ def PSD_fitting_eqn(A, OmegaTrap, Gamma, omega):
             Γ_0 = Damping factor due to environment
             δΓ = extra damping due to feedback or other effects
     omega : float
-        The angular frequency to calculate the value of the 
-        fitting equation at 
+        The angular frequency to calculate the value of the
+        fitting equation at
 
     Returns
     -------
@@ -2000,7 +2002,7 @@ def PSD_fitting_eqn2(A, OmegaTrap, Gamma, omega):
             Γ_0 = Damping factor due to environment
             π = pi
     OmegaTrap : float
-        The trapping frequency in the axis of interest 
+        The trapping frequency in the axis of interest
         (in angular frequency)
     Gamma : float
         The damping factor Gamma = Γ = Γ_0 + δΓ
@@ -2008,8 +2010,8 @@ def PSD_fitting_eqn2(A, OmegaTrap, Gamma, omega):
             Γ_0 = Damping factor due to environment
             δΓ = extra damping due to feedback or other effects
     omega : float
-        The angular frequency to calculate the value of the 
-        fitting equation at 
+        The angular frequency to calculate the value of the
+        fitting equation at
 
     Returns
     -------
@@ -2035,7 +2037,7 @@ def PSD_fitting_eqn_with_background(A, OmegaTrap, Gamma, FlatBackground, omega):
             Γ_0 = Damping factor due to environment
             π = pi
     OmegaTrap : float
-        The trapping frequency in the axis of interest 
+        The trapping frequency in the axis of interest
         (in angular frequency)
     Gamma : float
         The damping factor Gamma = Γ = Γ_0 + δΓ
@@ -2043,11 +2045,11 @@ def PSD_fitting_eqn_with_background(A, OmegaTrap, Gamma, FlatBackground, omega):
             Γ_0 = Damping factor due to environment
             δΓ = extra damping due to feedback or other effects
     FlatBackground : float
-        Adds a constant offset to the peak to account for a flat 
+        Adds a constant offset to the peak to account for a flat
         noise background
     omega : float
-        The angular frequency to calculate the value of the 
-        fitting equation at 
+        The angular frequency to calculate the value of the
+        fitting equation at
 
     Returns
     -------
@@ -2076,9 +2078,9 @@ def fit_PSD(Data, bandwidth, TrapFreqGuess, AGuess=0.1e10, GammaGuess=400, FlatB
     GammaGuess : float, optional
         The initial value of the Gamma parameter to use in fitting
     FlatBackground : float, optional
-        If given a number the fitting function assumes a flat 
+        If given a number the fitting function assumes a flat
         background to get more exact Area, which does not factor in
-        noise. defaults to None, which fits a model with no flat 
+        noise. defaults to None, which fits a model with no flat
         background contribution, basically no offset
     MakeFig : bool, optional
         Whether to construct and return the figure object showing
@@ -2117,7 +2119,7 @@ def fit_PSD(Data, bandwidth, TrapFreqGuess, AGuess=0.1e10, GammaGuess=400, FlatB
 
     if indx_fit_lower == indx_fit_upper:
         raise ValueError("Bandwidth argument must be higher, region is too thin.")
-    
+
 #    print(f_fit_lower, f_fit_upper)
 #    print(AngFreqs[indx_fit_lower], AngFreqs[indx_fit_upper])
 
@@ -2244,7 +2246,7 @@ def extract_parameters(Pressure, PressureErr, A, AErr, Gamma0, Gamma0Err, method
     Pressure : float
         Pressure in mbar when the data was taken
     PressureErr : float
-        Error in the Pressure as a decimal (e.g. 15% error is 0.15) 
+        Error in the Pressure as a decimal (e.g. 15% error is 0.15)
     A : float
         Fitting constant A
         A = γ**2*2*Γ_0*(K_b*T_0)/(π*m)
@@ -2281,7 +2283,7 @@ def extract_parameters(Pressure, PressureErr, A, AErr, Gamma0, Gamma0Err, method
                  (_np.sqrt(2) * rho * kB * T0) * (Pressure/Gamma0)
     # see section 4.1.1 of Muddassar Rashid's 2016 Thesis for
     # derivation of this
-    # see also page 132 of Jan Giesler's Thesis        
+    # see also page 132 of Jan Giesler's Thesis
     m_air = 4.81e-26 # molecular mass of air is 28.97 g/mol and Avogadro's Number 6.0221409^23
     if method == "chang":
         vbar = (8*kB*T0/(pi*m_air))**0.5
@@ -2448,7 +2450,7 @@ def get_ZXY_data(Data, zf, xf, yf, FractionOfSampleFreq=1,
         raise ValueError(
             "Value Error: FractionOfSampleFreq must be higher, a sufficiently small sample frequency should be used to produce a working IIR filter.")
 
-    if MakeFig == True:        
+    if MakeFig == True:
         f, PSD = scipy.signal.welch(
             input_signal, SAMPLEFREQ, nperseg=NPerSegmentPSD)
         f_z, PSD_z = scipy.signal.welch(zdata, SAMPLEFREQ, nperseg=NPerSegmentPSD)
@@ -2602,7 +2604,7 @@ def animate(zdata, xdata, ydata,
     convZ = conversionFactorArray[0] * 1e-9
     convX = conversionFactorArray[1] * 1e-9
     convY = conversionFactorArray[2] * 1e-9
-    
+
     ZBoxStart = -BoxSize  # 1/conv*(_np.mean(zdata)-0.06)
     ZBoxEnd = BoxSize  # 1/conv*(_np.mean(zdata)+0.06)
     XBoxStart = -BoxSize  # 1/conv*(_np.mean(xdata)-0.06)
@@ -2707,14 +2709,14 @@ def animate(zdata, xdata, ydata,
     anim.save('{}.mp4'.format(filename), writer=mywriter)
     return None
 
-def animate_2Dscatter(x, y, NumAnimatedPoints=50, NTrailPoints=20, 
+def animate_2Dscatter(x, y, NumAnimatedPoints=50, NTrailPoints=20,
     xlabel="", ylabel="",
-    xlims=None, ylims=None, filename="testAnim.mp4", 
+    xlims=None, ylims=None, filename="testAnim.mp4",
     bitrate=1e5, dpi=5e2, fps=30, figsize = [6, 6]):
     """
-    Animates x and y - where x and y are 1d arrays of x and y 
+    Animates x and y - where x and y are 1d arrays of x and y
     positions and it plots x[i:i+NTrailPoints] and y[i:i+NTrailPoints]
-    against each other and iterates through i. 
+    against each other and iterates through i.
 
     """
     fig, ax = _plt.subplots(figsize = figsize)
@@ -2741,7 +2743,7 @@ def animate_2Dscatter(x, y, NumAnimatedPoints=50, NTrailPoints=20,
 
     def animate(i, scatter):
         scatter.axes.clear() # clear old scatter object
-        scatter = ax.scatter(x[i:i+NTrailPoints], y[i:i+NTrailPoints], color=rgba_colors, animated=True) 
+        scatter = ax.scatter(x[i:i+NTrailPoints], y[i:i+NTrailPoints], color=rgba_colors, animated=True)
         # create new scatter with updated data
         ax.set_xlim(xlims)
         ax.set_ylim(ylims)
@@ -2755,13 +2757,13 @@ def animate_2Dscatter(x, y, NumAnimatedPoints=50, NTrailPoints=20,
     ani.save(filename, bitrate=bitrate, dpi=dpi, fps=fps)
     return None
 
-def animate_2Dscatter_slices(x, y, NumAnimatedPoints=50, 
+def animate_2Dscatter_slices(x, y, NumAnimatedPoints=50,
     xlabel="", ylabel="",
-    xlims=None, ylims=None, filename="testAnim.mp4", 
+    xlims=None, ylims=None, filename="testAnim.mp4",
     bitrate=1e5, dpi=5e2, fps=30, figsize = [6, 6]):
     """
-    Animates x and y - where x and y are both 2d arrays of x and y 
-    positions and it plots x[i] against y[i] and iterates through i. 
+    Animates x and y - where x and y are both 2d arrays of x and y
+    positions and it plots x[i] against y[i] and iterates through i.
 
     """
     fig, ax = _plt.subplots(figsize = figsize)
@@ -2866,7 +2868,7 @@ def calc_fft_with_PyCUDA(Signal):
 
 def calc_ifft_with_PyCUDA(Signalfft):
     """
-    Calculates the inverse-FFT of the passed FFT-signal by 
+    Calculates the inverse-FFT of the passed FFT-signal by
     using the scikit-cuda libary which relies on PyCUDA
 
     Parameters
@@ -2893,7 +2895,7 @@ def butterworth_filter(Signal, SampleFreq, lowerFreq, upperFreq):
     """
     Filters data using by constructing a 5th order butterworth
     IIR filter and using scipy.signal.filtfilt, which does
-    phase correction after implementing the filter (as IIR 
+    phase correction after implementing the filter (as IIR
     filter apply a phase change)
 
     Parameters
@@ -2976,7 +2978,7 @@ def make_butterworth_bandpass_b_a(CenterFreq, bandwidth, SampleFreq, order=5, bt
         coefficients multiplying the current and past inputs (feedforward coefficients)
     a : ndarray
         coefficients multiplying the past outputs (feedback coefficients)
-    """    
+    """
     lowcut = CenterFreq-bandwidth/2
     highcut = CenterFreq+bandwidth/2
     b, a = make_butterworth_b_a(lowcut, highcut, SampleFreq, order, btype)
@@ -2985,7 +2987,7 @@ def make_butterworth_bandpass_b_a(CenterFreq, bandwidth, SampleFreq, order=5, bt
 
 def IIR_filter_design(CentralFreq, bandwidth, transitionWidth, SampleFreq, GainStop=40, GainPass=0.01):
     """
-    Function to calculate the coefficients of an IIR filter, 
+    Function to calculate the coefficients of an IIR filter,
     IMPORTANT NOTE: make_butterworth_bandpass_b_a and make_butterworth_b_a
     can produce IIR filters with higher sample rates and are prefereable
     due to this.
@@ -3055,7 +3057,7 @@ def get_freq_response(a, b, show_fig=True, SampleFreq=(2 * pi), NumOfFreqs=500, 
         response of the filter. Default is 500.
     Whole : bool, optional
         Sets whether to plot the whole response (0 to sample freq)
-        or just to plot 0 to Nyquist (SampleFreq/2): 
+        or just to plot 0 to Nyquist (SampleFreq/2):
         False - (default) plot 0 to Nyquist (SampleFreq/2)
         True - plot the whole response (0 to sample freq)
 
@@ -3145,21 +3147,21 @@ def multi_plot_PSD(DataArray, xlim=[0, 500], units="kHz", LabelArray=[], ColorAr
         ColorArray = _np.empty(len(DataArray))
         ColorArray = list(ColorArray)
         for i, ele in enumerate(ColorArray):
-            ColorArray[i] = None    
+            ColorArray[i] = None
 
     if alphaArray == []:
         alphaArray = _np.empty(len(DataArray))
         alphaArray = list(alphaArray)
         for i, ele in enumerate(alphaArray):
-            alphaArray[i] = None    
+            alphaArray[i] = None
 
-            
+
     fig = _plt.figure(figsize=properties['default_fig_size'])
     ax = fig.add_subplot(111)
 
     for i, data in enumerate(DataArray):
         ax.semilogy(unit_conversion(data.freqs, unit_prefix), data.PSD, label=LabelArray[i], color=ColorArray[i], alpha=alphaArray[i])
-            
+
     ax.set_xlabel("Frequency ({})".format(units))
     ax.set_xlim(xlim)
     ax.grid(which="major")
@@ -3196,7 +3198,7 @@ def multi_plot_time(DataArray, SubSampleN=1, units='s', xlim=None, ylim=None, La
     show_fig : bool, optional
        If True runs plt.show() before returning figure
        if False it just returns the figure object.
-       (the default is True, it shows the figure) 
+       (the default is True, it shows the figure)
 
     Returns
     -------
@@ -3211,7 +3213,7 @@ def multi_plot_time(DataArray, SubSampleN=1, units='s', xlim=None, ylim=None, La
                       for i in _np.arange(0, len(DataArray), 1)]
     fig = _plt.figure(figsize=properties['default_fig_size'])
     ax = fig.add_subplot(111)
-    
+
     for i, data in enumerate(DataArray):
         ax.plot(unit_conversion(data.time.get_array()[::SubSampleN], unit_prefix), data.voltage[::SubSampleN],
                 alpha=0.8, label=LabelArray[i])
@@ -3252,7 +3254,7 @@ def multi_subplots_time(DataArray, SubSampleN=1, units='s', xlim=None, ylim=None
     show_fig : bool, optional
        If True runs plt.show() before returning figure
        if False it just returns the figure object.
-       (the default is True, it shows the figure) 
+       (the default is True, it shows the figure)
 
     Returns
     -------
@@ -3287,23 +3289,23 @@ def multi_subplots_time(DataArray, SubSampleN=1, units='s', xlim=None, ylim=None
 
 def arrange_plots_on_one_canvas(FigureAxTupleArray, title='', SubtitleArray = [], show_fig=True):
     """
-    Arranges plots, given in an array of tuples consisting of fig and axs, 
+    Arranges plots, given in an array of tuples consisting of fig and axs,
     onto a subplot-figure consisting of 2 horizontal times the lenght of the
-    passed (fig,axs)-array divided by 2 vertical subplots 
+    passed (fig,axs)-array divided by 2 vertical subplots
 
     Parameters
     ----------
     FigureAxTupleArray : array-like
-        array of Tuples(fig, axs) outputted from the other plotting funtions 
+        array of Tuples(fig, axs) outputted from the other plotting funtions
         inside optoanalysis
     title : string, optional
-        string for the global title of the overall combined figure 
+        string for the global title of the overall combined figure
     SubtitleArray : array-like, optional
-        array of titles for each figure-set to be plotted, i.e. subplots 
+        array of titles for each figure-set to be plotted, i.e. subplots
     show_fig : bool, optional
        If True runs plt.show() before returning figure
        if False it just returns the figure object.
-       (the default is True, it shows the figure) 
+       (the default is True, it shows the figure)
 
     Returns
     -------
@@ -3372,7 +3374,7 @@ def calc_PSD(Signal, SampleFreq, NPerSegment=1000000, window="hann"):
 def calc_autocorrelation(Signal, FFT=False, PyCUDA=False):
     """
     Calculates the autocorrelation from a given Signal via using
-    
+
 
     Parameters
     ----------
@@ -3580,7 +3582,7 @@ def parse_orgtable(lines):
     ----------
     lines : string
         an org-table input as a list of strings split by newline
-    
+
     Returns
     -------
     dataframe : pandas.DataFrame
@@ -3663,7 +3665,7 @@ def plot_3d_dist(Z, X, Y, N=1000, AxisOffset=0, Angle=-40, LowLim=None, HighLim=
     normalized_map = _plt.cm.Blues(h/h.max())
     yy, zz = _np.meshgrid(yedges, zedges)
     xpos = lowLim # Plane of histogram
-    xflat = _np.full_like(yy, xpos) 
+    xflat = _np.full_like(yy, xpos)
     p = ax.plot_surface(xflat, yy, zz, facecolors=normalized_map, rstride=1, cstride=1, shade=False)
 
     h, xedges, zedges = _np.histogram2d(x, z, bins=50)
@@ -3671,7 +3673,7 @@ def plot_3d_dist(Z, X, Y, N=1000, AxisOffset=0, Angle=-40, LowLim=None, HighLim=
     normalized_map = _plt.cm.Blues(h/h.max())
     xx, zz = _np.meshgrid(xedges, zedges)
     ypos = highLim # Plane of histogram
-    yflat = _np.full_like(xx, ypos) 
+    yflat = _np.full_like(xx, ypos)
     p = ax.plot_surface(xx, yflat, zz, facecolors=normalized_map, rstride=1, cstride=1, shade=False)
 
     h, yedges, xedges = _np.histogram2d(y, x, bins=50)
@@ -3679,7 +3681,7 @@ def plot_3d_dist(Z, X, Y, N=1000, AxisOffset=0, Angle=-40, LowLim=None, HighLim=
     normalized_map = _plt.cm.Blues(h/h.max())
     yy, xx = _np.meshgrid(yedges, xedges)
     zpos = lowLim # Plane of histogram
-    zflat = _np.full_like(yy, zpos) 
+    zflat = _np.full_like(yy, zpos)
     p = ax.plot_surface(xx, yy, zflat, facecolors=normalized_map, rstride=1, cstride=1, shade=False)
     if show_fig == True:
         _plt.show()
@@ -3723,7 +3725,7 @@ def multi_plot_3d_dist(ZXYData, N=1000, AxisOffset=0, Angle=-40, LowLim=None, Hi
         #    ColorMapArray = [_plt.cm.Blues, _plt.cm.Greens, _plt.cm.Reds]
         if ZXYData.shape[0] > len(ColorArray):
             raise NotImplementedError("Only {} datasets can be plotted with automatic colors".format(len(ColorArray)))
-        
+
     angle = Angle
     fig = _plt.figure(figsize=(8, 6))
     ax = fig.add_subplot(111, projection='3d')
@@ -3733,7 +3735,7 @@ def multi_plot_3d_dist(ZXYData, N=1000, AxisOffset=0, Angle=-40, LowLim=None, Hi
         x = ZXY[1][0:N]
         z = ZXY[2][0:N]
         ax.scatter(x, y, z, alpha=alphaLevel, color=ColorArray[datindx])
-        
+
     xlim = ax.get_xlim()
     ylim = ax.get_ylim()
     zlim = ax.get_zlim()
@@ -3753,42 +3755,42 @@ def multi_plot_3d_dist(ZXYData, N=1000, AxisOffset=0, Angle=-40, LowLim=None, Hi
         y = ZXY[0][0:N]
         x = ZXY[1][0:N]
         z = ZXY[2][0:N]
-        
+
         #h, yedges, zedges = _np.histogram2d(y, z, bins=50)
         #h = h.transpose()
         #normalized_map = ColorMapArray[datindx](h/h.max())
         #yy, zz = _np.meshgrid(yedges, zedges)
         xpos = lowLim # Plane of histogram
-        #xflat = _np.full_like(yy, xpos) 
+        #xflat = _np.full_like(yy, xpos)
         #p = ax.plot_surface(xflat, yy, zz, facecolors=normalized_map, rstride=1, cstride=1, shade=False)
-        xflat = _np.full_like(y, xpos) 
+        xflat = _np.full_like(y, xpos)
         ax.scatter(xflat, y, z, color=ColorArray[datindx], alpha=alphaLevel)
-        
+
         #h, xedges, zedges = _np.histogram2d(x, z, bins=50)
         #h = h.transpose()
         #normalized_map = ColorMapArray[datindx](h/h.max())
         #xx, zz = _np.meshgrid(xedges, zedges)
         ypos = highLim # Plane of histogram
-        #yflat = _np.full_like(xx, ypos) 
+        #yflat = _np.full_like(xx, ypos)
         #p = ax.plot_surface(xx, yflat, zz, facecolors=normalized_map, rstride=1, cstride=1, shade=False)
-        yflat = _np.full_like(x, ypos) 
+        yflat = _np.full_like(x, ypos)
         ax.scatter(x, yflat, z, color=ColorArray[datindx], alpha=alphaLevel)
-        
+
         #h, yedges, xedges = _np.histogram2d(y, x, bins=50)
         #h = h.transpose()
         #normalized_map = ColorMapArray[datindx](h/h.max())
         #yy, xx = _np.meshgrid(yedges, xedges)
         zpos = lowLim # Plane of histogram
-        #zflat = _np.full_like(yy, zpos) 
+        #zflat = _np.full_like(yy, zpos)
         #p = ax.plot_surface(xx, yy, zflat, facecolors=normalized_map, rstride=1, cstride=1, shade=False)
-        zflat = _np.full_like(y, zpos) 
+        zflat = _np.full_like(y, zpos)
         ax.scatter(x, y, zflat, color=ColorArray[datindx], alpha=alphaLevel)
-    
+
     ax.set_xlabel("x")
     ax.set_ylabel("z")
     ax.set_zlabel("y")
     ax.view_init(30, angle)
-    
+
     if show_fig == True:
         _plt.show()
     return fig, ax
@@ -3796,8 +3798,8 @@ def multi_plot_3d_dist(ZXYData, N=1000, AxisOffset=0, Angle=-40, LowLim=None, Hi
 # ------ Functions for extracting mass via potential comparision ---------------
 
 def steady_state_potential(xdata,HistBins=100):
-    """ 
-    Calculates the steady state potential. Used in 
+    """
+    Calculates the steady state potential. Used in
     fit_radius_from_potentials.
 
     Parameters
@@ -3812,22 +3814,22 @@ def steady_state_potential(xdata,HistBins=100):
     Returns
     -------
     position : ndarray
-        positions at which potential has been 
+        positions at which potential has been
         calculated
     potential : ndarray
         value of potential at the positions above
-    
-    """  
+
+    """
     import numpy as _np
-    
+
     pops=_np.histogram(xdata,HistBins)[0]
     bins=_np.histogram(xdata,HistBins)[1]
     bins=bins[0:-1]
     bins=bins+_np.mean(_np.diff(bins))
-    
+
     #normalise pops
     pops=pops/float(_np.sum(pops))
-    
+
     return bins,-_np.log(pops)
 
 def dynamical_potential(xdata, dt, order=3):
@@ -3855,7 +3857,7 @@ def dynamical_potential(xdata, dt, order=3):
     adata = calc_acceleration(xdata, dt)
     xdata = xdata[2:] # removes first 2 values as differentiating twice means
     # we have acceleration[n] corresponds to position[n-2]
-    
+
     z=_np.polyfit(xdata,adata,order)
     p=_np.poly1d(z)
     spring_pot=_np.polyint(p)
@@ -3864,7 +3866,7 @@ def dynamical_potential(xdata, dt, order=3):
 def calc_acceleration(xdata, dt):
     """
     Calculates the acceleration from the position
-    
+
     Parameters
     ----------
     xdata : ndarray
@@ -3875,7 +3877,7 @@ def calc_acceleration(xdata, dt):
     Returns
     -------
     acceleration : ndarray
-        values of acceleration from position 
+        values of acceleration from position
         2 to N.
 
     """
@@ -3884,18 +3886,18 @@ def calc_acceleration(xdata, dt):
 
 def fit_radius_from_potentials(z, SampleFreq, Damping, HistBins=100, show_fig=False):
     """
-    Fits the dynamical potential to the Steady 
+    Fits the dynamical potential to the Steady
     State Potential by varying the Radius.
-    
+
     z : ndarray
         Position data
     SampleFreq : float
-        frequency at which the position data was 
+        frequency at which the position data was
         sampled
     Damping : float
         value of damping (in radians/second)
     HistBins : int
-        number of values at which to evaluate 
+        number of values at which to evaluate
         the steady state potential / perform
         the fitting to the dynamical potential
 
@@ -3923,7 +3925,7 @@ def fit_radius_from_potentials(z, SampleFreq, Damping, HistBins=100, show_fig=Fa
     SpringPotnlFunc = dynamical_potential(z, dt)
     SpringPotnl = SpringPotnlFunc(z)
     kBT_Gamma = temp*boltzmann*1/Damping
-    
+
     DynamicPotentialFunc = make_dynamical_potential_func(kBT_Gamma, density, SpringPotnlFunc)
     FitSoln = _curve_fit(DynamicPotentialFunc, SteadyStatePotnl[0], SteadyStatePotnl[1], p0 = 50)
     print(FitSoln)
@@ -3934,7 +3936,7 @@ def fit_radius_from_potentials(z, SampleFreq, Damping, HistBins=100, show_fig=Fa
     mass=((4/3)*pi*((Radius*10**-9)**3))*density
     yfit=(kBT_Gamma/mass)
     Y = yfit*SpringPotnl
-    
+
     fig, ax = _plt.subplots()
     ax.plot(SteadyStatePotnl[0], SteadyStatePotnl[1], 'bo', label="Steady State Potential")
     _plt.plot(z,Y, 'r-', label="Dynamical Potential")
@@ -3949,7 +3951,7 @@ def fit_radius_from_potentials(z, SampleFreq, Damping, HistBins=100, show_fig=Fa
 def make_dynamical_potential_func(kBT_Gamma, density, SpringPotnlFunc):
     """
     Creates the function that calculates the potential given
-    the position (in volts) and the radius of the particle. 
+    the position (in volts) and the radius of the particle.
 
     Parameters
     ----------
@@ -3960,18 +3962,18 @@ def make_dynamical_potential_func(kBT_Gamma, density, SpringPotnlFunc):
     SpringPotnlFunc : function
         Function which takes the value of position (in volts)
         and returns the spring potential
-    
+
     Returns
     -------
     PotentialFunc : function
         function that calculates the potential given
-        the position (in volts) and the radius of the 
+        the position (in volts) and the radius of the
         particle.
 
     """
     def PotentialFunc(xdata, Radius):
         """
-        calculates the potential given the position (in volts) 
+        calculates the potential given the position (in volts)
         and the radius of the particle.
 
         Parameters
@@ -3998,12 +4000,12 @@ def calc_mean_amp(signal):
     """
     calculates the mean amplitude by calculating the RMS
     of the signal and then multiplying it by √2.
-    
+
     Parameters
     ----------
     signal : ndarray
     array of floats containing an AC signal
-    
+
     Returns
     -------
     mean_amplitude : float
@@ -4013,8 +4015,8 @@ def calc_mean_amp(signal):
 
 def calc_z0_and_conv_factor_from_ratio_of_harmonics(z, z2, NA=0.999):
     """
-    Calculates the Conversion Factor and physical amplitude of motion in nms 
-    by comparison of the ratio of the heights of the z signal and 
+    Calculates the Conversion Factor and physical amplitude of motion in nms
+    by comparison of the ratio of the heights of the z signal and
     second harmonic of z.
 
     Parameters
@@ -4070,8 +4072,8 @@ def calc_mass_from_z0(z0, w0):
 
 def calc_mass_from_fit_and_conv_factor(A, Damping, ConvFactor):
     """
-    Calculates mass from the A parameter from fitting, the damping from 
-    fitting in angular units and the Conversion factor calculated from 
+    Calculates mass from the A parameter from fitting, the damping from
+    fitting in angular units and the Conversion factor calculated from
     comparing the ratio of the z signal and first harmonic of z.
 
     Parameters
@@ -4101,7 +4103,7 @@ def get_time_slice(time, z, zdot=None, timeStart=None, timeEnd=None):
     Parameters
     ----------
     time : ndarray
-        array of time values 
+        array of time values
     z : ndarray
         array of z values
     zdot : ndarray, optional
@@ -4138,21 +4140,21 @@ def get_time_slice(time, z, zdot=None, timeStart=None, timeEnd=None):
     if zdot != None:
         zdot_sliced = zdot[StartIndex:EndIndex]
     else:
-        zdot_sliced = None    
-    
+        zdot_sliced = None
+
     return time_sliced, z_sliced, zdot_sliced
 
-    
+
 def calc_radius_from_mass(Mass):
     """
-    Given the mass of a particle calculates the 
+    Given the mass of a particle calculates the
     radius, assuming a 1800 kg/m**3 density.
 
     Parameters
     ----------
     Mass : float
         mass in kgs
-   
+
     Returns
     -------
     Radius : float
@@ -4161,12 +4163,12 @@ def calc_radius_from_mass(Mass):
     density = 1800
     Radius = (3*Mass/(4*pi*density))**(1/3)
     return Radius
-    
+
 # ------------------------------------------------------------
 
 def unit_conversion(array, unit_prefix, current_prefix=""):
     """
-    Converts an array or value to of a certain 
+    Converts an array or value to of a certain
     unit scale to another unit scale.
 
     Accepted units are:
@@ -4274,16 +4276,16 @@ def extract_slices(z, freq, sample_freq, show_plot=False):
     if show_plot == True:
         fig, ax = _plt.subplots()
 
-    for i in range(number_of_oscillations-1): 
+    for i in range(number_of_oscillations-1):
         # loops through number of oscillations - 1 pulling out period_samples
         # slices and assigning them a phase from -180 to 180 degrees
         start = i*period_samples # start index of section
         end = (i+1)*period_samples # end index of section
         if show_plot == True:
-            _plt.plot(phase, z[start:end]) 
+            _plt.plot(phase, z[start:end])
         phase_slices_untransposed[i] = z[start:end] # enter z section as ith row
-    
-    phase_slices = phase_slices_untransposed.transpose() # swap rows and columns 
+
+    phase_slices = phase_slices_untransposed.transpose() # swap rows and columns
 
     if show_plot == True:
         _plt.show()
@@ -4344,7 +4346,7 @@ def get_wigner(z, freq, sample_freq, histbins=200, show_plot=False):
     degrees. These slices are then histogramed in order to get a distribution
     of counts of where the particle is observed at each phase. The 2d array
     containing the counts varying with position and phase is then passed through
-    the inverse radon transformation using the Simultaneous Algebraic 
+    the inverse radon transformation using the Simultaneous Algebraic
     Reconstruction Technique approximation from the scikit-image package.
 
     Parameters
@@ -4368,7 +4370,7 @@ def get_wigner(z, freq, sample_freq, histbins=200, show_plot=False):
         positions of the bin centres
 
     """
-    
+
     phase, phase_slices = extract_slices(z, freq, sample_freq, show_plot=False)
 
     counts_array, bin_edges = histogram_phase(phase_slices, phase, histbins, show_plot=show_plot)
@@ -4472,7 +4474,7 @@ def plot_wigner2d(iradon_output, bin_centres, cmap=_cm.cubehelix_r, figsize=(6, 
     xx, yy = _np.meshgrid(bin_centres, bin_centres)
     resid1 = iradon_output.sum(axis=0)
     resid2 = iradon_output.sum(axis=1)
-    
+
     wigner_marginal_seperation = 0.001
     left, width = 0.2, 0.65-0.1 # left = left side of hexbin and hist_x
     bottom, height = 0.1, 0.65-0.1 # bottom = bottom of hexbin and hist_y
@@ -4518,8 +4520,15 @@ def plot_wigner2d(iradon_output, bin_centres, cmap=_cm.cubehelix_r, figsize=(6, 
     return fig, axWigner, axHistx, axHisty, cbar
 
 
-def fit_data(freq_array, S_xx_array, AGuess, OmegaTrap, GammaGuess, make_fig=True, show_fig=True):
-    
+def fit_data(freq_array, S_xx_array, AGuess, OmegaTrap, GammaGuess, freq_range=None, make_fig=True, show_fig=True, **kwargs):
+    if freq_range != None:
+        StartIndex = list(freq_array).index(freq_array[freq_array >= freq_range[0]][0])
+        EndIndex = list(freq_array).index(freq_array[freq_array >= freq_range[1]][0])
+        freq_array = freq_array[StartIndex:EndIndex]
+        S_xx_array = S_xx_array[StartIndex:EndIndex]
+    else:
+        pass
+
     logPSD = 10 * _np.log10(S_xx_array) # putting S_xx in dB
 
     def calc_theory_PSD_curve_fit(freqs, A, TrapFreq, BigGamma):
@@ -4538,7 +4547,8 @@ def fit_data(freq_array, S_xx_array, AGuess, OmegaTrap, GammaGuess, make_fig=Tru
     Params_Fit, Params_Fit_Err = fit_curvefit(p0,
                                               datax,
                                               datay,
-                                              calc_theory_PSD_curve_fit)
+                                              calc_theory_PSD_curve_fit,
+                                              **kwargs)
 
     if make_fig == True:
         fig = _plt.figure(figsize=properties["default_fig_size"])
@@ -4574,7 +4584,7 @@ def fit_data(freq_array, S_xx_array, AGuess, OmegaTrap, GammaGuess, make_fig=Tru
         return Params_Fit, Params_Fit_Err, None, None
 
 def fit_data_2(freq_array, S_xx_array, AGuess, OmegaTrap, GammaGuess, make_fig=True, show_fig=True):
-    
+
     logPSD = 10 * _np.log10(S_xx_array) # putting S_xx in dB
 
     def calc_theory_PSD_curve_fit(freqs, A, TrapFreq, BigGamma):
@@ -4628,11 +4638,11 @@ def fit_data_2(freq_array, S_xx_array, AGuess, OmegaTrap, GammaGuess, make_fig=T
     else:
         return Params_Fit, Params_Fit_Err, None, None
 
-    
+
 def calc_reduced_chi_squared(y_observed, y_model, observation_error, number_of_fitted_parameters):
     """
     Calculates the reduced chi-squared, used to compare a model to observations. For example can be used to calculate how good a fit is by using fitted y values for y_model along with observed y values and error in those y values. Reduced chi-squared should be close to 1 for a good fit, lower than 1 suggests you are overestimating the measurement error (observation_error you entered is higher than the true error in the measurement). A value higher than 1 suggests either your model is a bad fit OR you are underestimating the error in the measurement (observation_error you entered is lower than the true error in the measurement). See https://en.wikipedia.org/wiki/Reduced_chi-squared_statistic for more detail.
-    
+
     Parameters
     ----------
     y_observed : ndarray
@@ -4660,3 +4670,34 @@ def calc_reduced_chi_squared(y_observed, y_model, observation_error, number_of_f
     v = num_of_observations - number_of_fitted_parameters # v = number of degrees of freedom
     chi2_reduced = chi2/v
     return chi2_reduced
+
+def fit_to_ringdown(time, signal, time_start, time_stop, Gamma_guess):
+    StartIndex = list(time).index(time[time >= time_start][0])
+    EndIndex = list(time).index(time[time >= time_stop][0])
+
+    t_slice = time[StartIndex:EndIndex]
+    x_slice = signal[StartIndex:EndIndex]
+    Hx_slice = _hilbert(x_slice)
+    Htransx_slice = _np.sqrt(Hx_slice.imag**2 + x_slice**2)
+
+
+    start_of_slice = t_slice[0]
+    t_slice = t_slice - start_of_slice  # shift 0 point of time to start of slice
+
+    fitfn = lambda t,A,Gamma: A*_np.exp(-Gamma/2*t)
+
+    A_guess = max(Htransx_slice)
+
+    result = _curve_fit(fitfn,  t_slice,  Htransx_slice, p0=[A_guess, Gamma_guess])
+    A, Gamma = result[0]
+    A_err = result[1][0,0]**0.5    
+    Gamma_err = result[1][1,1]**0.5
+    A_Ufloat = _uncertainties.ufloat(A, A_err)
+    Gamma_Ufloat = _uncertainties.ufloat(Gamma, Gamma_err)
+
+    fig, ax = _plt.subplots()
+    ax.plot(t_slice,  x_slice)
+    ax.plot(t_slice,  Htransx_slice)
+    ax.plot(t_slice, fitfn(t_slice, A, Gamma))
+    return Gamma_Ufloat, A_Ufloat, fig, ax, t_slice, x_slice, Htransx_slice
+
