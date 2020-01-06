@@ -516,7 +516,7 @@ class DataObject():
         AreaUnderPSD = sum(self.PSD[index_startAreaPSD: index_endAreaPSD])
         return AreaUnderPSD
 
-    def get_fit(self, TrapFreq, WidthOfPeakToFit, A_Initial=0.1e10, Gamma_Initial=400, silent=False, MakeFig=True, show_fig=True):
+    def get_fit(self, TrapFreq, WidthOfPeakToFit, A_Initial=0.1e10, Gamma_Initial=400, silent=False, MakeFig=True, show_fig=True, plot_initial=True):
         """
         Function that fits to a peak to the PSD to extract the
         frequency, A factor and Gamma (damping) factor.
@@ -572,10 +572,10 @@ class DataObject():
         """
         if MakeFig == True:
             Params, ParamsErr, fig, ax = fit_PSD(
-                self, WidthOfPeakToFit, TrapFreq, A_Initial, Gamma_Initial, MakeFig=MakeFig, show_fig=show_fig)
+                self, WidthOfPeakToFit, TrapFreq, A_Initial, Gamma_Initial, MakeFig=MakeFig, show_fig=show_fig, plot_initial=plot_initial)
         else:
             Params, ParamsErr, _ , _ = fit_PSD(
-                self, WidthOfPeakToFit, TrapFreq, A_Initial, Gamma_Initial, MakeFig=MakeFig, show_fig=show_fig)
+                self, WidthOfPeakToFit, TrapFreq, A_Initial, Gamma_Initial, MakeFig=MakeFig, show_fig=show_fig, plot_initial=plot_initial)
 
         if silent == False:
             print("\n")
@@ -596,7 +596,7 @@ class DataObject():
         else:
             return self.A, self.OmegaTrap, self.Gamma, None, None
 
-    def get_fit_from_peak(self, lowerLimit, upperLimit, NumPointsSmoothing=1, silent=False, MakeFig=True, show_fig=True):
+    def get_fit_from_peak(self, lowerLimit, upperLimit, NumPointsSmoothing=1, silent=False, MakeFig=True, show_fig=True, plot_initial=True):
         """
         Finds approximate values for the peaks central frequency, height,
         and FWHM by looking for the heighest peak in the frequency range defined
@@ -678,7 +678,8 @@ class DataObject():
                                Gamma_Initial=approx_Gamma,
                                silent=silent,
                                MakeFig=MakeFig,
-                               show_fig=show_fig)
+                               show_fig=show_fig,
+                               plot_initial=plot_initial)
         except (TypeError, ValueError) as e:
             _warnings.warn("range is too small to fit, returning NaN", UserWarning)
             val = _uncertainties.ufloat(_np.NaN, _np.NaN)
@@ -693,7 +694,7 @@ class DataObject():
 
         return OmegaTrap, A, Gamma, fig, ax
 
-    def get_fit_auto(self, CentralFreq, MaxWidth=15000, MinWidth=500, WidthIntervals=500, MakeFig=True, show_fig=True, silent=False):
+    def get_fit_auto(self, CentralFreq, MaxWidth=15000, MinWidth=500, WidthIntervals=500, MakeFig=True, show_fig=True, silent=False, plot_initial=True):
         """
         Tries a range of regions to search for peaks and runs the one with the least error
         and returns the parameters with the least errors.
@@ -758,7 +759,8 @@ class DataObject():
                                          CentralFreq + BestWidth / 2,
                                          MakeFig=MakeFig,
                                          show_fig=show_fig,
-                                         silent=silent)
+                                         silent=silent,
+                                         plot_initial=plot_initial)
         except UnboundLocalError:
             raise ValueError("A best width was not found, try increasing the number of widths tried by either decreasing WidthIntervals or MinWidth or increasing MaxWidth")
         OmegaTrap = self.OmegaTrap
@@ -2058,7 +2060,7 @@ def PSD_fitting_eqn_with_background(A, OmegaTrap, Gamma, FlatBackground, omega):
     """
     return A / ((OmegaTrap**2 - omega**2)**2 + omega**2 * (Gamma)**2) + FlatBackground
 
-def fit_PSD(Data, bandwidth, TrapFreqGuess, AGuess=0.1e10, GammaGuess=400, FlatBackground=None, MakeFig=True, show_fig=True):
+def fit_PSD(Data, bandwidth, TrapFreqGuess, AGuess=0.1e10, GammaGuess=400, FlatBackground=None, MakeFig=True, show_fig=True, plot_initial=True):
     """
     Fits theory PSD to Data. Assumes highest point of PSD is the
     trapping frequency.
@@ -2199,8 +2201,9 @@ def fit_PSD(Data, bandwidth, TrapFreqGuess, AGuess=0.1e10, GammaGuess=400, FlatB
 
         ax.plot(AngFreqs / (2 * pi), Data.PSD,
                 color="darkblue", label="Raw PSD Data", alpha=0.5)
-        ax.plot(AngFreqs / (2 * pi), 10**(PSDTheory_fit_initial / 10),
-                '--', alpha=0.7, color="purple", label="initial vals")
+        if plot_initial:
+            ax.plot(AngFreqs / (2 * pi), 10**(PSDTheory_fit_initial / 10),
+                    '--', alpha=0.7, color="purple", label="initial vals")
         ax.plot(AngFreqs / (2 * pi), 10**(PSDTheory_fit / 10),
                 color="red", label="fitted vals")
         ax.set_xlim([(OmegaTrap - 5 * Angbandwidth) / (2 * pi),
