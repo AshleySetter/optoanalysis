@@ -44,6 +44,8 @@ try:
         from skcuda.fft import Plan as _Plan
     except (OSError, ModuleNotFoundError) as e:
         print("skcuda not present on system, function calc_fft_with_PyCUDA and calc_ifft_with_PyCUDA will crash")
+    except (cublasNotInitialised) as e:
+        print("cublas Not Initialised error, Cuda won't work")
 except NameError as e:
     pass # ModuleNotFoundError not always there
 
