@@ -15,4 +15,5 @@ numpydoc
 sphinx_rtd_theme
 scikit-image
 nptdms
+pint
 #
