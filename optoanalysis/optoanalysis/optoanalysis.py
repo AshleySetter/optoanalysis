@@ -248,7 +248,8 @@ class DataObject():
             with open(self.filepath, 'r') as csvfile:
                 reader = csv.reader(csvfile)
                 for row in reader:
-                    data.append(row)
+                    if len(row) != 0:
+                        data.append(row)
 
             data = _np.array(data)                        
             if data[15][1] == 'TDS1001B':
