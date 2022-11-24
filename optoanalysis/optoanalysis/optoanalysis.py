@@ -27,6 +27,7 @@ import qplots as _qplots
 from functools import partial as _partial
 from frange import frange
 from scipy.constants import Boltzmann, pi
+from scipy.io import loadmat
 from os.path import exists as _does_file_exist
 from skimage.transform import iradon_sart as _iradon_sart
 from nptdms import TdmsFile as _TdmsFile
@@ -243,6 +244,14 @@ class DataObject():
             self.voltage = data[1]
             del(data)
             timeParams = [t0, tend, dt]
+        elif FileExtension == "mat": # MATLAB version < 7.3 
+            data = loadmat(self.filepath)
+            dt = data["Tinterval"][0][0]
+            length = data["Length"][0][0]
+            t0 = data["Tstart"][0][0]
+            self.SampleFreq = 1/dt
+            self.voltage = data["B"].flatten()
+            timeParams = [t0, t0 + (length-1)*dt, dt]
         elif FileExtension.lower() == 'csv': # .CSV files created by oscilloscopes or this package
             data = []
             with open(self.filepath, 'r') as csvfile:
