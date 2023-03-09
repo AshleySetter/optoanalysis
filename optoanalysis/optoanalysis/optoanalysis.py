@@ -107,12 +107,22 @@ class DataObject():
 
     """
 
-    def __init__(self, filepath, RelativeChannelNo=None, SampleFreq=None, PointsToLoad=-1, calcPSD=True, NPerSegmentPSD=1000000, NormaliseByMonitorOutput=False):
+    def __init__(self, filepath=None, voltage=None, time=None, SampleFreq=None, timeStart=None, RelativeChannelNo=None, PointsToLoad=-1, calcPSD=True, NPerSegmentPSD=1000000, NormaliseByMonitorOutput=False):
         """
         Parameters
         ----------
-        filepath : string
+        filepath : string, optional
             The filepath to the data file to initialise this object instance.
+        voltage : ndarray, optional
+            Array of voltages recorded by the measurement device, to be used as an alternative to filepath when the file to be loaded is not supported natively.
+            If this argument is passed, one of either the time or SampleFreq variables must be provided
+        time : ndarray, optional
+            Array of times corresponding to the voltage measurements, only used if voltage is passed
+        SampleFreq : float, optional
+            The sample frequency of the voltage measurements, if the time data is not provided, only used if voltage is passed or
+            if loading a .dat file produced by the labview NI5122 daq card, where it is used to manually specify the sample frequency
+        timeStart : float, optional
+            The start time of the time data
         RelativeChannelNo : int, optional
             If loading a .bin file produced by the Saleae datalogger, used to specify
             the channel number
@@ -121,9 +131,6 @@ class DataObject():
             .dat files it will assume that the file to load only contains one channel.
             If NormaliseByMonitorOutput is True then RelativeChannelNo specifies the
             monitor channel for loading a .dat file produced by the labview NI5122 daq card.
-        SampleFreq : float, optional
-            If loading a .dat file produced by the labview NI5122 daq card, used to
-            manually specify the sample frequency
         PointsToLoad : int, optional
             Number of first points to read. -1 means all points (i.e. the complete file)
             WORKS WITH NI5122 DATA SO FAR ONLY!!!
@@ -147,16 +154,77 @@ class DataObject():
         - PSD
         """
         self.filepath = filepath
-        self.filename = filepath.split("/")[-1]
-        self.filedir = self.filepath[0:-len(self.filename)]
-        self.load_time_data(RelativeChannelNo,SampleFreq,PointsToLoad,NormaliseByMonitorOutput)
-        if calcPSD != False:
+        if self.filepath != None:
+            self.filename = filepath.split("/")[-1]
+            self.filedir = self.filepath[0:-len(self.filename)]
+            self.load_time_data(RelativeChannelNo, SampleFreq, PointsToLoad, NormaliseByMonitorOutput)
+        else:
+            if voltage is not None:
+                self.load_time_data_from_signal(voltage, time, SampleFreq, timeStart)
+            else:
+                raise ValueError("Must provide one of filepath or voltage to instantiate a DataObject instance")
+        print("calcPSD: ", calcPSD)
+        if calcPSD:
+            print("running self.get_PSD")
             self.get_PSD(NPerSegmentPSD)
+        return None
+
+    def load_time_data_from_signal(self, voltage, time=None, SampleFreq=None, timeStart=None):
+        """
+        Loads the voltage and time data provided as arrays.
+        Must provide the voltage signal and either provide the time data, or the sample frequency.
+
+        Sets the instance properties:
+            self.voltage
+            self.SampleFreq
+            self.timeStart
+            self.timeEnd
+            self.timeStep
+            self.time
+        Parameters
+        ----------
+        voltage : ndarray
+            Array of voltages recorded by the measurement device
+        time : ndarray, optional
+            Array of times corresponding to the voltage measurements
+        SampleFreq : float, optional
+            The sample frequency of the voltage measurements, if the time data is not provided
+        timeStart : float, optional
+            The start time of the time data
+        """
+        if voltage is None:
+            raise ValueError("Must provide a voltage array to load time data from a signal")
+        if time is None and SampleFreq is None:
+            raise ValueError("Must provide a value for either time or SampleFreq if loading from voltage array data")
+
+        if time != None:
+            self.timeStart = time[0]
+            self.timeEnd = time[-1]
+            self.timeStep = time[1] - time[0]
+            self.SampleFreq = 1 / self.timeStep
+            if SampleFreq:
+                self.SampleFreq = SampleFreq
+            self.time = frange(self.timeStart, self.timeEnd + self.timeStep, self.timeStep)
+        elif SampleFreq != None:
+            self.SampleFreq = SampleFreq
+            self.timeStep = 1 / self.SampleFreq
+            self.timeStart = timeStart
+            self.timeEnd = timeStart + len(voltage) * self.timeStep
+            self.time = frange(self.timeStart, self.timeEnd + self.timeStep, self.timeStep)
+
+        self.voltage = voltage
         return None
 
     def load_time_data(self, RelativeChannelNo=None, SampleFreq=None, PointsToLoad=-1, NormaliseByMonitorOutput=False):
         """
         Loads the time and voltage data and the wave description from the associated file.
+        Sets the instance properties:
+            self.voltage
+            self.SampleFreq
+            self.timeStart
+            self.timeEnd
+            self.timeStep
+            self.time
 
         Parameters
         ----------
@@ -490,6 +558,7 @@ class DataObject():
                 Array containing the value of the PSD at the corresponding
                 frequency value in V**2/Hz
         """
+        print("Calculating power spectral density")
         if timeStart == None and timeEnd == None:
             freqs, PSD = calc_PSD(self.voltage, self.SampleFreq, NPerSegment=NPerSegment)
             self.PSD = PSD
@@ -1487,6 +1556,22 @@ class ORGTableData():
         return Value
 
 
+def load_voltage_data(voltage, time=None, SampleFreq=None, timeStart=None):
+    """
+    Parameters
+    ----------
+    voltage : ndarray, optional
+        Array of voltages recorded by the measurement device, to be used as an alternative to filepath when the file to be loaded is not supported natively.
+        If this argument is passed, one of either the time or SampleFreq variables must be provided
+    time : ndarray, optional
+        Array of times corresponding to the voltage measurements
+    SampleFreq : float, optional
+        The sample frequency of the voltage measurements, used if the time argument is not provided, also overrides the sample frequency calculated from
+        the time step in the time data.
+    """
+    data = DataObject(voltage=voltage, time=time, SampleFreq=SampleFreq, timeStart=timeStart)
+    return data
+
 def load_data(Filepath, ObjectType='data', RelativeChannelNo=None, SampleFreq=None, PointsToLoad=-1, calcPSD=True, NPerSegmentPSD=1000000, NormaliseByMonitorOutput=False, silent=False):
     """
     Parameters
@@ -1540,7 +1625,8 @@ def load_data(Filepath, ObjectType='data', RelativeChannelNo=None, SampleFreq=No
         Object = ObjectTypeDict[ObjectType]
     except KeyError:
         raise ValueError("You entered {}, this is not a valid object type".format(ObjectType))
-    data = Object(Filepath, RelativeChannelNo, SampleFreq, PointsToLoad, calcPSD, NPerSegmentPSD, NormaliseByMonitorOutput)
+    data = Object(filepath=Filepath, RelativeChannelNo=RelativeChannelNo, SampleFreq=SampleFreq, 
+                  PointsToLoad=PointsToLoad, calcPSD=calcPSD, NPerSegmentPSD=NPerSegmentPSD, NormaliseByMonitorOutput=NormaliseByMonitorOutput)
     try:
         channel_number, run_number, repeat_number = [int(val) for val in re.findall('\d+', data.filename)]
         data.channel_number = channel_number

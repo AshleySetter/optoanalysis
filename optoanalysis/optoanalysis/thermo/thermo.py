@@ -4,7 +4,7 @@ import scipy as _scipy
 from scipy import constants
 try:
     from numba import jit as _jit
-except (OSError, ModuleNotFoundError) as e:
+except (OSError, ModuleNotFoundError, ImportError) as e:
     def _jit(func):        
         return func
     print("Numba not present on system, not importing jit")

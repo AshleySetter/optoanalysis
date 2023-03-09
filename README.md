@@ -21,3 +21,7 @@ This library contains numerous functions for loading, analysing and plotting dat
 Some example usage of this library is shown in [this Jupyter notebook](Usage_Demonstration.ipynb).
 
 If you use this package in any academic work it would be very appretiated if you could cite it [![DOI](https://zenodo.org/badge/74761875.svg)](https://zenodo.org/badge/latestdoi/74761875).
+
+# Development
+
+To build and install this package locally you can navigate to the optoanalysis subdirectory and run `python -m build`, this will build the package in the `optoanalysis/dist` directory relative to the root directory, inside will be a `optoanalysis-<your_version_here>-py3-none-any.whl` file for the version of the package you have built, you can change the version number by editing the version in the `optoanalysis/optoanalysis/VERSION` file. You can then install your local version by running `pip install optoanalysis-<your_version_here>-py3-none-any.whl` which will install it to your active python environment, if you have a current or newer version of the package already installed, you will need to add the `--force-reinstall` flags to force pip to reinstall the package. You can then import and use your local version of the package. You will need to rebuild and reinstall upon making any changes to the source code, and you will need to use `pip install optoanalysis-<your_version_here>-py3-none-any.whl --force-reinstall` to force pip to reinstall the same version of the package, or pip will ignore your changes.
