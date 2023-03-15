@@ -228,8 +228,11 @@ class DataObject():
 
         Parameters
         ----------
-        RelativeChannelNo : int, optional
-             Channel number for loading saleae data files
+        RelativeChannelNo : int|str, optional
+             Channel to load data from (number or letter) used in following file formats: 
+                - saleae data files - number
+                - .dat file produced by the labview NI5122 daq card - number
+                - .mat files from MATLAB version < 7.3 - letter
              If loading a .dat file produced by the labview NI5122 daq card, used to
              specifiy the channel number if two channels where saved, if left None with
              .dat files it will assume that the file to load only contains one channel.
@@ -312,13 +315,17 @@ class DataObject():
             self.voltage = data[1]
             del(data)
             timeParams = [t0, tend, dt]
-        elif FileExtension == "mat": # MATLAB version < 7.3 
+        elif FileExtension == "mat": # MATLAB version < 7.3
+            if RelativeChannelNo is not None:
+                channel = RelativeChannelNo
+            else:
+                channel = "B"
             data = loadmat(self.filepath)
             dt = data["Tinterval"][0][0]
             length = data["Length"][0][0]
             t0 = data["Tstart"][0][0]
             self.SampleFreq = 1/dt
-            self.voltage = data["B"].flatten()
+            self.voltage = data[channel].flatten()
             timeParams = [t0, t0 + (length-1)*dt, dt]
         elif FileExtension.lower() == 'csv': # .CSV files created by oscilloscopes or this package
             data = []
@@ -1587,6 +1594,7 @@ def load_data(Filepath, ObjectType='data', RelativeChannelNo=None, SampleFreq=No
     RelativeChannelNo : int, optional
         If loading a .bin file produced by the Saneae datalogger, used to specify
         the channel number
+        If loading a .mat file from MATLAB version < 7.3, used to specify channel letter (defaults to B)
         If loading a .dat file produced by the labview NI5122 daq card, used to
         specifiy the channel number if two channels where saved, if left None with
         .dat files it will assume that the file to load only contains one channel.
