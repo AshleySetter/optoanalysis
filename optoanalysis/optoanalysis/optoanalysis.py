@@ -657,7 +657,7 @@ class DataObject():
         AreaUnderPSD = sum(self.PSD[index_startAreaPSD: index_endAreaPSD])
         return AreaUnderPSD
 
-    def get_fit(self, TrapFreq, WidthOfPeakToFit, A_Initial=0.1e10, Gamma_Initial=400, silent=False, MakeFig=True, show_fig=True, plot_initial=True):
+    def get_fit(self, TrapFreq, WidthOfPeakToFit, A_Initial=0.1e10, Gamma_Initial=400, silent=False, MakeFig=True, show_fig=True, plot_initial=True, timeStart=None, timeEnd=None, NPerSegment=1000000):
         """
         Function that fits to a peak to the PSD to extract the
         frequency, A factor and Gamma (damping) factor.
@@ -684,6 +684,10 @@ class DataObject():
         show_fig : bool, optional
             Whether to show the figure object when it has been created.
             defaults to True
+        timeStart : float, optional
+            Time at which to start the data to use for fitting
+        timeEnd : float, optional
+            Time at which to end the data to use for fitting
 
         Returns
         -------
@@ -713,10 +717,10 @@ class DataObject():
         """
         if MakeFig == True:
             Params, ParamsErr, fig, ax = fit_PSD(
-                self, WidthOfPeakToFit, TrapFreq, A_Initial, Gamma_Initial, MakeFig=MakeFig, show_fig=show_fig, plot_initial=plot_initial)
+                self, WidthOfPeakToFit, TrapFreq, A_Initial, Gamma_Initial, MakeFig=MakeFig, show_fig=show_fig, plot_initial=plot_initial, timeStart=timeStart, timeEnd=timeEnd, NPerSegment=NPerSegment)
         else:
             Params, ParamsErr, _ , _ = fit_PSD(
-                self, WidthOfPeakToFit, TrapFreq, A_Initial, Gamma_Initial, MakeFig=MakeFig, show_fig=show_fig, plot_initial=plot_initial)
+                self, WidthOfPeakToFit, TrapFreq, A_Initial, Gamma_Initial, MakeFig=MakeFig, show_fig=show_fig, plot_initial=plot_initial, timeStart=timeStart, timeEnd=timeEnd, NPerSegment=NPerSegment)
 
         if silent == False:
             print("\n")
@@ -2219,7 +2223,7 @@ def PSD_fitting_eqn_with_background(A, OmegaTrap, Gamma, FlatBackground, omega):
     """
     return A / ((OmegaTrap**2 - omega**2)**2 + omega**2 * (Gamma)**2) + FlatBackground
 
-def fit_PSD(Data, bandwidth, TrapFreqGuess, AGuess=0.1e10, GammaGuess=400, FlatBackground=None, MakeFig=True, show_fig=True, plot_initial=True):
+def fit_PSD(Data, bandwidth, TrapFreqGuess, AGuess=0.1e10, GammaGuess=400, FlatBackground=None, MakeFig=True, show_fig=True, plot_initial=True, timeStart=None, timeEnd=None, NPerSegment=1000000):
     """
     Fits theory PSD to Data. Assumes highest point of PSD is the
     trapping frequency.
@@ -2249,6 +2253,10 @@ def fit_PSD(Data, bandwidth, TrapFreqGuess, AGuess=0.1e10, GammaGuess=400, FlatB
     show_fig : bool, optional
         Whether to show the figure object when it has been created.
         defaults to True
+    timeStart : float, optional
+        Time at which to start the data to use for fitting
+    timeEnd : float, optional
+        Time at which to end the data to use for fitting
 
     Returns
     -------
@@ -2264,7 +2272,8 @@ def fit_PSD(Data, bandwidth, TrapFreqGuess, AGuess=0.1e10, GammaGuess=400, FlatB
             - initial fit
             - final fit
     """
-    AngFreqs = 2 * pi * Data.freqs
+    freqs, PSD = Data.get_PSD(NPerSegment=NPerSegment, timeStart=timeStart, timeEnd=timeEnd)
+    AngFreqs = 2 * pi * freqs
     Angbandwidth = 2 * pi * bandwidth
     AngTrapFreqGuess = 2 * pi * TrapFreqGuess
 
@@ -2287,8 +2296,8 @@ def fit_PSD(Data, bandwidth, TrapFreqGuess, AGuess=0.1e10, GammaGuess=400, FlatB
     # find highest point in region about guess for trap frequency - use that
     # as guess for trap frequency and recalculate region about the trap
     # frequency
-    index_OmegaTrap = _np.where(Data.PSD == max(
-        Data.PSD[indx_fit_lower:indx_fit_upper]))[0][0]
+    index_OmegaTrap = _np.where(PSD == max(
+        PSD[indx_fit_lower:indx_fit_upper]))[0][0]
 
     OmegaTrap = AngFreqs[index_OmegaTrap]
 
@@ -2300,7 +2309,7 @@ def fit_PSD(Data, bandwidth, TrapFreqGuess, AGuess=0.1e10, GammaGuess=400, FlatB
     indx_fit_lower = int(_np.where(AngFreqs == f_fit_lower)[0][0])
     indx_fit_upper = int(_np.where(AngFreqs == f_fit_upper)[0][0])
 
-    logPSD = 10 * _np.log10(Data.PSD) # putting PSD in dB
+    logPSD = 10 * _np.log10(PSD) # putting PSD in dB
 
     def calc_theory_PSD_curve_fit(freqs, A, TrapFreq, BigGamma, FlatBackground=None):
         if FlatBackground == None:
@@ -2358,7 +2367,7 @@ def fit_PSD(Data, bandwidth, TrapFreqGuess, AGuess=0.1e10, GammaGuess=400, FlatB
                                                 Params_Fit[3],
                                                 AngFreqs))
 
-        ax.plot(AngFreqs / (2 * pi), Data.PSD,
+        ax.plot(AngFreqs / (2 * pi), PSD,
                 color="darkblue", label="Raw PSD Data", alpha=0.5)
         if plot_initial:
             ax.plot(AngFreqs / (2 * pi), 10**(PSDTheory_fit_initial / 10),
